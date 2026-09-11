@@ -9,4 +9,5 @@ const (
 	GamePage
 	PlayerNamePage
 	HighScoresPage
+	QuitPage
 )

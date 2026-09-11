@@ -77,6 +77,11 @@ func (mw *MainWindow) Render() {
 
 		mw.CurrentPage.Render()
 
+		if mw.CurrentPage.GetNextState() == enums.QuitPage {
+			rl.EndDrawing()
+			break
+		}
+
 		if mw.CurrentPage.GetNextState() != mw.CurrentState {
 			mw.Context = mw.CurrentPage.GetContext()
 			mw.CurrentState = mw.CurrentPage.GetNextState()

@@ -55,16 +55,15 @@ func (p *MenuPage) EventListener() bool {
 	} else if p.Buttons[2].IsClicked || (p.SelectedIndex == 2 && enterPressed) {
 		p.NextState = enums.HighScoresPage
 	} else if p.Buttons[3].IsClicked || (p.SelectedIndex == 3 && enterPressed) {
-		return true
+		p.NextState = enums.QuitPage
 	}
 
 	return false
 }
 
 func (p *MenuPage) Render() {
-	shouldClose := p.EventListener()
-	if shouldClose {
-		rl.CloseWindow()
+	p.EventListener()
+	if p.NextState == enums.QuitPage {
 		return
 	}
 
