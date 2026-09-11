@@ -35,6 +35,7 @@ RED = /bin/echo -e "\x1b[31m\#\# $1\x1b[0m"
 install:
 	$(call GREEN,"Installing Go dependencies...")
 	$(GO) mod download
+	$(GO) mod tidy
 
 .PHONY: build
 build: ## Build the Go binary executable
