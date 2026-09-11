@@ -31,7 +31,6 @@ func NewMainWindow(width, height int32, config model.GameConfig, title string) *
 		Windows: make(map[enums.PageState]page.Page),
 	}
 
-	rl.SetTraceLogLevel(rl.LogNone)
 	rl.InitWindow(mw.Width, mw.Height, mw.Title)
 	rl.SetTargetFPS(60)
 
@@ -47,13 +46,16 @@ func (mw *MainWindow) Close() {
 		return
 	}
 	for _, p := range mw.Windows {
-		p.Unload()
+		if p != nil {
+			p.Unload()
+		}
 	}
 	rl.CloseWindow()
 	mw.Closed = true
 }
 
 func (mw *MainWindow) LoadPage() {
+	// Do NOT load GamePage here so the Loading Screen shows instantly
 	mw.Windows = map[enums.PageState]page.Page{
 		enums.LoadingPage: page.NewLoadingPage(mw.Context),
 		enums.MainMenu:    page.NewMenuPage(mw.Width, mw.Height),
@@ -83,9 +85,19 @@ func (mw *MainWindow) Render() {
 		}
 
 		if mw.CurrentPage.GetNextState() != mw.CurrentState {
+			nextState := mw.CurrentPage.GetNextState()
+			
+			// Lazy initialize pages (like GamePage) when they are actually requested
+			if mw.Windows[nextState] == nil {
+				if nextState == enums.GamePage {
+					mw.Windows[nextState] = page.NewGamePage(mw.Width, mw.Height)
+				}
+			}
+
 			mw.Context = mw.CurrentPage.GetContext()
-			mw.CurrentState = mw.CurrentPage.GetNextState()
+			mw.CurrentState = nextState
 			mw.CurrentPage = mw.Windows[mw.CurrentState]
+			
 			if mw.CurrentPage != nil {
 				mw.CurrentPage.SetNextState(mw.CurrentState)
 				mw.CurrentPage.Init(mw.Context)
