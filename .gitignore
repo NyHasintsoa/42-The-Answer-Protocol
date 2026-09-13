@@ -3,6 +3,7 @@
 
 ### Main ###
 **/gen
+**/*.txt
 
 ### C ###
 # Prerequisites

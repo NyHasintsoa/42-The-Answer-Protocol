@@ -17,6 +17,7 @@ type MainWindow struct {
 	Windows      map[enums.PageState]page.Page
 	Closed       bool
 	Context      *model.GameContext
+	pagesLoaded  bool
 }
 
 func NewMainWindow(width, height int32, config model.GameConfig, title string) *MainWindow {
@@ -55,16 +56,20 @@ func (mw *MainWindow) Close() {
 }
 
 func (mw *MainWindow) LoadPage() {
-	// Do NOT load GamePage here so the Loading Screen shows instantly
 	mw.Windows = map[enums.PageState]page.Page{
 		enums.LoadingPage: page.NewLoadingPage(mw.Context),
-		enums.MainMenu:    page.NewMenuPage(mw.Width, mw.Height),
 	}
+	mw.pagesLoaded = false
 	mw.CurrentState = enums.LoadingPage
 	mw.CurrentPage = mw.Windows[mw.CurrentState]
 	if mw.CurrentPage != nil {
 		mw.CurrentPage.Init(mw.Context)
 	}
+}
+
+func (mw *MainWindow) loadPages() {
+	mw.Windows[enums.MainMenu] = page.NewMenuPage(mw.Width, mw.Height)
+	mw.Windows[enums.GamePage] = page.NewGamePage(mw.Width, mw.Height)
 }
 
 func (mw *MainWindow) Render() {
@@ -86,24 +91,21 @@ func (mw *MainWindow) Render() {
 
 		if mw.CurrentPage.GetNextState() != mw.CurrentState {
 			nextState := mw.CurrentPage.GetNextState()
-			
-			// Lazy initialize pages (like GamePage) when they are actually requested
-			if mw.Windows[nextState] == nil {
-				if nextState == enums.GamePage {
-					mw.Windows[nextState] = page.NewGamePage(mw.Width, mw.Height)
-				}
-			}
-
 			mw.Context = mw.CurrentPage.GetContext()
 			mw.CurrentState = nextState
 			mw.CurrentPage = mw.Windows[mw.CurrentState]
-			
 			if mw.CurrentPage != nil {
 				mw.CurrentPage.SetNextState(mw.CurrentState)
 				mw.CurrentPage.Init(mw.Context)
 			}
 		}
 		rl.EndDrawing()
+
+		if mw.CurrentState == enums.LoadingPage && !mw.pagesLoaded {
+			mw.loadPages()
+			mw.pagesLoaded = true
+			mw.CurrentPage.SetNextState(enums.MainMenu)
+		}
 	}
 	mw.Close()
 }

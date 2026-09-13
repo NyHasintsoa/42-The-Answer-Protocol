@@ -29,7 +29,7 @@ func (mc *MainCharacter) loadAnimations() {
 	mc.LoadAnim("Left_Walking", "Left_Walking", "Left_Walking_%03d.png", 20)
 	mc.LoadAnim("Right_Walking", "Right_Walking", "Right_Walking_%03d.png", 20)
 
-	mc.LoadAnim("Front_Attacking", "Front_Attacking", "Front - Attacking_%03d.png", 10)
+	mc.LoadAnim("Front_Attacking", "Front_Attacking", "Front_Attacking_%03d.png", 10)
 	mc.LoadAnim("Back_Attacking", "Back_Attacking", "Back_Attacking_%03d.png", 10)
 	mc.LoadAnim("Left_Attacking", "Left_Attacking", "Left_Attacking_%03d.png", 10)
 	mc.LoadAnim("Right_Attacking", "Right_Attacking", "Right_Attacking_%03d.png", 10)
@@ -42,7 +42,7 @@ func (mc *MainCharacter) loadAnimations() {
 	mc.LoadAnim("Dying", "Dying", "Dying_%03d.png", 10)
 }
 
-func (mc *MainCharacter) Draw() {
+func (mc *MainCharacter) Render() {
 	key := mc.GetAnimKey()
 	frames := mc.Animations[key]
 	if len(frames) == 0 {

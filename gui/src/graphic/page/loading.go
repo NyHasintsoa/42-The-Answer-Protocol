@@ -33,7 +33,6 @@ func NewLoadingPage(ctx *model.GameContext) *LoadingPage {
 }
 
 func (p *LoadingPage) performHeavyGeneration() {
-	// Simulate background engine warm-up so the loading animation plays on startup
 	time.Sleep(2 * time.Second)
 	p.IsGenerationDone = true
 }
@@ -72,5 +71,5 @@ func (p *LoadingPage) Draw(winWidth, winHeight int32) {
 
 func (p *LoadingPage) Render() {
 	p.Update()
-	p.Draw(1177, 920) // Use your main window dimensions if needed
+	p.Draw(1177, 920) 
 }

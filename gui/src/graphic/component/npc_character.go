@@ -2,104 +2,126 @@ package component
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+
+	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-type NPC struct {
-	Character
-	Name string
+type INpc interface {
+	Update(dt float32)
+	Render()
+	UnloadAnimations()
+	SetAction(action string)
 }
 
-func NewNPC(x, y float32, scale float32, assetPath, name string) *NPC {
-	npc := &NPC{
-		Character: NewCharacter(x, y, scale, assetPath),
-		Name:      name,
+type NpcCharacter struct {
+	Name         string
+	Position     rl.Vector2
+	Scale        float32
+	Animations   map[string][]rl.Texture2D
+	CurrentAnim  string
+	FrameIndex   int
+	FrameTimer   float32
+	FrameSpeed   float32
+	PathResolver *utils.PathResolver
+	RelativeDir  string
+}
+
+func NewNpcCharacter(name string, resolver *utils.PathResolver, relativeDir string, x, y, scale float32) NpcCharacter {
+	return NpcCharacter{
+		Name:         name,
+		Position:     rl.NewVector2(x, y),
+		Scale:        scale,
+		Animations:   make(map[string][]rl.Texture2D),
+		CurrentAnim:  "Idle",
+		FrameSpeed:   24.0, 
+		PathResolver: resolver,
+		RelativeDir:  relativeDir,
 	}
-	npc.loadAnimations()
-	return npc
 }
 
-func (npc *NPC) loadAnimations() {
-	npc.LoadAnim("Front_Idle", "Front_Idle", "Front_Idle_%03d.png", 16)
-	npc.LoadAnim("Back_Idle", "Back_Idle", "Back_Idle_%03d.png", 16)
-	npc.LoadAnim("Left_Idle", "Left_Idle", "Left_Idle_%03d.png", 16)
-	npc.LoadAnim("Right_Idle", "Right_Idle", "Right_Idle_%03d.png", 16)
-
-	npc.LoadAnim("Front_Walking", "Front_Walking", "Front_Walking_%03d.png", 20)
-	npc.LoadAnim("Back_Walking", "Back_Walking", "Back_Walking_%03d.png", 20)
-	npc.LoadAnim("Left_Walking", "Left_Walking", "Left_Walking_%03d.png", 20)
-	npc.LoadAnim("Right_Walking", "Right_Walking", "Right_Walking_%03d.png", 20)
-}
-
-func (npc *NPC) GetAnimKey() string {
-	dirStr := ""
-	switch npc.Direction {
-	case DirFront:
-		dirStr = "Front"
-	case DirBack:
-		dirStr = "Back"
-	case DirLeft:
-		dirStr = "Left"
-	case DirRight:
-		dirStr = "Right"
-	}
-
-	actionStr := "Idle"
-	if npc.Action == ActionWalking {
-		actionStr = "Walking"
+func (n *NpcCharacter) LoadAnim(action string) error {
+	dirPath := n.PathResolver.Resolve(n.RelativeDir, action)
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return fmt.Errorf("failed to read directory '%s': %w", dirPath, err)
 	}
 
-	return fmt.Sprintf("%s_%s", dirStr, actionStr)
+	var fileNames []string
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".png") {
+			fileNames = append(fileNames, entry.Name())
+		}
+	}
+	sort.Strings(fileNames)
+
+	var textures []rl.Texture2D
+	for _, name := range fileNames {
+		texPath := filepath.Join(dirPath, name)
+		textures = append(textures, rl.LoadTexture(texPath))
+	}
+
+	n.Animations[action] = textures
+	return nil
 }
 
-func (npc *NPC) Draw() {
-	key := npc.GetAnimKey()
-	frames := npc.Animations[key]
-	
+func (n *NpcCharacter) SetAction(action string) {
+	if _, exists := n.Animations[action]; exists && n.CurrentAnim != action {
+		n.CurrentAnim = action
+		n.FrameIndex = 0
+		n.FrameTimer = 0
+	}
+}
+
+func (n *NpcCharacter) Update(dt float32) {
+	frames := n.Animations[n.CurrentAnim]
 	if len(frames) == 0 {
-		rl.DrawRectangle(int32(npc.Position.X-20), int32(npc.Position.Y-20), 40, 40, rl.Blue)
-		rl.DrawText(npc.Name, int32(npc.Position.X-20), int32(npc.Position.Y)-35, 12, rl.White)
 		return
 	}
 
-	if npc.FrameIndex >= len(frames) {
-		npc.FrameIndex = 0
+	n.FrameTimer += dt
+	if n.FrameTimer >= (1.0 / n.FrameSpeed) {
+		n.FrameTimer = 0
+		n.FrameIndex = (n.FrameIndex + 1) % len(frames)
 	}
-
-	tex := frames[npc.FrameIndex]
-	scaledWidth := float32(tex.Width) * npc.Scale
-	scaledHeight := float32(tex.Height) * npc.Scale
-
-	srcRect := rl.NewRectangle(0, 0, float32(tex.Width), float32(tex.Height))
-	destRect := rl.NewRectangle(
-		npc.Position.X,
-		npc.Position.Y,
-		scaledWidth,
-		scaledHeight,
-	)
-
-	origin := rl.NewVector2(scaledWidth/2, scaledHeight/2+30)
-	rl.DrawTexturePro(tex, srcRect, destRect, origin, 0, rl.White)
-
-	// Draw NPC name
-	rl.DrawText(npc.Name, int32(npc.Position.X-float32(rl.MeasureText(npc.Name, 12))/2), int32(npc.Position.Y-scaledHeight/2-10), 12, rl.SkyBlue)
 }
 
-func (npc *NPC) AdvanceFrame(dt float32, loop bool) bool {
-	npc.FrameTimer += dt
-	if npc.FrameTimer >= (1.0 / npc.FrameSpeed) {
-		npc.FrameTimer = 0
-		npc.FrameIndex++
-		frames := npc.Animations[npc.GetAnimKey()]
-		if npc.FrameIndex >= len(frames) {
-			if loop {
-				npc.FrameIndex = 0
-			} else {
-				npc.FrameIndex = len(frames) - 1
-				return true
-			}
+func (n *NpcCharacter) Render() {
+	frames, exists := n.Animations[n.CurrentAnim]
+	if !exists || len(frames) == 0 {
+		return
+	}
+
+	tex := frames[n.FrameIndex]
+
+	
+	srcRec := rl.NewRectangle(0, 0, float32(tex.Width), float32(tex.Height))
+
+	destWidth := float32(tex.Width) * n.Scale
+	destHeight := float32(tex.Height) * n.Scale
+
+	destRec := rl.NewRectangle(n.Position.X, n.Position.Y, destWidth, destHeight)
+	origin := rl.NewVector2(0, 0)
+
+	rl.DrawTexturePro(tex, srcRec, destRec, origin, 0.0, rl.White)
+
+	
+	label := fmt.Sprintf("%s\n[%s]", strings.ToUpper(n.Name), n.CurrentAnim)
+	textWidth := rl.MeasureText(n.Name, 18)
+	labelX := int32(n.Position.X + (destWidth / 2) - float32(textWidth/2))
+	labelY := int32(n.Position.Y - 45)
+	rl.DrawText(label, labelX, labelY, 18, rl.DarkGray)
+}
+
+func (n *NpcCharacter) UnloadAnimations() {
+	for _, frames := range n.Animations {
+		for _, tex := range frames {
+			rl.UnloadTexture(tex)
 		}
 	}
-	return false
 }

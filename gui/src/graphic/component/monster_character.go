@@ -77,10 +77,10 @@ func (m *Monster) GetAnimKey() string {
 	return fmt.Sprintf("%s_%s", dirStr, actionStr)
 }
 
-func (m *Monster) Draw() {
+func (m *Monster) Render() {
 	key := m.GetAnimKey()
 	frames := m.Animations[key]
-	
+
 	if len(frames) == 0 {
 		rl.DrawRectangle(int32(m.Position.X-20), int32(m.Position.Y-20), 40, 40, rl.Red)
 		rl.DrawText(m.Name, int32(m.Position.X-20), int32(m.Position.Y)-35, 12, rl.White)
@@ -105,7 +105,7 @@ func (m *Monster) Draw() {
 
 	origin := rl.NewVector2(scaledWidth/2, scaledHeight/2+30)
 	rl.DrawTexturePro(tex, srcRect, destRect, origin, 0, rl.White)
-	
+
 	rl.DrawText(m.Name, int32(m.Position.X-float32(rl.MeasureText(m.Name, 12))/2), int32(m.Position.Y-scaledHeight/2-10), 12, rl.Red)
 }
 
@@ -125,4 +125,52 @@ func (m *Monster) AdvanceFrame(dt float32, loop bool) bool {
 		}
 	}
 	return false
+}
+
+func (m *Monster) UpdateAI(dt float32, target rl.Vector2, isWalkable func(float32, float32) bool) {
+	if m.IsDead {
+		return
+	}
+
+	dist := rl.Vector2Distance(m.Position, target)
+	if dist < 64*5 && dist > 64*0.5 {
+		m.SetAction(ActionWalking)
+		dir := rl.Vector2Subtract(target, m.Position)
+		length := rl.Vector2Length(dir)
+		if length > 0 {
+			dir.X /= length
+			dir.Y /= length
+		}
+
+		if abs(dir.X) > abs(dir.Y) {
+			if dir.X > 0 {
+				m.Direction = DirRight
+			} else {
+				m.Direction = DirLeft
+			}
+		} else if dir.Y > 0 {
+			m.Direction = DirFront
+		} else {
+			m.Direction = DirBack
+		}
+
+		nextX := m.Position.X + dir.X*m.Speed*0.4*dt
+		nextY := m.Position.Y + dir.Y*m.Speed*0.4*dt
+		if isWalkable(nextX, m.Position.Y) {
+			m.Position.X = nextX
+		}
+		if isWalkable(m.Position.X, nextY) {
+			m.Position.Y = nextY
+		}
+	} else {
+		m.SetAction(ActionIdle)
+	}
+	m.AdvanceFrame(dt, true)
+}
+
+func abs(value float32) float32 {
+	if value < 0 {
+		return -value
+	}
+	return value
 }
