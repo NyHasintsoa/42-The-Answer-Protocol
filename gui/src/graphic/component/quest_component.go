@@ -25,7 +25,6 @@ func (qc *QuestComponent) Render(winWidth, winHeight int32) {
 	}
 
 	mousePos := rl.GetMousePosition()
-	mouseClicked := rl.IsMouseButtonPressed(rl.MouseLeftButton)
 
 	rl.DrawRectangle(0, 0, winWidth, winHeight, rl.NewColor(0, 0, 0, 160))
 
@@ -45,17 +44,19 @@ func (qc *QuestComponent) Render(winWidth, winHeight int32) {
 
 	rl.DrawText("NPC QUEST LOG", int32(modalX+24), int32(modalY+16), 20, rl.NewColor(0, 200, 255, 255))
 
-	closeBtn := rl.NewRectangle(modalX+modalW-40, modalY+12, 30, 30)
-	closeCol := rl.NewColor(180, 50, 50, 255)
-	if rl.CheckCollisionPointRec(mousePos, closeBtn) {
-		closeCol = rl.Red
-		if mouseClicked {
-			qc.Manager.IsOpen = false
-		}
+	closeButton := NewButton(modalX+modalW-40, modalY+12, 30, 30, "X", 18)
+	closeButton.BgColor = rl.NewColor(180, 50, 50, 255)
+	closeButton.HoverBgColor = rl.Red
+	closeButton.ClickedColor = closeButton.HoverBgColor
+	closeButton.TextColor = rl.White
+	closeButton.BorderColor = rl.White
+	closeButton.ShadowColor = rl.Blank
+	closeButton.BorderWidth = 1
+	closeButton.BorderRadius = 0.3
+	closeButton.Render()
+	if closeButton.IsClicked {
+		qc.Manager.IsOpen = false
 	}
-	rl.DrawRectangleRounded(closeBtn, 0.3, 8, closeCol)
-	rl.DrawRectangleRoundedLinesEx(closeBtn, 0.3, 8, 1, rl.White)
-	rl.DrawText("X", int32(modalX+modalW-31), int32(modalY+17), 18, rl.White)
 
 	quests := qc.Manager.Quests
 	listAreaY := modalY + headerH + 15

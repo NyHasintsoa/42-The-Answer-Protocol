@@ -24,9 +24,6 @@ func NewActionButtonsComponent(inv *service.InventoryManager, chat *service.Chat
 }
 
 func (abc *ActionButtonsComponent) Render(rect rl.Rectangle) {
-	mousePos := rl.GetMousePosition()
-	clicked := rl.IsMouseButtonPressed(rl.MouseLeftButton)
-
 	inputH := float32(32)
 	gridH := rect.Height - inputH - 8
 
@@ -49,41 +46,30 @@ func (abc *ActionButtonsComponent) Render(rect rl.Rectangle) {
 	}
 
 	rowHeight := (gridH - 6) / 2
-	blueBg := rl.NewColor(0, 140, 215, 255)
-	blueHover := rl.NewColor(0, 170, 240, 255)
-	redBg := rl.NewColor(220, 40, 50, 255)
-	redHover := rl.NewColor(240, 70, 80, 255)
 
 	for r, row := range buttons {
 		colWidth := (rect.Width - float32(len(row)-1)*6) / float32(len(row))
 		for c, btn := range row {
 			bx := rect.X + float32(c)*(colWidth+6)
 			by := rect.Y + float32(r)*(rowHeight+6)
-			btnRect := rl.NewRectangle(bx, by, colWidth, rowHeight)
-
-			bg := blueBg
-			hover := blueHover
+			button := NewButton(bx, by, colWidth, rowHeight, btn.Label, 11)
+			button.BorderWidth = 2
+			button.BorderRadius = 0.15
+			button.TextColor = rl.White
+			button.ShadowColor = rl.Blank
 			if btn.IsRed {
-				bg = redBg
-				hover = redHover
+				button.BgColor = rl.NewColor(220, 40, 50, 255)
+				button.HoverBgColor = rl.NewColor(240, 70, 80, 255)
+			} else {
+				button.BgColor = rl.NewColor(0, 140, 215, 255)
+				button.HoverBgColor = rl.NewColor(0, 170, 240, 255)
 			}
-
-			currentColor := bg
-			if rl.CheckCollisionPointRec(mousePos, btnRect) {
-				currentColor = hover
-				if clicked {
-					fmt.Printf("[ACTION LOG] Bottom button clicked: %s\n", btn.Label)
-					abc.handleAction(btn.Label)
-				}
+			button.ClickedColor = button.HoverBgColor
+			button.Render()
+			if button.IsClicked {
+				fmt.Printf("[ACTION LOG] Bottom button clicked: %s\n", btn.Label)
+				abc.handleAction(btn.Label)
 			}
-
-			rl.DrawRectangleRounded(btnRect, 0.15, 6, currentColor)
-			rl.DrawRectangleRoundedLinesEx(btnRect, 0.15, 6, 2, rl.NewColor(255, 255, 255, 100))
-
-			fontSize := int32(11)
-			tw := float32(rl.MeasureText(btn.Label, fontSize))
-			ty := by + (rowHeight-float32(fontSize))/2
-			rl.DrawText(btn.Label, int32(bx+(colWidth-tw)/2), int32(ty), fontSize, rl.White)
 		}
 	}
 

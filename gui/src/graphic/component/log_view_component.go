@@ -1,6 +1,8 @@
 package component
 
 import (
+	"tap-gui/src/utils"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -24,12 +26,12 @@ func (lvc *LogViewComponent) AddLog(msg string) {
 }
 
 func (lvc *LogViewComponent) Render(rect rl.Rectangle) {
-	rl.DrawRectangleRounded(rect, 0.02, 6, rl.NewColor(245, 247, 250, 255))
-	rl.DrawRectangleRoundedLinesEx(rect, 0.02, 6, 2, rl.NewColor(180, 190, 200, 255))
+	rl.DrawRectangleRounded(rect, 0.02, 6, utils.ThemeSurface)
+	rl.DrawRectangleRoundedLinesEx(rect, 0.02, 6, 2, utils.ThemeBorder)
 
 	title := "LOG VIEW"
-	rl.DrawText(title, int32(rect.X+14), int32(rect.Y+12), 14, rl.NewColor(40, 50, 60, 255))
-	rl.DrawLineEx(rl.NewVector2(rect.X+10, rect.Y+32), rl.NewVector2(rect.X+rect.Width-10, rect.Y+32), 1, rl.NewColor(210, 220, 230, 255))
+	rl.DrawText(title, int32(rect.X+14), int32(rect.Y+12), 14, utils.ThemeText)
+	rl.DrawLineEx(rl.NewVector2(rect.X+10, rect.Y+32), rl.NewVector2(rect.X+rect.Width-10, rect.Y+32), 1, utils.ThemeBorder)
 
 	logY := rect.Y + 40
 	for _, logMsg := range lvc.Logs {
@@ -42,7 +44,7 @@ func (lvc *LogViewComponent) Render(rect rl.Rectangle) {
 			int32(logY),
 			int32(rect.Width-28),
 			10,
-			rl.NewColor(60, 70, 85, 255),
+			utils.ThemeTextMuted,
 		)
 		logY += 45
 	}

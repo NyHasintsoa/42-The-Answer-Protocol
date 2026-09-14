@@ -80,17 +80,19 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	titleText := fmt.Sprintf("INVENTORY (%d / %d)", ic.Manager.CurrentPage+1, ic.Manager.GetTotalPages())
 	rl.DrawText(titleText, int32(panelX+24), int32(panelY+17), 22, rl.Gold)
 
-	closeBtn := rl.NewRectangle(panelX+panelW-42, panelY+12, 30, 30)
-	closeCol := rl.NewColor(180, 50, 50, 255)
-	if rl.CheckCollisionPointRec(mousePos, closeBtn) {
-		closeCol = rl.Red
-		if mouseClicked && !ic.Manager.IsModalOpen {
-			ic.Manager.IsOpen = false
-		}
+	closeButton := NewButton(panelX+panelW-42, panelY+12, 30, 30, "X", 18)
+	closeButton.BgColor = rl.NewColor(180, 50, 50, 255)
+	closeButton.HoverBgColor = rl.Red
+	closeButton.ClickedColor = closeButton.HoverBgColor
+	closeButton.TextColor = rl.White
+	closeButton.BorderColor = rl.White
+	closeButton.ShadowColor = rl.Blank
+	closeButton.BorderWidth = 1
+	closeButton.BorderRadius = 0.3
+	closeButton.Render()
+	if closeButton.IsClicked && !ic.Manager.IsModalOpen {
+		ic.Manager.IsOpen = false
 	}
-	rl.DrawRectangleRounded(closeBtn, 0.3, 8, closeCol)
-	rl.DrawRectangleRoundedLinesEx(closeBtn, 0.3, 8, 1, rl.White)
-	rl.DrawText("X", int32(panelX+panelW-33), int32(panelY+17), 18, rl.White)
 
 	slotSize := float32(115)
 	spacing := float32(18)
@@ -145,43 +147,33 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		}
 	}
 
-	prevBtn := rl.NewRectangle(panelX+14, panelY+panelH/2-25, 36, 50)
-	prevCol := rl.NewColor(30, 40, 60, 255)
-	if ic.Manager.CurrentPage > 0 {
-		if rl.CheckCollisionPointRec(mousePos, prevBtn) {
-			prevCol = rl.NewColor(0, 150, 220, 255)
-			if mouseClicked && !ic.Manager.IsModalOpen {
-				ic.Manager.PrevPage()
-			}
-		} else {
-			prevCol = rl.NewColor(0, 100, 180, 255)
-		}
+	prevButton := NewButton(panelX+14, panelY+panelH/2-25, 36, 50, "<", 28)
+	prevButton.BgColor = rl.NewColor(0, 100, 180, 255)
+	prevButton.HoverBgColor = rl.NewColor(0, 150, 220, 255)
+	prevButton.ClickedColor = prevButton.HoverBgColor
+	prevButton.TextColor = rl.White
+	prevButton.BorderColor = rl.NewColor(0, 200, 255, 255)
+	prevButton.ShadowColor = rl.Blank
+	prevButton.BorderWidth = 2
+	prevButton.BorderRadius = 0.25
+	prevButton.Render()
+	if prevButton.IsClicked && ic.Manager.CurrentPage > 0 && !ic.Manager.IsModalOpen {
+		ic.Manager.PrevPage()
 	}
-	rl.DrawRectangleRounded(prevBtn, 0.25, 8, prevCol)
-	rl.DrawRectangleRoundedLinesEx(prevBtn, 0.25, 8, 2, rl.NewColor(0, 200, 255, 255))
-	p1 := rl.Vector2{X: panelX + 24, Y: panelY + panelH/2}
-	p2 := rl.Vector2{X: panelX + 40, Y: panelY + panelH/2 - 14}
-	p3 := rl.Vector2{X: panelX + 40, Y: panelY + panelH/2 + 14}
-	rl.DrawTriangle(p1, p3, p2, rl.White)
 
-	nextBtn := rl.NewRectangle(panelX+panelW-50, panelY+panelH/2-25, 36, 50)
-	nextCol := rl.NewColor(30, 40, 60, 255)
-	if ic.Manager.CurrentPage < ic.Manager.GetTotalPages()-1 {
-		if rl.CheckCollisionPointRec(mousePos, nextBtn) {
-			nextCol = rl.NewColor(0, 150, 220, 255)
-			if mouseClicked && !ic.Manager.IsModalOpen {
-				ic.Manager.NextPage()
-			}
-		} else {
-			nextCol = rl.NewColor(0, 100, 180, 255)
-		}
+	nextButton := NewButton(panelX+panelW-50, panelY+panelH/2-25, 36, 50, ">", 28)
+	nextButton.BgColor = rl.NewColor(0, 100, 180, 255)
+	nextButton.HoverBgColor = rl.NewColor(0, 150, 220, 255)
+	nextButton.ClickedColor = nextButton.HoverBgColor
+	nextButton.TextColor = rl.White
+	nextButton.BorderColor = rl.NewColor(0, 200, 255, 255)
+	nextButton.ShadowColor = rl.Blank
+	nextButton.BorderWidth = 2
+	nextButton.BorderRadius = 0.25
+	nextButton.Render()
+	if nextButton.IsClicked && ic.Manager.CurrentPage < ic.Manager.GetTotalPages()-1 && !ic.Manager.IsModalOpen {
+		ic.Manager.NextPage()
 	}
-	rl.DrawRectangleRounded(nextBtn, 0.25, 8, nextCol)
-	rl.DrawRectangleRoundedLinesEx(nextBtn, 0.25, 8, 2, rl.NewColor(0, 200, 255, 255))
-	np1 := rl.Vector2{X: panelX + panelW - 24, Y: panelY + panelH/2}
-	np2 := rl.Vector2{X: panelX + panelW - 40, Y: panelY + panelH/2 - 14}
-	np3 := rl.Vector2{X: panelX + panelW - 40, Y: panelY + panelH/2 + 14}
-	rl.DrawTriangle(np1, np2, np3, rl.White)
 
 	if ic.Manager.IsModalOpen && ic.Manager.SelectedItemIndex >= 0 && ic.Manager.SelectedItemIndex < len(ic.Manager.Items) {
 		selectedItem := ic.Manager.Items[ic.Manager.SelectedItemIndex]
@@ -193,8 +185,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		modalX := (float32(winWidth) - modalW) / 2
 		modalY := (float32(winHeight) - modalH) / 2
 		modalRect := rl.NewRectangle(modalX, modalY, modalW, modalH)
-		mCloseBtn := rl.NewRectangle(modalX+modalW-44, modalY+8, 34, 34)
-		if rl.IsKeyPressed(rl.KeyEscape) || (mouseClicked && rl.CheckCollisionPointRec(mousePos, mCloseBtn)) {
+		if rl.IsKeyPressed(rl.KeyEscape) {
 			ic.Manager.CloseModal()
 			return
 		}
@@ -202,9 +193,20 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		rl.DrawRectangleRounded(modalRect, 0.12, 12, rl.NewColor(18, 22, 34, 255))
 		rl.DrawRectangleRoundedLinesEx(modalRect, 0.12, 12, 3, rl.Gold)
 
-		rl.DrawRectangleRounded(mCloseBtn, 0.3, 6, rl.NewColor(180, 50, 50, 255))
-		rl.DrawRectangleRoundedLinesEx(mCloseBtn, 0.3, 6, 1, rl.White)
-		rl.DrawText("X", int32(mCloseBtn.X+10), int32(mCloseBtn.Y+8), 14, rl.White)
+		modalCloseButton := NewButton(modalX+modalW-44, modalY+8, 34, 34, "X", 14)
+		modalCloseButton.BgColor = rl.NewColor(180, 50, 50, 255)
+		modalCloseButton.HoverBgColor = rl.Red
+		modalCloseButton.ClickedColor = modalCloseButton.HoverBgColor
+		modalCloseButton.TextColor = rl.White
+		modalCloseButton.BorderColor = rl.White
+		modalCloseButton.ShadowColor = rl.Blank
+		modalCloseButton.BorderWidth = 1
+		modalCloseButton.BorderRadius = 0.3
+		modalCloseButton.Render()
+		if modalCloseButton.IsClicked {
+			ic.Manager.CloseModal()
+			return
+		}
 
 		imgSize := float32(140)
 		imgX := modalX + (modalW-imgSize)/2
@@ -231,30 +233,32 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		btnH := float32(40)
 		btnY := modalY + modalH - 60
 
-		takeBtn := rl.NewRectangle(modalX+30, btnY, btnW, btnH)
-		takeBg := rl.NewColor(0, 150, 80, 255)
-		if rl.CheckCollisionPointRec(mousePos, takeBtn) {
-			takeBg = rl.NewColor(0, 200, 100, 255)
-			if mouseClicked {
-				ic.Manager.TakeItem(ic.Manager.SelectedItemIndex)
-			}
+		takeButton := NewButton(modalX+30, btnY, btnW, btnH, "TAKE", 16)
+		takeButton.BgColor = rl.NewColor(0, 150, 80, 255)
+		takeButton.HoverBgColor = rl.NewColor(0, 200, 100, 255)
+		takeButton.ClickedColor = takeButton.HoverBgColor
+		takeButton.TextColor = rl.White
+		takeButton.BorderColor = rl.White
+		takeButton.ShadowColor = rl.Blank
+		takeButton.BorderWidth = 2
+		takeButton.BorderRadius = 0.25
+		takeButton.Render()
+		if takeButton.IsClicked {
+			ic.Manager.TakeItem(ic.Manager.SelectedItemIndex)
 		}
-		rl.DrawRectangleRounded(takeBtn, 0.25, 8, takeBg)
-		rl.DrawRectangleRoundedLinesEx(takeBtn, 0.25, 8, 2, rl.White)
-		tW := float32(rl.MeasureText("TAKE", 16))
-		rl.DrawText("TAKE", int32(takeBtn.X+(btnW-tW)/2), int32(btnY+12), 16, rl.White)
 
-		dropBtn := rl.NewRectangle(modalX+modalW-30-btnW, btnY, btnW, btnH)
-		dropBg := rl.NewColor(170, 40, 40, 255)
-		if rl.CheckCollisionPointRec(mousePos, dropBtn) {
-			dropBg = rl.NewColor(220, 50, 50, 255)
-			if mouseClicked {
-				ic.Manager.DropItem(ic.Manager.SelectedItemIndex)
-			}
+		dropButton := NewButton(modalX+modalW-30-btnW, btnY, btnW, btnH, "DROP", 16)
+		dropButton.BgColor = rl.NewColor(170, 40, 40, 255)
+		dropButton.HoverBgColor = rl.NewColor(220, 50, 50, 255)
+		dropButton.ClickedColor = dropButton.HoverBgColor
+		dropButton.TextColor = rl.White
+		dropButton.BorderColor = rl.White
+		dropButton.ShadowColor = rl.Blank
+		dropButton.BorderWidth = 2
+		dropButton.BorderRadius = 0.25
+		dropButton.Render()
+		if dropButton.IsClicked {
+			ic.Manager.DropItem(ic.Manager.SelectedItemIndex)
 		}
-		rl.DrawRectangleRounded(dropBtn, 0.25, 8, dropBg)
-		rl.DrawRectangleRoundedLinesEx(dropBtn, 0.25, 8, 2, rl.White)
-		dW := float32(rl.MeasureText("DROP", 16))
-		rl.DrawText("DROP", int32(dropBtn.X+(btnW-dW)/2), int32(btnY+12), 16, rl.White)
 	}
 }

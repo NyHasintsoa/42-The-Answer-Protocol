@@ -28,7 +28,6 @@ type NpcCharacter struct {
 	FrameIndex   int
 	FrameTimer   float32
 	FrameSpeed   float32
-	ShowLabel    bool
 	PathResolver *utils.PathResolver
 	RelativeDir  string
 }
@@ -41,7 +40,6 @@ func NewNpcCharacter(name string, resolver *utils.PathResolver, relativeDir stri
 		Animations:   make(map[string][]rl.Texture2D),
 		CurrentAnim:  "Idle",
 		FrameSpeed:   24.0,
-		ShowLabel:    true,
 		PathResolver: resolver,
 		RelativeDir:  relativeDir,
 	}
@@ -110,14 +108,6 @@ func (n *NpcCharacter) Render() {
 	origin := rl.NewVector2(0, 0)
 
 	rl.DrawTexturePro(tex, srcRec, destRec, origin, 0.0, rl.White)
-
-	if n.ShowLabel {
-		label := fmt.Sprintf("%s\n[%s]", strings.ToUpper(n.Name), n.CurrentAnim)
-		textWidth := rl.MeasureText(n.Name, 18)
-		labelX := int32(n.Position.X + (destWidth / 2) - float32(textWidth/2))
-		labelY := int32(n.Position.Y - 45)
-		rl.DrawText(label, labelX, labelY, 18, rl.DarkGray)
-	}
 }
 
 func (n *NpcCharacter) UnloadAnimations() {

@@ -4,6 +4,7 @@ import (
 	"tap-gui/src/graphic/page"
 	"tap-gui/src/model"
 	"tap-gui/src/model/enums"
+	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -31,7 +32,7 @@ func NewMainWindow(width, height int32, config model.GameConfig, title string) *
 		},
 		Windows: make(map[enums.PageState]page.Page),
 	}
-
+	rl.SetTraceLogLevel(rl.LogNone)
 	rl.InitWindow(mw.Width, mw.Height, mw.Title)
 	rl.SetTargetFPS(60)
 
@@ -74,7 +75,7 @@ func (mw *MainWindow) loadPages() {
 
 func (mw *MainWindow) Render() {
 	for !rl.WindowShouldClose() {
-		rl.ClearBackground(rl.Black)
+		rl.ClearBackground(utils.ThemeBackground)
 		rl.BeginDrawing()
 
 		if mw.CurrentPage == nil {

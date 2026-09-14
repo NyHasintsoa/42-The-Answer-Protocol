@@ -81,7 +81,7 @@ func NewGamePage(winWidth, winHeight int32) *GamePage {
 	startX, startY := mapManager.GetStartPosition()
 
 	mainChar := component.NewMainCharacter(startX, startY, service.CharScale, pathResolver, pathResolver.Resolve("characters", "main_character"))
-	hpBar := component.NewHPBar(15, 15, 180, 20)
+	hpBar := component.NewHPBar(30, 15, 180, 20)
 
 	mapViewSize := float32(winWidth) / 3
 	if mapViewSize > float32(winHeight)/2 {
@@ -246,7 +246,7 @@ func (gp *GamePage) Render() {
 	dt := rl.GetFrameTime()
 	gp.Update(dt)
 
-	rl.ClearBackground(rl.NewColor(225, 230, 235, 255))
+	rl.ClearBackground(utils.ThemeBackground)
 
 	totalW := float32(gp.WindowWidth)
 	topMapSize := totalW / 3
@@ -270,13 +270,14 @@ func (gp *GamePage) Render() {
 		gp.HPBar.Render()
 	}
 	rl.EndScissorMode()
-	rl.DrawRectangleLinesEx(rl.NewRectangle(0, 0, topMapSize, topMapSize), 2, rl.NewColor(180, 190, 200, 255))
+	rl.DrawRectangleLinesEx(rl.NewRectangle(0, 0, topMapSize, topMapSize), 2, utils.ThemeBorder)
 
 	if gp.RoomDetailsComp != nil {
-		gp.RoomDetailsComp.Render(topMapSize, 0, topDetailsW, topMapSize)
+		roomDetailsRect := rl.NewRectangle(topMapSize+6, 8, topDetailsW-16, topMapSize-16)
+		gp.RoomDetailsComp.Render(roomDetailsRect)
 	}
 
-	rl.DrawLineEx(rl.NewVector2(0, topMapSize), rl.NewVector2(totalW, topMapSize), 2, rl.NewColor(180, 190, 200, 255))
+	rl.DrawLineEx(rl.NewVector2(0, topMapSize), rl.NewVector2(totalW, topMapSize), 2, utils.ThemeBorder)
 
 	bottomLeftW := totalW * 0.52
 	bottomRightW := totalW - bottomLeftW

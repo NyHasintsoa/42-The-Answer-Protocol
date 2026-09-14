@@ -3,6 +3,7 @@ package page
 import (
 	"tap-gui/src/graphic/component"
 	"tap-gui/src/model/enums"
+	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -67,7 +68,7 @@ func (p *MenuPage) Render() {
 		return
 	}
 
-	rl.DrawText("PAC-MAN", 320, 180, 72, rl.Yellow)
+	rl.DrawText("PAC-MAN", 320, 180, 72, utils.ThemeAccent)
 
 	mousePos := rl.GetMousePosition()
 	for i, button := range p.Buttons {

@@ -53,7 +53,6 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 
 	dt := rl.GetFrameTime()
 	mousePos := rl.GetMousePosition()
-	mouseClicked := rl.IsMouseButtonPressed(rl.MouseLeftButton)
 
 	if !cc.Manager.IsOpen {
 		return
@@ -82,44 +81,46 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 	for _, tab := range tabs {
 		tabText := tab.String()
 		tabW := float32(rl.MeasureText(tabText, 16) + 30)
-		tabRect := rl.NewRectangle(tabStartX, tabY, tabW, 32)
 
 		isActive := cc.Manager.ActiveTab == tab
-		tabBg := rl.NewColor(30, 38, 55, 255)
-		borderColor := rl.NewColor(50, 65, 90, 255)
-		textColor := rl.NewColor(160, 175, 200, 255)
-
+		tabButton := NewButton(tabStartX, tabY, tabW, 32, tabText, 16)
+		tabButton.BgColor = rl.NewColor(30, 38, 55, 255)
+		tabButton.HoverBgColor = rl.NewColor(45, 58, 85, 255)
+		tabButton.ClickedColor = tabButton.HoverBgColor
+		tabButton.TextColor = rl.NewColor(160, 175, 200, 255)
+		tabButton.BorderColor = rl.NewColor(50, 65, 90, 255)
+		tabButton.ShadowColor = rl.Blank
+		tabButton.BorderWidth = 1
+		tabButton.BorderRadius = 0.25
 		if isActive {
-			tabBg = rl.NewColor(0, 130, 230, 255)
-			borderColor = rl.NewColor(0, 200, 255, 255)
-			textColor = rl.White
-		} else if rl.CheckCollisionPointRec(mousePos, tabRect) {
-			tabBg = rl.NewColor(45, 58, 85, 255)
-			textColor = rl.RayWhite
-			if mouseClicked {
-				cc.Manager.ActiveTab = tab
-				cc.scrollToBottom = true
-			}
+			tabButton.BgColor = rl.NewColor(0, 130, 230, 255)
+			tabButton.HoverBgColor = tabButton.BgColor
+			tabButton.ClickedColor = tabButton.BgColor
+			tabButton.TextColor = rl.White
+			tabButton.BorderColor = rl.NewColor(0, 200, 255, 255)
 		}
-
-		rl.DrawRectangleRounded(tabRect, 0.25, 8, tabBg)
-		rl.DrawRectangleRoundedLinesEx(tabRect, 0.25, 8, 1, borderColor)
-		rl.DrawText(tabText, int32(tabStartX+15), int32(tabY+7), 16, textColor)
+		tabButton.Render()
+		if tabButton.IsClicked && !isActive {
+			cc.Manager.ActiveTab = tab
+			cc.scrollToBottom = true
+		}
 
 		tabStartX += tabW + 12
 	}
 
-	closeBtn := rl.NewRectangle(modalX+modalW-42, modalY+14, 30, 30)
-	closeCol := rl.NewColor(180, 50, 50, 255)
-	if rl.CheckCollisionPointRec(mousePos, closeBtn) {
-		closeCol = rl.Red
-		if mouseClicked {
-			cc.Manager.IsOpen = false
-		}
+	closeButton := NewButton(modalX+modalW-42, modalY+14, 30, 30, "X", 18)
+	closeButton.BgColor = rl.NewColor(180, 50, 50, 255)
+	closeButton.HoverBgColor = rl.Red
+	closeButton.ClickedColor = closeButton.HoverBgColor
+	closeButton.TextColor = rl.White
+	closeButton.BorderColor = rl.White
+	closeButton.ShadowColor = rl.Blank
+	closeButton.BorderWidth = 1
+	closeButton.BorderRadius = 0.3
+	closeButton.Render()
+	if closeButton.IsClicked {
+		cc.Manager.IsOpen = false
 	}
-	rl.DrawRectangleRounded(closeBtn, 0.3, 8, closeCol)
-	rl.DrawRectangleRoundedLinesEx(closeBtn, 0.3, 8, 1, rl.White)
-	rl.DrawText("X", int32(modalX+modalW-33), int32(modalY+19), 18, rl.White)
 
 	messages := cc.Manager.GetCurrentMessages()
 	msgAreaY := modalY + headerH + 15

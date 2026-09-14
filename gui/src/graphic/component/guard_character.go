@@ -10,7 +10,7 @@ type GuardCharacter struct {
 
 func NewGuardCharacter(resolver *utils.PathResolver, relativeDir string, x, y, scale float32) (*GuardCharacter, error) {
 	guard := &GuardCharacter{
-		NpcCharacter: NewNpcCharacter("Guard", resolver, relativeDir, x, y, scale),
+		NpcCharacter: NewNpcCharacter("Guard", resolver, relativeDir, x - 30, y - 25, scale),
 	}
 	actions := []string{"Communication", "Idle", "Idle_Blinking"}
 	for _, act := range actions {

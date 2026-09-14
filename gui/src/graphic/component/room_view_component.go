@@ -2,6 +2,7 @@ package component
 
 import (
 	"fmt"
+	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -53,13 +54,13 @@ func NewRoomViewComponent(mgr *RoomViewManager) *RoomViewComponent {
 }
 
 func (rvc *RoomViewComponent) Render(rect rl.Rectangle) {
-	rl.DrawRectangleRounded(rect, 0.03, 6, rl.NewColor(245, 247, 250, 255))
-	rl.DrawRectangleRoundedLinesEx(rect, 0.03, 6, 2, rl.NewColor(180, 190, 200, 255))
+	rl.DrawRectangleRounded(rect, 0.03, 6, utils.ThemeSurface)
+	rl.DrawRectangleRoundedLinesEx(rect, 0.03, 6, 2, utils.ThemeBorder)
 
 	title := "Room View"
 	titleWidth := float32(rl.MeasureText(title, 14))
-	rl.DrawText(title, int32(rect.X+(rect.Width-titleWidth)/2), int32(rect.Y+10), 14, rl.NewColor(40, 50, 60, 255))
-	rl.DrawLineEx(rl.NewVector2(rect.X+10, rect.Y+30), rl.NewVector2(rect.X+rect.Width-10, rect.Y+30), 1, rl.NewColor(210, 220, 230, 255))
+	rl.DrawText(title, int32(rect.X+(rect.Width-titleWidth)/2), int32(rect.Y+10), 14, utils.ThemeText)
+	rl.DrawLineEx(rl.NewVector2(rect.X+10, rect.Y+30), rl.NewVector2(rect.X+rect.Width-10, rect.Y+30), 1, utils.ThemeBorder)
 
 	if rvc.Manager != nil && rvc.Manager.CurrentRoom.Description != "" {
 		drawTextWrapped(
@@ -68,7 +69,7 @@ func (rvc *RoomViewComponent) Render(rect rl.Rectangle) {
 			int32(rect.Y+36),
 			int32(rect.Width-24),
 			10,
-			rl.NewColor(60, 70, 80, 255),
+			utils.ThemeTextMuted,
 		)
 	}
 
@@ -89,29 +90,23 @@ func (rvc *RoomViewComponent) Render(rect rl.Rectangle) {
 	btnH := float32(26)
 	btnY := rect.Y + rect.Height - btnH - 8
 
-	mousePos := rl.GetMousePosition()
-	clicked := rl.IsMouseButtonPressed(rl.MouseLeftButton)
-
-	tealBtnColor := rl.NewColor(24, 160, 178, 255)
-	tealBtnHover := rl.NewColor(18, 130, 146, 255)
-
 	for i, d := range directions {
 		btnX := rect.X + btnMargin + float32(i)*(btnW+btnMargin)
-		btnRect := rl.NewRectangle(btnX, btnY, btnW, btnH)
-
-		color := tealBtnColor
-		if rl.CheckCollisionPointRec(mousePos, btnRect) {
-			color = tealBtnHover
-			if clicked {
-				fmt.Printf("[ACTION LOG] Movement button clicked: %s\n", d.Label)
-				if rvc.Manager != nil {
-					rvc.Manager.Move(d.Dir)
-				}
+		button := NewButton(btnX, btnY, btnW, btnH, d.Label, 10)
+		button.BgColor = rl.NewColor(24, 160, 178, 255)
+		button.HoverBgColor = rl.NewColor(18, 130, 146, 255)
+		button.ClickedColor = button.HoverBgColor
+		button.TextColor = rl.White
+		button.BorderColor = rl.Blank
+		button.ShadowColor = rl.Blank
+		button.BorderWidth = 0
+		button.BorderRadius = 0.2
+		button.Render()
+		if button.IsClicked {
+			fmt.Printf("[ACTION LOG] Movement button clicked: %s\n", d.Label)
+			if rvc.Manager != nil {
+				rvc.Manager.Move(d.Dir)
 			}
 		}
-
-		rl.DrawRectangleRounded(btnRect, 0.2, 4, color)
-		textW := float32(rl.MeasureText(d.Label, 10))
-		rl.DrawText(d.Label, int32(btnX+(btnW-textW)/2), int32(btnY+7), 10, rl.White)
 	}
 }

@@ -1,6 +1,8 @@
 package component
 
 import (
+	"tap-gui/src/utils"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -25,13 +27,13 @@ func NewButton(x, y, width, height float32, text string, fontSize int32) *Button
 	return &Button{
 		Rect:           rl.NewRectangle(x, y, width, height),
 		Text:           text,
-		BgColor:        rl.NewColor(14, 26, 39, 255),
-		HoverBgColor:   rl.NewColor(20, 42, 65, 255),
-		ClickedColor:   rl.NewColor(160, 140, 10, 255),
-		TextColor:      rl.White,
-		HoverTextColor: rl.NewColor(15, 215, 228, 255),
-		BorderColor:    rl.NewColor(15, 215, 228, 255),
-		ShadowColor:    rl.ColorAlpha(rl.Black, 0.45),
+		BgColor:        utils.ThemeSurface,
+		HoverBgColor:   utils.ThemeSurfaceRaised,
+		ClickedColor:   utils.ThemeAccentPressed,
+		TextColor:      utils.ThemeText,
+		HoverTextColor: utils.ThemeAccentHover,
+		BorderColor:    utils.ThemeAccent,
+		ShadowColor:    rl.ColorAlpha(rl.Black, 0.5),
 		FontSize:       fontSize,
 		BorderRadius:   0.35,
 		BorderWidth:    4,
@@ -44,7 +46,7 @@ func (b *Button) Render() {
 	var currentColor rl.Color
 
 	if b.Disabled {
-		currentColor = rl.Gray
+		currentColor = utils.ThemeSurfaceInset
 	} else {
 		mousePos := rl.GetMousePosition()
 		isHovered := rl.CheckCollisionPointRec(mousePos, b.Rect)

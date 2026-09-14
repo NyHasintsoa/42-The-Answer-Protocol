@@ -25,7 +25,7 @@ func run(args []string) error {
 	}
 	_ = configFile
 
-	config := model.GameConfig{Lives: 3}
+	config := model.GameConfig{}
 	window := graphic.NewMainWindow(1500, 1000, config, "Pac-Man")
 	defer window.Close()
 
