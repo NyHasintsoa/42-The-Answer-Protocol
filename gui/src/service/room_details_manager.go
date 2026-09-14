@@ -12,7 +12,7 @@ type RoomNPCDetail struct {
 	Key         string
 	Name        string
 	Description string
-	Kind        string // e.g., "guard", "seller", "person"
+	Kind        string
 	HasQuest    bool
 	QuestID     string
 }
@@ -40,7 +40,6 @@ func (rm *RoomDetailsManager) SetRoomDetails(roomName string, items []RoomItemDe
 
 func (rm *RoomDetailsManager) TakeItem(itemID string) {
 	fmt.Printf("[ACTION] Take item: %s from room '%s'\n", itemID, rm.RoomName)
-	// Remove item from local list
 	for i, item := range rm.Items {
 		if item.ID == itemID {
 			rm.Items = append(rm.Items[:i], rm.Items[i+1:]...)

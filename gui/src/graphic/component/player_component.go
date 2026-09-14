@@ -39,11 +39,9 @@ func NewPlayerComponent(mgr *PlayerManager) *PlayerComponent {
 }
 
 func (pc *PlayerComponent) Render(rect rl.Rectangle) {
-	// Container Box
 	rl.DrawRectangleRounded(rect, 0.03, 6, rl.NewColor(245, 247, 250, 255))
 	rl.DrawRectangleRoundedLinesEx(rect, 0.03, 6, 2, rl.NewColor(180, 190, 200, 255))
 
-	// Title
 	title := "Player in Room"
 	titleWidth := float32(rl.MeasureText(title, 14))
 	rl.DrawText(title, int32(rect.X+(rect.Width-titleWidth)/2), int32(rect.Y+10), 14, rl.NewColor(40, 50, 60, 255))
@@ -64,14 +62,12 @@ func (pc *PlayerComponent) Render(rect rl.Rectangle) {
 			break
 		}
 
-		// User Silhouette Icon
 		iconX := rect.X + 16
 		iconY := itemY + 4
 
 		rl.DrawCircle(int32(iconX+6), int32(iconY+4), 4, rl.NewColor(24, 160, 178, 255))
 		rl.DrawRectangleRounded(rl.NewRectangle(iconX+1, iconY+9, 10, 8), 0.4, 4, rl.NewColor(24, 160, 178, 255))
 
-		// Connected Player Name
 		rl.DrawText(p.Name, int32(rect.X+40), int32(itemY+8), 11, rl.NewColor(40, 50, 60, 255))
 
 		itemY += rowH

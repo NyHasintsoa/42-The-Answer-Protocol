@@ -89,7 +89,7 @@ type INpc interface {
 }
 
 type EntityFactory struct {
-	NewMonster func(x, y, scale float32, assetPath, name string) Monster
+	NewMonster func(x, y, scale float32, resolver *utils.PathResolver, assetPath, name string) Monster
 	NewNPC     func(kind, relativeDir string, x, y, scale float32) (INpc, error)
 }
 
@@ -179,24 +179,6 @@ func (mm *MapManager) GetPathBitmaskWorld(x, y int) string {
 }
 
 func (mm *MapManager) Unload() {
-	for _, tex := range mm.PathTextures {
-		if tex.ID > 0 {
-			rl.UnloadTexture(tex)
-		}
-	}
-	for _, tex := range mm.BuildingTextures {
-		if tex.ID > 0 {
-			rl.UnloadTexture(tex)
-		}
-	}
-	if mm.EmptyTexture.ID > 0 {
-		rl.UnloadTexture(mm.EmptyTexture)
-	}
-	for _, obj := range mm.SceneryObjects {
-		if obj.Texture.ID > 0 {
-			rl.UnloadTexture(obj.Texture)
-		}
-	}
 	for _, e := range mm.Enemies {
 		e.UnloadAnimations()
 	}
@@ -214,12 +196,12 @@ func (mm *MapManager) spawnEntities() {
 			nameLower := strings.ToLower(npcName)
 			if strings.Contains(nameLower, "boss") {
 				if mm.entityFactory.NewMonster != nil {
-					e := mm.entityFactory.NewMonster(roomX+100, roomY+100, CharScale, mm.PathResolver.Resolve("characters", "boss"), "Boss")
+					e := mm.entityFactory.NewMonster(roomX+100, roomY+100, CharScale, mm.PathResolver, mm.PathResolver.Resolve("characters", "boss"), "Boss")
 					mm.Enemies = append(mm.Enemies, e)
 				}
 			} else if strings.Contains(nameLower, "goblin") {
 				if mm.entityFactory.NewMonster != nil {
-					e := mm.entityFactory.NewMonster(roomX+100, roomY-100, CharScale, mm.PathResolver.Resolve("characters", "gobelin"), "Goblin")
+					e := mm.entityFactory.NewMonster(roomX+100, roomY-100, CharScale, mm.PathResolver, mm.PathResolver.Resolve("characters", "gobelin"), "Goblin")
 					mm.Enemies = append(mm.Enemies, e)
 				}
 			} else if strings.Contains(nameLower, "guard") {
@@ -404,9 +386,9 @@ func (mm *MapManager) loadGroundTextures() {
 	}
 	for _, mask := range bitmasks {
 		path := mm.PathResolver.Resolve("ground", mask+".png")
-		mm.PathTextures[mask] = rl.LoadTexture(path)
+		mm.PathTextures[mask] = mm.PathResolver.ImageManager.Load(path)
 	}
-	mm.EmptyTexture = rl.LoadTexture(mm.PathResolver.Resolve("ground", "lawn.png"))
+	mm.EmptyTexture = mm.PathResolver.ImageManager.Load(mm.PathResolver.Resolve("ground", "lawn.png"))
 }
 
 func (mm *MapManager) loadBuildingTextures() {
@@ -414,7 +396,7 @@ func (mm *MapManager) loadBuildingTextures() {
 	buildings := []string{"House.png", "shop.png", "Tavern.png", "Castle-Round.png", "Tent.png"}
 	for _, b := range buildings {
 		path := mm.PathResolver.Resolve("building", b)
-		mm.BuildingTextures[b] = rl.LoadTexture(path)
+		mm.BuildingTextures[b] = mm.PathResolver.ImageManager.Load(path)
 	}
 }
 
@@ -440,7 +422,7 @@ func (mm *MapManager) loadEnvironmentObjects() {
 			Path:     fullPath,
 			Category: CategoryScenery,
 			Scale:    spec.CustomScale,
-			Texture:  rl.LoadTexture(fullPath),
+			Texture:  mm.PathResolver.ImageManager.Load(fullPath),
 		}
 	}
 }

@@ -6,12 +6,21 @@ import (
 )
 
 type PathResolver struct {
-	BaseDir string
+	BaseDir      string
+	ImageManager *ImageManager
 }
 
 func NewPathResolver(baseDir string) *PathResolver {
+	return NewPathResolverWithImageManager(baseDir, NewImageManager())
+}
+
+func NewPathResolverWithImageManager(baseDir string, imageManager *ImageManager) *PathResolver {
+	if imageManager == nil {
+		imageManager = NewImageManager()
+	}
 	return &PathResolver{
-		BaseDir: baseDir,
+		BaseDir:      baseDir,
+		ImageManager: imageManager,
 	}
 }
 

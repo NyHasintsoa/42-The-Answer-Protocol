@@ -36,15 +36,12 @@ func (ic *InventoryComponent) GetTexture(itemType enums.InventoryItemType) rl.Te
 		imagePath = "inventory/" + itemType.Filename()
 	}
 
-	tex := rl.LoadTexture(imagePath)
+	tex := ic.Resolver.ImageManager.Load(imagePath)
 	ic.textures[itemType] = tex
 	return tex
 }
 
 func (ic *InventoryComponent) Unload() {
-	for _, tex := range ic.textures {
-		rl.UnloadTexture(tex)
-	}
 	ic.textures = make(map[enums.InventoryItemType]rl.Texture2D)
 }
 
@@ -56,7 +53,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	mousePos := rl.GetMousePosition()
 	mouseClicked := rl.IsMouseButtonPressed(rl.MouseLeftButton)
 
-	
 	btnX := float32(20)
 	btnY := float32(winHeight - 130)
 	btnW := float32(110)
@@ -78,10 +74,8 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		return
 	}
 
-	
 	rl.DrawRectangle(0, 0, winWidth, winHeight, rl.NewColor(0, 0, 0, 160))
 
-	
 	panelW := float32(500)
 	panelH := float32(520)
 	panelX := (float32(winWidth) - panelW) / 2
@@ -91,7 +85,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	rl.DrawRectangleRounded(panelRect, 0.08, 12, rl.NewColor(22, 25, 38, 245))
 	rl.DrawRectangleRoundedLinesEx(panelRect, 0.08, 12, 3, rl.NewColor(0, 180, 255, 255))
 
-	
 	headerRect := rl.NewRectangle(panelX, panelY, panelW, 55)
 	rl.DrawRectangleRounded(headerRect, 0.15, 8, rl.NewColor(15, 18, 28, 255))
 	rl.DrawLineEx(rl.NewVector2(panelX, panelY+55), rl.NewVector2(panelX+panelW, panelY+55), 2, rl.NewColor(0, 180, 255, 255))
@@ -99,7 +92,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	titleText := fmt.Sprintf("INVENTORY (%d / %d)", ic.Manager.CurrentPage+1, ic.Manager.GetTotalPages())
 	rl.DrawText(titleText, int32(panelX+24), int32(panelY+17), 22, rl.Gold)
 
-	
 	closeBtn := rl.NewRectangle(panelX+panelW-42, panelY+12, 30, 30)
 	closeCol := rl.NewColor(180, 50, 50, 255)
 	if rl.CheckCollisionPointRec(mousePos, closeBtn) {
@@ -109,7 +101,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	rl.DrawRectangleRoundedLinesEx(closeBtn, 0.3, 8, 1, rl.White)
 	rl.DrawText("X", int32(panelX+panelW-33), int32(panelY+17), 18, rl.White)
 
-	
 	slotSize := float32(115)
 	spacing := float32(18)
 	gridStartX := panelX + (panelW-3*slotSize-2*spacing)/2
@@ -145,7 +136,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 				ic.Manager.SelectItem(itemIndex)
 			}
 
-			
 			tex := ic.GetTexture(item.Type)
 			if tex.ID > 0 {
 				srcRec := rl.NewRectangle(0, 0, float32(tex.Width), float32(tex.Height))
@@ -155,7 +145,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 				rl.DrawRectangleRounded(slotRect, 0.15, 8, item.Color)
 			}
 
-			
 			countStr := fmt.Sprintf("x%d", item.Count)
 			badgeW := float32(rl.MeasureText(countStr, 12) + 10)
 			badgeRect := rl.NewRectangle(slotX+slotSize-badgeW-4, slotY+slotSize-22, badgeW, 18)
@@ -165,7 +154,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		}
 	}
 
-	
 	prevBtn := rl.NewRectangle(panelX+14, panelY+panelH/2-25, 36, 50)
 	prevCol := rl.NewColor(30, 40, 60, 255)
 	if ic.Manager.CurrentPage > 0 {
@@ -182,7 +170,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	p3 := rl.Vector2{X: panelX + 40, Y: panelY + panelH/2 + 14}
 	rl.DrawTriangle(p1, p3, p2, rl.White)
 
-	
 	nextBtn := rl.NewRectangle(panelX+panelW-50, panelY+panelH/2-25, 36, 50)
 	nextCol := rl.NewColor(30, 40, 60, 255)
 	if ic.Manager.CurrentPage < ic.Manager.GetTotalPages()-1 {
@@ -199,11 +186,9 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	np3 := rl.Vector2{X: panelX + panelW - 40, Y: panelY + panelH/2 + 14}
 	rl.DrawTriangle(np1, np2, np3, rl.White)
 
-	
 	if ic.Manager.IsModalOpen && ic.Manager.SelectedItemIndex >= 0 && ic.Manager.SelectedItemIndex < len(ic.Manager.Items) {
 		selectedItem := ic.Manager.Items[ic.Manager.SelectedItemIndex]
 
-		
 		rl.DrawRectangle(0, 0, winWidth, winHeight, rl.NewColor(0, 0, 0, 180))
 
 		modalW := float32(320)
@@ -215,7 +200,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		rl.DrawRectangleRounded(modalRect, 0.12, 12, rl.NewColor(18, 22, 34, 255))
 		rl.DrawRectangleRoundedLinesEx(modalRect, 0.12, 12, 3, rl.Gold)
 
-		
 		mCloseBtn := rl.NewRectangle(modalX+modalW-36, modalY+10, 26, 26)
 		if mouseClicked && rl.CheckCollisionPointRec(mousePos, mCloseBtn) {
 			ic.Manager.CloseModal()
@@ -225,7 +209,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		rl.DrawRectangleRoundedLinesEx(mCloseBtn, 0.3, 6, 1, rl.White)
 		rl.DrawText("X", int32(modalX+modalW-28), int32(modalY+14), 14, rl.White)
 
-		
 		imgSize := float32(140)
 		imgX := modalX + (modalW-imgSize)/2
 		imgY := modalY + 35
@@ -240,16 +223,13 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 			rl.DrawTexturePro(tex, srcRec, imgRect, rl.Vector2{X: 0, Y: 0}, 0, rl.White)
 		}
 
-		
 		nameW := float32(rl.MeasureText(selectedItem.Name, 20))
 		rl.DrawText(selectedItem.Name, int32(modalX+(modalW-nameW)/2), int32(imgY+imgSize+15), 20, rl.RayWhite)
 
-		
 		countText := fmt.Sprintf("Quantity: %d", selectedItem.Count)
 		countW := float32(rl.MeasureText(countText, 14))
 		rl.DrawText(countText, int32(modalX+(modalW-countW)/2), int32(imgY+imgSize+42), 14, rl.Gold)
 
-		
 		btnW := float32(110)
 		btnH := float32(40)
 		btnY := modalY + modalH - 60

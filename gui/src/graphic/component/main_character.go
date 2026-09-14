@@ -1,6 +1,8 @@
 package component
 
 import (
+	"tap-gui/src/utils"
+
 	"fmt"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -10,9 +12,9 @@ type MainCharacter struct {
 	Character
 }
 
-func NewMainCharacter(x, y float32, scale float32, assetPath string) *MainCharacter {
+func NewMainCharacter(x, y float32, scale float32, resolver *utils.PathResolver, assetPath string) *MainCharacter {
 	mc := &MainCharacter{
-		Character: NewCharacter(x, y, scale, assetPath),
+		Character: NewCharacter(x, y, scale, resolver, assetPath),
 	}
 	mc.loadAnimations()
 	return mc

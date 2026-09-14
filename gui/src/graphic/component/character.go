@@ -38,12 +38,17 @@ type Character struct {
 	IsDead       bool
 }
 
-func NewCharacter(x, y float32, scale float32, assetPath string) Character {
+func NewCharacter(x, y float32, scale float32, resolver *utils.PathResolver, assetPath string) Character {
+	if resolver == nil {
+		resolver = utils.NewPathResolver(assetPath)
+	} else {
+		resolver = utils.NewPathResolverWithImageManager(assetPath, resolver.ImageManager)
+	}
 	return Character{
 		Position:     rl.NewVector2(x, y),
 		Scale:        scale,
 		Speed:        200.0,
-		PathResolver: utils.NewPathResolver(assetPath),
+		PathResolver: resolver,
 		Direction:    DirFront,
 		Action:       ActionIdle,
 		Animations:   make(map[string][]rl.Texture2D),
@@ -55,17 +60,13 @@ func (c *Character) LoadAnim(key, subFolder, filePattern string, count int) {
 	frames := make([]rl.Texture2D, count)
 	for i := range count {
 		path := c.PathResolver.ResolveFramePath(subFolder, filePattern, i)
-		frames[i] = rl.LoadTexture(path)
+		frames[i] = c.PathResolver.ImageManager.Load(path)
 	}
 	c.Animations[key] = frames
 }
 
 func (c *Character) UnloadAnimations() {
-	for _, frames := range c.Animations {
-		for _, tex := range frames {
-			rl.UnloadTexture(tex)
-		}
-	}
+	c.Animations = make(map[string][]rl.Texture2D)
 }
 
 func (c *Character) SetAction(newAction Action) {

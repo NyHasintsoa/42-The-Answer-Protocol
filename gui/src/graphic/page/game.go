@@ -11,35 +11,35 @@ import (
 
 type GamePage struct {
 	BasePage
-	MapManager       *service.MapManager
-	InventoryMgr     *service.InventoryManager
-	ChatMgr          *service.ChatManager
-	QuestMgr         *service.QuestManager
-	RoomDetailsMgr   *service.RoomDetailsManager
-	RoomViewMgr      *component.RoomViewManager
-	PlayerMgr        *component.PlayerManager
-	MapComp          *component.MapComponent
-	InventoryComp    *component.InventoryComponent
-	MainChar         *component.MainCharacter
-	HPBar            *component.HPBar
-	ChatComp         *component.ChatComponent
-	QuestComp        *component.QuestComponent
-	RoomDetailsComp  *component.RoomDetailsComponent
-	RoomViewComp     *component.RoomViewComponent
-	PlayerComp       *component.PlayerComponent
-	ActionBtnsComp   *component.ActionButtonsComponent
-	LogViewComp      *component.LogViewComponent
-	PathResolver     *utils.PathResolver
-	WindowWidth      int32
-	WindowHeight     int32
-	Camera           rl.Camera2D
+	MapManager      *service.MapManager
+	InventoryMgr    *service.InventoryManager
+	ChatMgr         *service.ChatManager
+	QuestMgr        *service.QuestManager
+	RoomDetailsMgr  *service.RoomDetailsManager
+	RoomViewMgr     *component.RoomViewManager
+	PlayerMgr       *component.PlayerManager
+	MapComp         *component.MapComponent
+	InventoryComp   *component.InventoryComponent
+	MainChar        *component.MainCharacter
+	HPBar           *component.HPBar
+	ChatComp        *component.ChatComponent
+	QuestComp       *component.QuestComponent
+	RoomDetailsComp *component.RoomDetailsComponent
+	RoomViewComp    *component.RoomViewComponent
+	PlayerComp      *component.PlayerComponent
+	ActionBtnsComp  *component.ActionButtonsComponent
+	LogViewComp     *component.LogViewComponent
+	PathResolver    *utils.PathResolver
+	WindowWidth     int32
+	WindowHeight    int32
+	Camera          rl.Camera2D
 }
 
 func NewGamePage(winWidth, winHeight int32) *GamePage {
 	pathResolver := utils.NewPathResolver("assets")
 	mapManager := service.NewMapManager(pathResolver, "", service.EntityFactory{
-		NewMonster: func(x, y, scale float32, assetPath, name string) service.Monster {
-			return component.NewMonster(x, y, scale, assetPath, name)
+		NewMonster: func(x, y, scale float32, resolver *utils.PathResolver, assetPath, name string) service.Monster {
+			return component.NewMonster(x, y, scale, resolver, assetPath, name)
 		},
 		NewNPC: func(kind, relativeDir string, x, y, scale float32) (service.INpc, error) {
 			switch kind {
@@ -80,7 +80,7 @@ func NewGamePage(winWidth, winHeight int32) *GamePage {
 
 	startX, startY := mapManager.GetStartPosition()
 
-	mainChar := component.NewMainCharacter(startX, startY, service.CharScale, pathResolver.Resolve("characters", "main_character"))
+	mainChar := component.NewMainCharacter(startX, startY, service.CharScale, pathResolver, pathResolver.Resolve("characters", "main_character"))
 	hpBar := component.NewHPBar(15, 15, 180, 20)
 
 	gameViewWidth := winWidth / 3
@@ -93,7 +93,7 @@ func NewGamePage(winWidth, winHeight int32) *GamePage {
 		InventoryMgr:    inventoryMgr,
 		ChatMgr:         chatMgr,
 		QuestMgr:        questMgr,
-		RoomDetailsMgr: roomDetailsMgr,
+		RoomDetailsMgr:  roomDetailsMgr,
 		RoomViewMgr:     roomViewMgr,
 		PlayerMgr:       playerMgr,
 		MapComp:         mapComp,
@@ -131,6 +131,9 @@ func (gp *GamePage) Unload() {
 	}
 	if gp.RoomDetailsComp != nil {
 		gp.RoomDetailsComp.Unload()
+	}
+	if gp.PathResolver != nil && gp.PathResolver.ImageManager != nil {
+		gp.PathResolver.ImageManager.UnloadAll()
 	}
 	gp.BasePage.Unload()
 }
@@ -246,13 +249,9 @@ func (gp *GamePage) Render() {
 	halfH := float32(gp.WindowHeight) / 2
 	totalW := float32(gp.WindowWidth)
 
-	// =================================================================
-	// TOP HALF (Game View + Room Details)
-	// =================================================================
 	topMapW := totalW / 3
 	topDetailsW := totalW - topMapW
 
-	// TOP LEFT: Game Map View
 	rl.BeginScissorMode(0, 0, int32(topMapW), int32(halfH))
 	rl.BeginMode2D(gp.Camera)
 	if gp.MapComp != nil {
@@ -268,24 +267,18 @@ func (gp *GamePage) Render() {
 	}
 	rl.EndScissorMode()
 
-	// TOP RIGHT: Room Details
 	if gp.RoomDetailsComp != nil {
 		gp.RoomDetailsComp.Render(topMapW, 0, topDetailsW, halfH)
 	}
 
-	// Horizontal Separator Line (50% Screen Split)
 	rl.DrawLineEx(rl.NewVector2(0, halfH), rl.NewVector2(totalW, halfH), 2, rl.NewColor(180, 190, 200, 255))
 
-	// =================================================================
-	// BOTTOM HALF (Room View, Player in Room, Action Buttons, Log View)
-	// =================================================================
 	bottomLeftW := totalW * 0.52
 	bottomRightW := totalW - bottomLeftW
 
 	botY := halfH + 8
 	botH := halfH - 16
 
-	// TOP SUB-ROW OF BOTTOM LEFT: Room View (55%) & Player in Room (45%)
 	roomPlayerH := botH*0.55 - 4
 	roomViewW := (bottomLeftW - 20) * 0.58
 	playerRoomW := (bottomLeftW - 20) * 0.42
@@ -300,7 +293,6 @@ func (gp *GamePage) Render() {
 		gp.PlayerComp.Render(playerRoomRect)
 	}
 
-	// BOTTOM SUB-ROW OF BOTTOM LEFT: Action Buttons Grid & Command Input
 	actionY := botY + roomPlayerH + 8
 	actionH := botH - roomPlayerH - 8
 	actionRect := rl.NewRectangle(10, actionY, bottomLeftW-12, actionH)
@@ -309,13 +301,11 @@ func (gp *GamePage) Render() {
 		gp.ActionBtnsComp.Render(actionRect)
 	}
 
-	// BOTTOM RIGHT: Log View Component
 	logRect := rl.NewRectangle(bottomLeftW+6, botY, bottomRightW-16, botH)
 	if gp.LogViewComp != nil {
 		gp.LogViewComp.Render(logRect)
 	}
 
-	// Overlays (Inventory, Chat, Quest overlays)
 	if gp.InventoryComp != nil {
 		gp.InventoryComp.Render(gp.WindowWidth, gp.WindowHeight)
 	}

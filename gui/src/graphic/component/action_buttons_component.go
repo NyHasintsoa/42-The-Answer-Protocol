@@ -87,7 +87,6 @@ func (abc *ActionButtonsComponent) Render(rect rl.Rectangle) {
 		}
 	}
 
-	// Command Line Input at bottom
 	inputY := rect.Y + gridH + 8
 	abc.CommandInput.Rect = rl.NewRectangle(rect.X, inputY, rect.Width, inputH)
 
@@ -116,6 +115,5 @@ func (abc *ActionButtonsComponent) handleAction(label string) {
 			abc.QuestMgr.Toggle()
 		}
 	case "STATUS", "GROUP", "LOOK", "WHO", "QUIT":
-		// Logs recorded in terminal output
 	}
 }

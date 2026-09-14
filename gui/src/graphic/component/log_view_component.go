@@ -24,16 +24,13 @@ func (lvc *LogViewComponent) AddLog(msg string) {
 }
 
 func (lvc *LogViewComponent) Render(rect rl.Rectangle) {
-	// Container Panel
 	rl.DrawRectangleRounded(rect, 0.02, 6, rl.NewColor(245, 247, 250, 255))
 	rl.DrawRectangleRoundedLinesEx(rect, 0.02, 6, 2, rl.NewColor(180, 190, 200, 255))
 
-	// Header
 	title := "LOG VIEW"
 	rl.DrawText(title, int32(rect.X+14), int32(rect.Y+12), 14, rl.NewColor(40, 50, 60, 255))
 	rl.DrawLineEx(rl.NewVector2(rect.X+10, rect.Y+32), rl.NewVector2(rect.X+rect.Width-10, rect.Y+32), 1, rl.NewColor(210, 220, 230, 255))
 
-	// Wrapped log entries
 	logY := rect.Y + 40
 	for _, logMsg := range lvc.Logs {
 		if logY > rect.Y+rect.Height-25 {

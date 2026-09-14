@@ -44,7 +44,7 @@ func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc service.RoomNPCDetail
 
 	var npcComp service.INpc
 	var err error
-	scale := float32(0.25) // Small preview scale for card rendering
+	scale := float32(0.25)
 
 	switch npc.Kind {
 	case "guard":
@@ -73,7 +73,6 @@ func (rdc *RoomDetailsComponent) Render(areaX, areaY, areaW, areaH float32) {
 	mousePos := rl.GetMousePosition()
 	mouseClicked := rl.IsMouseButtonPressed(rl.MouseLeftButton)
 
-	// Outer Card Container (Centered in 2/3 Right Area)
 	cardW := float32(720)
 	if cardW > areaW-30 {
 		cardW = areaW - 30
@@ -86,11 +85,9 @@ func (rdc *RoomDetailsComponent) Render(areaX, areaY, areaW, areaH float32) {
 	cardY := areaY + (areaH-cardH)/2
 	cardRect := rl.NewRectangle(cardX, cardY, cardW, cardH)
 
-	// Card Outer Box
 	rl.DrawRectangleRounded(cardRect, 0.02, 8, rl.NewColor(245, 247, 250, 255))
 	rl.DrawRectangleRoundedLinesEx(cardRect, 0.02, 8, 2, rl.NewColor(180, 190, 200, 255))
 
-	// Card Title Header
 	rl.DrawText("ROOM DETAILS", int32(cardX+(cardW-float32(rl.MeasureText("ROOM DETAILS", 16)))/2), int32(cardY+14), 16, rl.NewColor(40, 50, 60, 255))
 
 	colW := (cardW - 35) / 2
@@ -100,9 +97,6 @@ func (rdc *RoomDetailsComponent) Render(areaX, areaY, areaW, areaH float32) {
 	tealBtnColor := rl.NewColor(24, 160, 178, 255)
 	tealBtnHover := rl.NewColor(18, 130, 146, 255)
 
-	// -------------------------------------------------------------
-	// LEFT COLUMN: Items in Room
-	// -------------------------------------------------------------
 	leftColX := cardX + 12
 	leftColRect := rl.NewRectangle(leftColX, colY, colW, colH)
 	rl.DrawRectangleRounded(leftColRect, 0.02, 6, rl.NewColor(238, 242, 246, 255))
@@ -117,7 +111,6 @@ func (rdc *RoomDetailsComponent) Render(areaX, areaY, areaW, areaH float32) {
 	} else {
 		itemY := colY + 45
 		for _, item := range rdc.Manager.Items {
-			// Determine item icon filename
 			parts := strings.Split(item.ID, ":")
 			iconName := item.ID
 			if len(parts) > 1 {
@@ -157,9 +150,6 @@ func (rdc *RoomDetailsComponent) Render(areaX, areaY, areaW, areaH float32) {
 		}
 	}
 
-	// -------------------------------------------------------------
-	// RIGHT COLUMN: NPC in Room
-	// -------------------------------------------------------------
 	rightColX := cardX + colW + 22
 	rightColRect := rl.NewRectangle(rightColX, colY, colW, colH)
 	rl.DrawRectangleRounded(rightColRect, 0.02, 6, rl.NewColor(238, 242, 246, 255))
@@ -178,7 +168,7 @@ func (rdc *RoomDetailsComponent) Render(areaX, areaY, areaW, areaH float32) {
 			if npcComp != nil {
 				npcComp.Update(dt)
 				if npcChar, ok := npcComp.(*NpcCharacter); ok {
-					npcChar.Position = rl.NewVector2(rightColX+18, npcY+40) // Position character preview
+					npcChar.Position = rl.NewVector2(rightColX+18, npcY+40)
 				}
 				npcComp.Render()
 			}

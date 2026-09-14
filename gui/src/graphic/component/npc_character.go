@@ -39,7 +39,7 @@ func NewNpcCharacter(name string, resolver *utils.PathResolver, relativeDir stri
 		Scale:        scale,
 		Animations:   make(map[string][]rl.Texture2D),
 		CurrentAnim:  "Idle",
-		FrameSpeed:   24.0, 
+		FrameSpeed:   24.0,
 		PathResolver: resolver,
 		RelativeDir:  relativeDir,
 	}
@@ -63,7 +63,7 @@ func (n *NpcCharacter) LoadAnim(action string) error {
 	var textures []rl.Texture2D
 	for _, name := range fileNames {
 		texPath := filepath.Join(dirPath, name)
-		textures = append(textures, rl.LoadTexture(texPath))
+		textures = append(textures, n.PathResolver.ImageManager.Load(texPath))
 	}
 
 	n.Animations[action] = textures
@@ -99,7 +99,6 @@ func (n *NpcCharacter) Render() {
 
 	tex := frames[n.FrameIndex]
 
-	
 	srcRec := rl.NewRectangle(0, 0, float32(tex.Width), float32(tex.Height))
 
 	destWidth := float32(tex.Width) * n.Scale
@@ -110,7 +109,6 @@ func (n *NpcCharacter) Render() {
 
 	rl.DrawTexturePro(tex, srcRec, destRec, origin, 0.0, rl.White)
 
-	
 	label := fmt.Sprintf("%s\n[%s]", strings.ToUpper(n.Name), n.CurrentAnim)
 	textWidth := rl.MeasureText(n.Name, 18)
 	labelX := int32(n.Position.X + (destWidth / 2) - float32(textWidth/2))
@@ -119,9 +117,5 @@ func (n *NpcCharacter) Render() {
 }
 
 func (n *NpcCharacter) UnloadAnimations() {
-	for _, frames := range n.Animations {
-		for _, tex := range frames {
-			rl.UnloadTexture(tex)
-		}
-	}
+	n.Animations = make(map[string][]rl.Texture2D)
 }

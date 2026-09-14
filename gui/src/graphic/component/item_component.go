@@ -2,6 +2,7 @@ package component
 
 import (
 	"strings"
+
 	"tap-gui/src/model/enums"
 	"tap-gui/src/utils"
 
@@ -39,7 +40,7 @@ func (ic *ItemComponent) GetTextureByName(filename string) rl.Texture2D {
 		imagePath = "assets/inventory/" + filename
 	}
 
-	tex := rl.LoadTexture(imagePath)
+	tex := ic.Resolver.ImageManager.Load(imagePath)
 	ic.textures[filename] = tex
 	return tex
 }
@@ -55,8 +56,5 @@ func (ic *ItemComponent) RenderItemIcon(filename string, destRect rl.Rectangle) 
 }
 
 func (ic *ItemComponent) Unload() {
-	for _, tex := range ic.textures {
-		rl.UnloadTexture(tex)
-	}
 	ic.textures = make(map[string]rl.Texture2D)
 }
