@@ -1,8 +1,6 @@
 package page
 
 import (
-	"fmt"
-
 	"tap-gui/src/graphic/component"
 	"tap-gui/src/model/enums"
 	"tap-gui/src/service"
@@ -13,20 +11,22 @@ import (
 
 type GamePage struct {
 	BasePage
-	MapManager    *service.MapManager
-	InventoryMgr  *service.InventoryManager
-	ChatMgr       *service.ChatManager
-	QuestMgr      *service.QuestManager
-	MapComp       *component.MapComponent
-	InventoryComp *component.InventoryComponent
-	MainChar      *component.MainCharacter
-	HPBar         *component.HPBar
-	ChatComp      *component.ChatComponent
-	QuestComp     *component.QuestComponent
-	PathResolver  *utils.PathResolver
-	WindowWidth   int32
-	WindowHeight  int32
-	Camera        rl.Camera2D
+	MapManager     *service.MapManager
+	InventoryMgr   *service.InventoryManager
+	ChatMgr        *service.ChatManager
+	QuestMgr       *service.QuestManager
+	RoomDetailsMgr *service.RoomDetailsManager
+	MapComp        *component.MapComponent
+	InventoryComp  *component.InventoryComponent
+	MainChar       *component.MainCharacter
+	HPBar          *component.HPBar
+	ChatComp       *component.ChatComponent
+	QuestComp      *component.QuestComponent
+	RoomDetailsComp *component.RoomDetailsComponent
+	PathResolver   *utils.PathResolver
+	WindowWidth    int32
+	WindowHeight   int32
+	Camera         rl.Camera2D
 }
 
 func NewGamePage(winWidth, winHeight int32) *GamePage {
@@ -46,37 +46,53 @@ func NewGamePage(winWidth, winHeight int32) *GamePage {
 			}
 		},
 	})
+
 	inventoryMgr := service.NewInventoryManager()
 	chatMgr := service.NewChatManager()
 	questMgr := service.NewQuestManager()
+	roomDetailsMgr := service.NewRoomDetailsManager()
+
+	// Initial room details test data setup
+	roomDetailsMgr.SetRoomDetails("Village Square", []service.RoomItemDetail{
+		{ID: "156:sword", Name: "Magic Sword", Description: "Cras mattis consectetur purus sit amet fermentum."},
+		{ID: "241:herb", Name: "Healthy potion", Description: "Cras mattis consectetur purus sit amet fermentum."},
+	}, []service.RoomNPCDetail{
+		{Key: "guard", Name: "Guard knight", Description: "Cras mattis consectetur purus sit amet fermentum.", Kind: "guard", HasQuest: false},
+		{Key: "seller", Name: "Seller", Description: "Cras mattis consectetur purus sit amet fermentum.", Kind: "seller", HasQuest: true, QuestID: "npc_2"},
+	})
 
 	mapComp := component.NewMapComponent(mapManager)
 	inventoryComp := component.NewInventoryComponent(inventoryMgr, pathResolver)
 	chatComp := component.NewChatComponent(chatMgr)
 	questComp := component.NewQuestComponent(questMgr)
+	roomDetailsComp := component.NewRoomDetailsComponent(roomDetailsMgr, pathResolver)
 
 	startX, startY := mapManager.GetStartPosition()
 
 	mainChar := component.NewMainCharacter(startX, startY, service.CharScale, pathResolver.Resolve("characters", "main_character"))
-	hpBar := component.NewHPBar(30, 20, 320, 28)
+	hpBar := component.NewHPBar(20, 20, 220, 24)
+
+	gameViewWidth := winWidth / 3
 
 	gp := &GamePage{
-		WindowWidth:   winWidth,
-		WindowHeight:  winHeight,
-		PathResolver:  pathResolver,
-		MapManager:    mapManager,
-		InventoryMgr:  inventoryMgr,
-		ChatMgr:       chatMgr,
-		QuestMgr:      questMgr,
-		MapComp:       mapComp,
-		InventoryComp: inventoryComp,
-		MainChar:      mainChar,
-		HPBar:         hpBar,
-		ChatComp:      chatComp,
-		QuestComp:     questComp,
+		WindowWidth:     winWidth,
+		WindowHeight:    winHeight,
+		PathResolver:    pathResolver,
+		MapManager:      mapManager,
+		InventoryMgr:    inventoryMgr,
+		ChatMgr:         chatMgr,
+		QuestMgr:        questMgr,
+		RoomDetailsMgr: roomDetailsMgr,
+		MapComp:         mapComp,
+		InventoryComp:   inventoryComp,
+		MainChar:        mainChar,
+		HPBar:           hpBar,
+		ChatComp:        chatComp,
+		QuestComp:       questComp,
+		RoomDetailsComp: roomDetailsComp,
 		Camera: rl.Camera2D{
 			Target:   mainChar.Position,
-			Offset:   rl.NewVector2(float32(winWidth)/2, float32(winHeight)/2),
+			Offset:   rl.NewVector2(float32(gameViewWidth)/2, float32(winHeight)/2),
 			Rotation: 0.0,
 			Zoom:     1.0,
 		},
@@ -95,6 +111,9 @@ func (gp *GamePage) Unload() {
 	}
 	if gp.MainChar != nil {
 		gp.MainChar.UnloadAnimations()
+	}
+	if gp.RoomDetailsComp != nil {
+		gp.RoomDetailsComp.Unload()
 	}
 	gp.BasePage.Unload()
 }
@@ -205,7 +224,15 @@ func (gp *GamePage) Render() {
 	dt := rl.GetFrameTime()
 	gp.Update(dt)
 
-	rl.ClearBackground(rl.NewColor(15, 20, 15, 255))
+	rl.ClearBackground(rl.NewColor(15, 20, 25, 255))
+
+	col1W := gp.WindowWidth / 3
+	col2W := gp.WindowWidth - col1W
+
+	// -----------------------------------------------------------------
+	// COLUMN 1 (1/3 Width): Game View
+	// -----------------------------------------------------------------
+	rl.BeginScissorMode(0, 0, col1W, gp.WindowHeight)
 
 	rl.BeginMode2D(gp.Camera)
 	if gp.MapComp != nil {
@@ -220,36 +247,34 @@ func (gp *GamePage) Render() {
 		gp.HPBar.Render()
 	}
 
-	rl.DrawRectangle(10, gp.WindowHeight-70, 520, 60, rl.NewColor(0, 0, 0, 180))
-	rl.DrawRectangleLines(10, gp.WindowHeight-70, 520, 60, rl.RayWhite)
-	rl.DrawText("WASD: Move | SPACE: Attack | I: Inventory | C: Chat | Q: Quests | [- / +]: Test HP", 20, gp.WindowHeight-62, 12, rl.RayWhite)
+	// Game View Controls HUD
+	hudY := gp.WindowHeight - 65
+	rl.DrawRectangle(10, hudY, col1W-20, 55, rl.NewColor(0, 0, 0, 190))
+	rl.DrawRectangleLines(10, hudY, col1W-20, 55, rl.NewColor(0, 180, 255, 255))
+	rl.DrawText("WASD: Move | SPACE: Attack", 20, hudY+10, 12, rl.White)
+	rl.DrawText("I: Bag | Q: Quests", 20, hudY+28, 12, rl.Gold)
 
-	if gp.MapManager.ActiveRoom != nil {
-		infoText := fmt.Sprintf("Room: %s", gp.MapManager.ActiveRoom.Name)
-		rl.DrawText(infoText, 20, gp.WindowHeight-44, 14, rl.Gold)
+	rl.EndScissorMode()
+
+	// Column Divider Border Line
+	rl.DrawLineEx(rl.NewVector2(float32(col1W), 0), rl.NewVector2(float32(col1W), float32(gp.WindowHeight)), 2, rl.NewColor(0, 180, 255, 255))
+
+	// -----------------------------------------------------------------
+	// COLUMNS 2 & 3 (2/3 Width): Room Details Component
+	// -----------------------------------------------------------------
+	rightAreaX := float32(col1W)
+	rightAreaY := float32(0)
+	rightAreaW := float32(col2W)
+	rightAreaH := float32(gp.WindowHeight)
+
+	// Draw Background for Right Column Area
+	rl.DrawRectangle(int32(rightAreaX), 0, col2W, gp.WindowHeight, rl.NewColor(220, 225, 230, 255))
+
+	if gp.RoomDetailsComp != nil {
+		gp.RoomDetailsComp.Render(rightAreaX, rightAreaY, rightAreaW, rightAreaH)
 	}
 
-	qBtnW := float32(110)
-	qBtnH := float32(40)
-	qBtnX := float32(gp.WindowWidth) - qBtnW - 20
-	qBtnY := float32(gp.WindowHeight) - qBtnH - 20
-	qBtnRect := rl.NewRectangle(qBtnX, qBtnY, qBtnW, qBtnH)
-
-	mousePos := rl.GetMousePosition()
-	qBtnBg := rl.NewColor(18, 22, 34, 230)
-	qBtnBorder := rl.NewColor(0, 180, 255, 255)
-
-	if rl.CheckCollisionPointRec(mousePos, qBtnRect) {
-		qBtnBg = rl.NewColor(30, 50, 80, 255)
-		if rl.IsMouseButtonPressed(rl.MouseLeftButton) && gp.QuestMgr != nil {
-			gp.QuestMgr.Toggle()
-		}
-	}
-
-	rl.DrawRectangleRounded(qBtnRect, 0.25, 8, qBtnBg)
-	rl.DrawRectangleRoundedLinesEx(qBtnRect, 0.25, 8, 2, qBtnBorder)
-	rl.DrawText("QUESTS [Q]", int32(qBtnX+12), int32(qBtnY+12), 15, rl.White)
-
+	// Overlays
 	if gp.InventoryComp != nil {
 		gp.InventoryComp.Render(gp.WindowWidth, gp.WindowHeight)
 	}
