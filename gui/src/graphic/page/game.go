@@ -16,11 +16,13 @@ type GamePage struct {
 	MapManager    *service.MapManager
 	InventoryMgr  *service.InventoryManager
 	ChatMgr       *service.ChatManager
+	QuestMgr      *service.QuestManager
 	MapComp       *component.MapComponent
 	InventoryComp *component.InventoryComponent
 	MainChar      *component.MainCharacter
 	HPBar         *component.HPBar
 	ChatComp      *component.ChatComponent
+	QuestComp     *component.QuestComponent
 	PathResolver  *utils.PathResolver
 	WindowWidth   int32
 	WindowHeight  int32
@@ -46,10 +48,12 @@ func NewGamePage(winWidth, winHeight int32) *GamePage {
 	})
 	inventoryMgr := service.NewInventoryManager()
 	chatMgr := service.NewChatManager()
+	questMgr := service.NewQuestManager()
 
 	mapComp := component.NewMapComponent(mapManager)
 	inventoryComp := component.NewInventoryComponent(inventoryMgr, pathResolver)
 	chatComp := component.NewChatComponent(chatMgr)
+	questComp := component.NewQuestComponent(questMgr)
 
 	startX, startY := mapManager.GetStartPosition()
 
@@ -62,12 +66,14 @@ func NewGamePage(winWidth, winHeight int32) *GamePage {
 		PathResolver:  pathResolver,
 		MapManager:    mapManager,
 		InventoryMgr:  inventoryMgr,
+		ChatMgr:       chatMgr,
+		QuestMgr:      questMgr,
 		MapComp:       mapComp,
 		InventoryComp: inventoryComp,
 		MainChar:      mainChar,
 		HPBar:         hpBar,
 		ChatComp:      chatComp,
-		ChatMgr:       chatMgr,
+		QuestComp:     questComp,
 		Camera: rl.Camera2D{
 			Target:   mainChar.Position,
 			Offset:   rl.NewVector2(float32(winWidth)/2, float32(winHeight)/2),
@@ -98,6 +104,10 @@ func (gp *GamePage) EventListener() {
 		gp.NextState = enums.MainMenu
 	}
 
+	if rl.IsKeyPressed(rl.KeyQ) && gp.QuestMgr != nil {
+		gp.QuestMgr.Toggle()
+	}
+
 	if rl.IsKeyPressed(rl.KeyMinus) || rl.IsKeyPressed(rl.KeyKpSubtract) {
 		gp.HPBar.SetHP(gp.HPBar.TargetHP - 20)
 	}
@@ -116,7 +126,9 @@ func (gp *GamePage) Update(dt float32) {
 		return
 	}
 
-	if (gp.InventoryMgr != nil && gp.InventoryMgr.IsOpen) || (gp.ChatMgr != nil && gp.ChatMgr.IsOpen) {
+	if (gp.InventoryMgr != nil && gp.InventoryMgr.IsOpen) ||
+		(gp.ChatMgr != nil && gp.ChatMgr.IsOpen) ||
+		(gp.QuestMgr != nil && gp.QuestMgr.IsOpen) {
 		gp.MainChar.SetAction(component.ActionIdle)
 		return
 	}
@@ -208,14 +220,35 @@ func (gp *GamePage) Render() {
 		gp.HPBar.Render()
 	}
 
-	rl.DrawRectangle(10, gp.WindowHeight-70, 480, 60, rl.NewColor(0, 0, 0, 180))
-	rl.DrawRectangleLines(10, gp.WindowHeight-70, 480, 60, rl.RayWhite)
-	rl.DrawText("WASD: Move | SPACE: Attack | I: Inventory | C: Chat | [- / +]: Test HP", 20, gp.WindowHeight-62, 12, rl.RayWhite)
+	rl.DrawRectangle(10, gp.WindowHeight-70, 520, 60, rl.NewColor(0, 0, 0, 180))
+	rl.DrawRectangleLines(10, gp.WindowHeight-70, 520, 60, rl.RayWhite)
+	rl.DrawText("WASD: Move | SPACE: Attack | I: Inventory | C: Chat | Q: Quests | [- / +]: Test HP", 20, gp.WindowHeight-62, 12, rl.RayWhite)
 
 	if gp.MapManager.ActiveRoom != nil {
 		infoText := fmt.Sprintf("Room: %s", gp.MapManager.ActiveRoom.Name)
 		rl.DrawText(infoText, 20, gp.WindowHeight-44, 14, rl.Gold)
 	}
+
+	qBtnW := float32(110)
+	qBtnH := float32(40)
+	qBtnX := float32(gp.WindowWidth) - qBtnW - 20
+	qBtnY := float32(gp.WindowHeight) - qBtnH - 20
+	qBtnRect := rl.NewRectangle(qBtnX, qBtnY, qBtnW, qBtnH)
+
+	mousePos := rl.GetMousePosition()
+	qBtnBg := rl.NewColor(18, 22, 34, 230)
+	qBtnBorder := rl.NewColor(0, 180, 255, 255)
+
+	if rl.CheckCollisionPointRec(mousePos, qBtnRect) {
+		qBtnBg = rl.NewColor(30, 50, 80, 255)
+		if rl.IsMouseButtonPressed(rl.MouseLeftButton) && gp.QuestMgr != nil {
+			gp.QuestMgr.Toggle()
+		}
+	}
+
+	rl.DrawRectangleRounded(qBtnRect, 0.25, 8, qBtnBg)
+	rl.DrawRectangleRoundedLinesEx(qBtnRect, 0.25, 8, 2, qBtnBorder)
+	rl.DrawText("QUESTS [Q]", int32(qBtnX+12), int32(qBtnY+12), 15, rl.White)
 
 	if gp.InventoryComp != nil {
 		gp.InventoryComp.Render(gp.WindowWidth, gp.WindowHeight)
@@ -223,5 +256,9 @@ func (gp *GamePage) Render() {
 
 	if gp.ChatComp != nil {
 		gp.ChatComp.Render(gp.WindowWidth, gp.WindowHeight)
+	}
+
+	if gp.QuestComp != nil {
+		gp.QuestComp.Render(gp.WindowWidth, gp.WindowHeight)
 	}
 }
