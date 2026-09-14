@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	BaseTileSize = 64
+	BaseTileSize = 48
 	GroundScale  = 1.0
 	TileSize     = float32(BaseTileSize) * GroundScale
-	CharScale    = 0.25
-	CellSpacing  = 15
+	CharScale    = 0.2
+	CellSpacing  = 12
 )
 
 type TileType int
@@ -31,7 +31,6 @@ type EnvCategory int
 
 const (
 	CategoryScenery EnvCategory = iota
-	CategoryBuilding
 )
 
 type EnvObjectInfo struct {
@@ -94,29 +93,29 @@ type EntityFactory struct {
 }
 
 type MapManager struct {
-	World            *WorldMap
-	Enemies          []Monster
-	NPCs             []INpc
-	PathTextures     map[string]rl.Texture2D
-	BuildingTextures map[string]rl.Texture2D
-	EmptyTexture     rl.Texture2D
-	SceneryObjects   []EnvObjectInfo
-	PathResolver     *utils.PathResolver
-	ActiveRoom       *RoomNode
-	entityFactory    EntityFactory
+	World          *WorldMap
+	Enemies        []Monster
+	NPCs           []INpc
+	PathTextures   map[string]rl.Texture2D
+	RoomTextures   map[string]rl.Texture2D
+	EmptyTexture   rl.Texture2D
+	SceneryObjects []EnvObjectInfo
+	PathResolver   *utils.PathResolver
+	ActiveRoom     *RoomNode
+	entityFactory  EntityFactory
 }
 
 func NewMapManager(pathResolver *utils.PathResolver, configJSON string, factory EntityFactory) *MapManager {
 	mm := &MapManager{
 		PathResolver:  pathResolver,
 		PathTextures:  make(map[string]rl.Texture2D),
+		RoomTextures:  make(map[string]rl.Texture2D),
 		Enemies:       make([]Monster, 0),
 		NPCs:          make([]INpc, 0),
 		entityFactory: factory,
 	}
 
 	mm.loadGroundTextures()
-	mm.loadBuildingTextures()
 	mm.loadEnvironmentObjects()
 
 	mm.World = mm.generateWorldMap(configJSON)
@@ -128,7 +127,7 @@ func NewMapManager(pathResolver *utils.PathResolver, configJSON string, factory 
 func (mm *MapManager) GetStartPosition() (float32, float32) {
 	if startRoom, exists := mm.World.Rooms["start"]; exists {
 		mm.ActiveRoom = startRoom
-		return float32(startRoom.TileX)*TileSize + TileSize/2, float32(startRoom.TileY)*TileSize + TileSize/2
+		return float32(startRoom.TileX)*TileSize + TileSize*2, float32(startRoom.TileY)*TileSize + TileSize*2
 	}
 	return TileSize, TileSize
 }
@@ -144,9 +143,6 @@ func (mm *MapManager) IsWalkable(x, y float32) bool {
 }
 
 func (mm *MapManager) Update(dt float32, playerPos rl.Vector2) {
-	for _, e := range mm.Enemies {
-		e.UpdateAI(dt, playerPos, mm.IsWalkable)
-	}
 	for _, n := range mm.NPCs {
 		n.Update(dt)
 	}
@@ -154,28 +150,50 @@ func (mm *MapManager) Update(dt float32, playerPos rl.Vector2) {
 	charTileX := int(playerPos.X / TileSize)
 	charTileY := int(playerPos.Y / TileSize)
 	for _, room := range mm.World.Rooms {
-		if mm.abs(charTileX-room.TileX) <= 3 && mm.abs(charTileY-room.TileY) <= 3 {
+		if charTileX >= room.TileX && charTileX < room.TileX+4 &&
+			charTileY >= room.TileY && charTileY < room.TileY+4 {
 			mm.ActiveRoom = room
 			break
 		}
 	}
 }
 
-func (mm *MapManager) GetPathBitmaskWorld(x, y int) string {
-	north, east, south, west := 0, 0, 0, 0
+func (mm *MapManager) GetPathTileTexture(x, y int) (rl.Texture2D, bool) {
+	mask := 0
 	if y > 0 && (mm.World.Grid[y-1][x] == TilePath || mm.World.Grid[y-1][x] == TileRoom) {
-		north = 1
+		mask |= 8
 	}
 	if x < mm.World.Width-1 && (mm.World.Grid[y][x+1] == TilePath || mm.World.Grid[y][x+1] == TileRoom) {
-		east = 1
+		mask |= 4
 	}
 	if y < mm.World.Height-1 && (mm.World.Grid[y+1][x] == TilePath || mm.World.Grid[y+1][x] == TileRoom) {
-		south = 1
+		mask |= 2
 	}
 	if x > 0 && (mm.World.Grid[y][x-1] == TilePath || mm.World.Grid[y][x-1] == TileRoom) {
-		west = 1
+		mask |= 1
 	}
-	return fmt.Sprintf("%d%d%d%d", north, east, south, west)
+
+	key := fmt.Sprintf("%04b", mask)
+	if tex, ok := mm.PathTextures[key]; ok && tex.ID > 0 {
+		return tex, true
+	}
+	if tex, ok := mm.PathTextures["1111"]; ok && tex.ID > 0 {
+		return tex, true
+	}
+	return rl.Texture2D{}, false
+}
+
+func (mm *MapManager) GetRoomTileTexture(x, y int) (rl.Texture2D, bool) {
+	for _, room := range mm.World.Rooms {
+		dx := x - room.TileX
+		dy := y - room.TileY
+		if dx >= 0 && dx < 4 && dy >= 0 && dy < 4 {
+			if tex, ok := mm.RoomTextures["full"]; ok && tex.ID > 0 {
+				return tex, true
+			}
+		}
+	}
+	return rl.Texture2D{}, false
 }
 
 func (mm *MapManager) Unload() {
@@ -289,7 +307,7 @@ func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 		}
 	}
 
-	padding := 20
+	padding := 10
 	mapWidth := (maxX-minX+1)*CellSpacing + padding*2
 	mapHeight := (maxY-minY+1)*CellSpacing + padding*2
 
@@ -300,9 +318,7 @@ func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 		grid[y] = make([]TileType, mapWidth)
 		envIdx[y] = make([]int, mapWidth)
 		for x := 0; x < mapWidth; x++ {
-			if (x*17+y*11)%10 >= 4 {
-				envIdx[y][x] = -1
-			}
+			envIdx[y][x] = -1
 		}
 	}
 
@@ -315,8 +331,8 @@ func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 	}
 
 	for roomID, coord := range roomGridCoords {
-		tileX := (coord[0]-minX)*CellSpacing + padding + 4
-		tileY := (coord[1]-minY)*CellSpacing + padding + 4
+		tileX := (coord[0]-minX)*CellSpacing + padding
+		tileY := (coord[1]-minY)*CellSpacing + padding
 
 		roomCfg := config.World.Rooms[roomID]
 		roomNode := &RoomNode{
@@ -332,8 +348,9 @@ func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 		}
 		worldMap.Rooms[roomID] = roomNode
 
-		for ry := -3; ry <= 3; ry++ {
-			for rx := -3; rx <= 3; rx++ {
+		// 4x4 room sizing
+		for ry := 0; ry < 4; ry++ {
+			for rx := 0; rx < 4; rx++ {
 				if tileY+ry >= 0 && tileY+ry < mapHeight && tileX+rx >= 0 && tileX+rx < mapWidth {
 					grid[tileY+ry][tileX+rx] = TileRoom
 				}
@@ -341,11 +358,36 @@ func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 		}
 	}
 
+	// 2x2 wide paths centered on the 4x4 room edges
 	for roomID, roomNode := range worldMap.Rooms {
 		roomCfg := config.World.Rooms[roomID]
-		for _, targetID := range roomCfg.Exits {
+		for dir, targetID := range roomCfg.Exits {
 			if targetNode, exists := worldMap.Rooms[targetID]; exists {
-				mm.carvePath(grid, roomNode.TileX, roomNode.TileY, targetNode.TileX, targetNode.TileY)
+				switch dir {
+				case "north":
+					mm.carvePath(grid, roomNode.TileX+1, roomNode.TileY, targetNode.TileX+1, targetNode.TileY+3)
+					mm.carvePath(grid, roomNode.TileX+2, roomNode.TileY, targetNode.TileX+2, targetNode.TileY+3)
+				case "south":
+					mm.carvePath(grid, roomNode.TileX+1, roomNode.TileY+3, targetNode.TileX+1, targetNode.TileY)
+					mm.carvePath(grid, roomNode.TileX+2, roomNode.TileY+3, targetNode.TileX+2, targetNode.TileY)
+				case "east":
+					mm.carvePath(grid, roomNode.TileX+3, roomNode.TileY+1, targetNode.TileX, targetNode.TileY+1)
+					mm.carvePath(grid, roomNode.TileX+3, roomNode.TileY+2, targetNode.TileX, targetNode.TileY+2)
+				case "west":
+					mm.carvePath(grid, roomNode.TileX, roomNode.TileY+1, targetNode.TileX+3, targetNode.TileY+1)
+					mm.carvePath(grid, roomNode.TileX, roomNode.TileY+2, targetNode.TileX+3, targetNode.TileY+2)
+				}
+			}
+		}
+	}
+
+	for y := 0; y < mapHeight; y++ {
+		for x := 0; x < mapWidth; x++ {
+			if grid[y][x] == TileWall {
+				val := (x*31 + y*17 + (x*y)*7) % 100
+				if val < 45 && len(mm.SceneryObjects) > 0 {
+					envIdx[y][x] = (x*13 + y*7) % len(mm.SceneryObjects)
+				}
 			}
 		}
 	}
@@ -355,15 +397,14 @@ func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 
 func (mm *MapManager) carvePath(grid [][]TileType, x1, y1, x2, y2 int) {
 	currX, currY := x1, y1
-	for currX != x2 || currY != y2 {
-		for dy := -1; dy <= 1; dy++ {
-			for dx := -1; dx <= 1; dx++ {
-				if currY+dy >= 0 && currY+dy < len(grid) && currX+dx >= 0 && currX+dx < len(grid[0]) {
-					if grid[currY+dy][currX+dx] == TileWall {
-						grid[currY+dy][currX+dx] = TilePath
-					}
-				}
+	for {
+		if currY >= 0 && currY < len(grid) && currX >= 0 && currX < len(grid[0]) {
+			if grid[currY][currX] == TileWall {
+				grid[currY][currX] = TilePath
 			}
+		}
+		if currX == x2 && currY == y2 {
+			break
 		}
 		if currX < x2 {
 			currX++
@@ -378,50 +419,44 @@ func (mm *MapManager) carvePath(grid [][]TileType, x1, y1, x2, y2 int) {
 }
 
 func (mm *MapManager) loadGroundTextures() {
-	bitmasks := []string{
-		"0000", "0001", "0010", "0011",
-		"0100", "0101", "0110", "0111",
-		"1000", "1001", "1010", "1011",
-		"1100", "1101", "1110", "1111",
-	}
-	for _, mask := range bitmasks {
-		path := mm.PathResolver.Resolve("ground", mask+".png")
-		mm.PathTextures[mask] = mm.PathResolver.ImageManager.Load(path)
+	for i := range 16 {
+		key := fmt.Sprintf("%04b", i)
+		path := mm.PathResolver.Resolve("ground", key+".png")
+		mm.PathTextures[key] = mm.PathResolver.ImageManager.Load(path)
 	}
 	mm.EmptyTexture = mm.PathResolver.ImageManager.Load(mm.PathResolver.Resolve("ground", "lawn.png"))
-}
 
-func (mm *MapManager) loadBuildingTextures() {
-	mm.BuildingTextures = make(map[string]rl.Texture2D)
-	buildings := []string{"House.png", "shop.png", "Tavern.png", "Castle-Round.png", "Tent.png"}
-	for _, b := range buildings {
-		path := mm.PathResolver.Resolve("building", b)
-		mm.BuildingTextures[b] = mm.PathResolver.ImageManager.Load(path)
-	}
+	fullPath := mm.PathResolver.Resolve("ground", "full.png")
+	mm.RoomTextures["full"] = mm.PathResolver.ImageManager.Load(fullPath)
 }
 
 func (mm *MapManager) loadEnvironmentObjects() {
-	specs := []struct {
-		SubFolder   string
-		FileName    string
-		CustomScale float32
+	forestFiles := []struct {
+		FileName string
+		Scale    float32
 	}{
-		{"building", "Tent.png", 0.6},
-		{"building", "Red-Banner.png", 0.5},
-		{"building", "Well.png", 0.6},
-		{"building", "Wooden-Bridge-Horizontal.png", 0.8},
-		{"building", "Campfire.png", 0.5},
-		{"forest", "Bushes-Large.png", 0.3},
-		{"forest", "Tree-Large.png", 0.4},
+		{"Tree-Large.png", 0.45},
+		{"Tree-Medium.png", 0.4},
+		{"Tree-Small.png", 0.35},
+		{"Bushes-Large.png", 0.3},
+		{"Bushes-Medium.png", 0.25},
+		{"Bushes-Small.png", 0.2},
+		{"Rock-01.png", 0.3},
+		{"Rock-02.png", 0.3},
+		{"Rock-03.png", 0.3},
+		{"Rock-04.png", 0.3},
+		{"Rock-05.png", 0.3},
+		{"Tree-Stump-Short.png", 0.3},
+		{"Tree-Stump-Tall.png", 0.35},
 	}
 
-	mm.SceneryObjects = make([]EnvObjectInfo, len(specs))
-	for i, spec := range specs {
-		fullPath := mm.PathResolver.Resolve(spec.SubFolder, spec.FileName)
+	mm.SceneryObjects = make([]EnvObjectInfo, len(forestFiles))
+	for i, file := range forestFiles {
+		fullPath := mm.PathResolver.Resolve("forest", file.FileName)
 		mm.SceneryObjects[i] = EnvObjectInfo{
 			Path:     fullPath,
 			Category: CategoryScenery,
-			Scale:    spec.CustomScale,
+			Scale:    file.Scale,
 			Texture:  mm.PathResolver.ImageManager.Load(fullPath),
 		}
 	}
