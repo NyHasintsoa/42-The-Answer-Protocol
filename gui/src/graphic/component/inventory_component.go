@@ -46,31 +46,19 @@ func (ic *InventoryComponent) Unload() {
 }
 
 func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
-	if ic.Manager == nil {
+	if ic.Manager == nil || !ic.Manager.IsOpen {
 		return
 	}
 
 	mousePos := rl.GetMousePosition()
 	mouseClicked := rl.IsMouseButtonPressed(rl.MouseLeftButton)
 
-	btnX := float32(20)
-	btnY := float32(winHeight - 130)
-	btnW := float32(110)
-	btnH := float32(40)
-	btnRect := rl.NewRectangle(btnX, btnY, btnW, btnH)
-
-	btnBg := rl.NewColor(30, 35, 55, 240)
-	btnBorder := rl.NewColor(0, 180, 255, 255)
-	if rl.CheckCollisionPointRec(mousePos, btnRect) {
-		btnBg = rl.NewColor(50, 70, 110, 255)
-		btnBorder = rl.Gold
-	}
-
-	rl.DrawRectangleRounded(btnRect, 0.25, 8, btnBg)
-	rl.DrawRectangleRoundedLinesEx(btnRect, 0.25, 8, 2, btnBorder)
-	rl.DrawText("BAG [I]", int32(btnX+22), int32(btnY+11), 18, rl.RayWhite)
-
-	if !ic.Manager.IsOpen {
+	if rl.IsKeyPressed(rl.KeyEscape) {
+		if ic.Manager.IsModalOpen {
+			ic.Manager.CloseModal()
+		} else {
+			ic.Manager.IsOpen = false
+		}
 		return
 	}
 
@@ -96,6 +84,9 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	closeCol := rl.NewColor(180, 50, 50, 255)
 	if rl.CheckCollisionPointRec(mousePos, closeBtn) {
 		closeCol = rl.Red
+		if mouseClicked && !ic.Manager.IsModalOpen {
+			ic.Manager.IsOpen = false
+		}
 	}
 	rl.DrawRectangleRounded(closeBtn, 0.3, 8, closeCol)
 	rl.DrawRectangleRoundedLinesEx(closeBtn, 0.3, 8, 1, rl.White)
@@ -112,7 +103,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		endIndex = len(ic.Manager.Items)
 	}
 
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		row := i / 3
 		col := i % 3
 
@@ -159,6 +150,9 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	if ic.Manager.CurrentPage > 0 {
 		if rl.CheckCollisionPointRec(mousePos, prevBtn) {
 			prevCol = rl.NewColor(0, 150, 220, 255)
+			if mouseClicked && !ic.Manager.IsModalOpen {
+				ic.Manager.PrevPage()
+			}
 		} else {
 			prevCol = rl.NewColor(0, 100, 180, 255)
 		}
@@ -175,6 +169,9 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	if ic.Manager.CurrentPage < ic.Manager.GetTotalPages()-1 {
 		if rl.CheckCollisionPointRec(mousePos, nextBtn) {
 			nextCol = rl.NewColor(0, 150, 220, 255)
+			if mouseClicked && !ic.Manager.IsModalOpen {
+				ic.Manager.NextPage()
+			}
 		} else {
 			nextCol = rl.NewColor(0, 100, 180, 255)
 		}
@@ -196,18 +193,18 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		modalX := (float32(winWidth) - modalW) / 2
 		modalY := (float32(winHeight) - modalH) / 2
 		modalRect := rl.NewRectangle(modalX, modalY, modalW, modalH)
+		mCloseBtn := rl.NewRectangle(modalX+modalW-44, modalY+8, 34, 34)
+		if rl.IsKeyPressed(rl.KeyEscape) || (mouseClicked && rl.CheckCollisionPointRec(mousePos, mCloseBtn)) {
+			ic.Manager.CloseModal()
+			return
+		}
 
 		rl.DrawRectangleRounded(modalRect, 0.12, 12, rl.NewColor(18, 22, 34, 255))
 		rl.DrawRectangleRoundedLinesEx(modalRect, 0.12, 12, 3, rl.Gold)
 
-		mCloseBtn := rl.NewRectangle(modalX+modalW-36, modalY+10, 26, 26)
-		if mouseClicked && rl.CheckCollisionPointRec(mousePos, mCloseBtn) {
-			ic.Manager.CloseModal()
-			return
-		}
 		rl.DrawRectangleRounded(mCloseBtn, 0.3, 6, rl.NewColor(180, 50, 50, 255))
 		rl.DrawRectangleRoundedLinesEx(mCloseBtn, 0.3, 6, 1, rl.White)
-		rl.DrawText("X", int32(modalX+modalW-28), int32(modalY+14), 14, rl.White)
+		rl.DrawText("X", int32(mCloseBtn.X+10), int32(mCloseBtn.Y+8), 14, rl.White)
 
 		imgSize := float32(140)
 		imgX := modalX + (modalW-imgSize)/2

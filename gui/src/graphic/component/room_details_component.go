@@ -44,15 +44,15 @@ func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc service.RoomNPCDetail
 
 	var npcComp service.INpc
 	var err error
-	scale := float32(0.25)
+	scale := float32(0.15)
 
 	switch npc.Kind {
 	case "guard":
-		npcComp, err = NewGuardCharacter(rdc.PathResolver, "npc/guard", 0, 0, scale)
+		npcComp, err = NewGuardCharacter(rdc.PathResolver, "npc/guard", 200, 200, scale)
 	case "seller":
-		npcComp, err = NewSellerCharacter(rdc.PathResolver, "npc/seller", 0, 0, scale)
+		npcComp, err = NewSellerCharacter(rdc.PathResolver, "npc/seller", 200, 200, scale)
 	default:
-		npcComp, err = NewPersonCharacter(rdc.PathResolver, "npc/person", 0, 0, scale)
+		npcComp, err = NewPersonCharacter(rdc.PathResolver, "npc/person", 200, 200, scale)
 	}
 
 	if err != nil {
@@ -73,7 +73,7 @@ func (rdc *RoomDetailsComponent) Render(areaX, areaY, areaW, areaH float32) {
 	mousePos := rl.GetMousePosition()
 	mouseClicked := rl.IsMouseButtonPressed(rl.MouseLeftButton)
 
-	cardW := float32(720)
+	cardW := float32(900)
 	if cardW > areaW-30 {
 		cardW = areaW - 30
 	}
@@ -165,24 +165,29 @@ func (rdc *RoomDetailsComponent) Render(areaX, areaY, areaW, areaH float32) {
 		npcY := colY + 45
 		for _, npc := range rdc.Manager.NPCs {
 			npcComp := rdc.getOrCreateNPCPreview(npc)
+			previewX := rightColX + 12
+			previewY := npcY + 42
+			infoX := rightColX + 86
 			if npcComp != nil {
 				npcComp.Update(dt)
 				if npcChar, ok := npcComp.(*NpcCharacter); ok {
-					npcChar.Position = rl.NewVector2(rightColX+18, npcY+40)
+					npcChar.Position = rl.NewVector2(previewX, previewY)
+					npcChar.ShowLabel = false
 				}
 				npcComp.Render()
 			}
 
-			rl.DrawText(npc.Name, int32(rightColX+76), int32(npcY+2), 14, rl.NewColor(20, 25, 30, 255))
-			rl.DrawText(npc.Description, int32(rightColX+76), int32(npcY+20), 10, rl.NewColor(100, 110, 120, 255))
+			rl.DrawText(npc.Name, int32(infoX), int32(npcY+42), 14, rl.NewColor(20, 25, 30, 255))
+			rl.DrawText(npc.Description, int32(infoX), int32(npcY+62), 10, rl.NewColor(100, 110, 120, 255))
 
 			btnW := float32(80)
 			btnH := float32(26)
-			btnY := npcY + 40
+			btnY := npcY + 82
 
 			if npc.HasQuest {
-				talkX := rightColX + (colW/2 - btnW - 5)
-				questX := rightColX + (colW / 2 + 5)
+				buttonGroupW := btnW*2 + 10
+				talkX := infoX + (colW-(infoX-rightColX)-buttonGroupW)/2
+				questX := talkX + btnW + 10
 
 				talkRect := rl.NewRectangle(talkX, btnY, btnW, btnH)
 				talkBg := tealBtnColor
@@ -208,7 +213,7 @@ func (rdc *RoomDetailsComponent) Render(areaX, areaY, areaW, areaH float32) {
 				rl.DrawRectangleRounded(questRect, 0.2, 4, questBg)
 				rl.DrawText("QUEST", int32(questX+(btnW-float32(rl.MeasureText("QUEST", 12)))/2), int32(btnY+7), 12, rl.White)
 			} else {
-				talkX := rightColX + (colW-btnW)/2
+				talkX := infoX + (colW-(infoX-rightColX)-btnW)/2
 				talkRect := rl.NewRectangle(talkX, btnY, btnW, btnH)
 				talkBg := tealBtnColor
 				if rl.CheckCollisionPointRec(mousePos, talkRect) {
@@ -222,7 +227,7 @@ func (rdc *RoomDetailsComponent) Render(areaX, areaY, areaW, areaH float32) {
 				rl.DrawText("TALK", int32(talkX+(btnW-float32(rl.MeasureText("TALK", 12)))/2), int32(btnY+7), 12, rl.White)
 			}
 
-			npcY += 95
+			npcY += 120
 		}
 	}
 }

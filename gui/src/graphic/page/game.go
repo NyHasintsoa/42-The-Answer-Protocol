@@ -19,9 +19,9 @@ type GamePage struct {
 	RoomViewMgr     *component.RoomViewManager
 	PlayerMgr       *component.PlayerManager
 	MapComp         *component.MapComponent
-	InventoryComp   *component.InventoryComponent
 	MainChar        *component.MainCharacter
 	HPBar           *component.HPBar
+	InventoryComp   *component.InventoryComponent
 	ChatComp        *component.ChatComponent
 	QuestComp       *component.QuestComponent
 	RoomDetailsComp *component.RoomDetailsComponent
@@ -53,16 +53,16 @@ func NewGamePage(winWidth, winHeight int32) *GamePage {
 		},
 	})
 
+	questMgr := service.NewQuestManager()
 	inventoryMgr := service.NewInventoryManager()
 	chatMgr := service.NewChatManager()
-	questMgr := service.NewQuestManager()
 	roomDetailsMgr := service.NewRoomDetailsManager()
 	roomViewMgr := component.NewRoomViewManager()
 	playerMgr := component.NewPlayerManager()
 
 	roomDetailsMgr.SetRoomDetails("Village Square", []service.RoomItemDetail{
 		{ID: "156:sword", Name: "Magic Sword", Description: "Cras mattis consectetur purus sit amet fermentum."},
-		{ID: "241:herb", Name: "Healthy potion", Description: "Cras mattis consectetur purus sit amet fermentum."},
+		{ID: "241:potion_health_PM", Name: "Healthy potion", Description: "Cras mattis consectetur purus sit amet fermentum."},
 	}, []service.RoomNPCDetail{
 		{Key: "guard", Name: "Guard knight", Description: "Cras mattis consectetur purus sit amet fermentum.", Kind: "guard", HasQuest: false},
 		{Key: "seller", Name: "Seller", Description: "Cras mattis consectetur purus sit amet fermentum.", Kind: "seller", HasQuest: true, QuestID: "npc_2"},
@@ -83,7 +83,10 @@ func NewGamePage(winWidth, winHeight int32) *GamePage {
 	mainChar := component.NewMainCharacter(startX, startY, service.CharScale, pathResolver, pathResolver.Resolve("characters", "main_character"))
 	hpBar := component.NewHPBar(15, 15, 180, 20)
 
-	gameViewWidth := winWidth / 3
+	mapViewSize := float32(winWidth) / 3
+	if mapViewSize > float32(winHeight)/2 {
+		mapViewSize = float32(winHeight) / 2
+	}
 
 	gp := &GamePage{
 		WindowWidth:     winWidth,
@@ -97,9 +100,9 @@ func NewGamePage(winWidth, winHeight int32) *GamePage {
 		RoomViewMgr:     roomViewMgr,
 		PlayerMgr:       playerMgr,
 		MapComp:         mapComp,
-		InventoryComp:   inventoryComp,
 		MainChar:        mainChar,
 		HPBar:           hpBar,
+		InventoryComp:   inventoryComp,
 		ChatComp:        chatComp,
 		QuestComp:       questComp,
 		RoomDetailsComp: roomDetailsComp,
@@ -109,7 +112,7 @@ func NewGamePage(winWidth, winHeight int32) *GamePage {
 		LogViewComp:     logViewComp,
 		Camera: rl.Camera2D{
 			Target:   mainChar.Position,
-			Offset:   rl.NewVector2(float32(gameViewWidth)/2, float32(winHeight)/4),
+			Offset:   rl.NewVector2(mapViewSize/2, mapViewSize/2),
 			Rotation: 0.0,
 			Zoom:     1.0,
 		},
@@ -131,6 +134,9 @@ func (gp *GamePage) Unload() {
 	}
 	if gp.RoomDetailsComp != nil {
 		gp.RoomDetailsComp.Unload()
+	}
+	if gp.InventoryComp != nil {
+		gp.InventoryComp.Unload()
 	}
 	if gp.PathResolver != nil && gp.PathResolver.ImageManager != nil {
 		gp.PathResolver.ImageManager.UnloadAll()
@@ -156,18 +162,14 @@ func (gp *GamePage) EventListener() {
 }
 
 func (gp *GamePage) Update(dt float32) {
-	if gp.InventoryMgr != nil {
-		gp.InventoryMgr.Update(gp.WindowWidth, gp.WindowHeight)
-	}
-
 	if gp.MainChar.IsDead {
 		gp.MainChar.AdvanceFrame(dt, false)
 		return
 	}
 
-	if (gp.InventoryMgr != nil && gp.InventoryMgr.IsOpen) ||
-		(gp.ChatMgr != nil && gp.ChatMgr.IsOpen) ||
-		(gp.QuestMgr != nil && gp.QuestMgr.IsOpen) {
+	if (gp.QuestMgr != nil && gp.QuestMgr.IsOpen) ||
+		(gp.InventoryMgr != nil && gp.InventoryMgr.IsOpen) ||
+		(gp.ChatMgr != nil && gp.ChatMgr.IsOpen) {
 		gp.MainChar.SetAction(component.ActionIdle)
 		return
 	}
@@ -246,13 +248,15 @@ func (gp *GamePage) Render() {
 
 	rl.ClearBackground(rl.NewColor(225, 230, 235, 255))
 
-	halfH := float32(gp.WindowHeight) / 2
 	totalW := float32(gp.WindowWidth)
+	topMapSize := totalW / 3
+	maxTopHeight := float32(gp.WindowHeight) / 2
+	if topMapSize > maxTopHeight {
+		topMapSize = maxTopHeight
+	}
+	topDetailsW := totalW - topMapSize
 
-	topMapW := totalW / 3
-	topDetailsW := totalW - topMapW
-
-	rl.BeginScissorMode(0, 0, int32(topMapW), int32(halfH))
+	rl.BeginScissorMode(0, 0, int32(topMapSize), int32(topMapSize))
 	rl.BeginMode2D(gp.Camera)
 	if gp.MapComp != nil {
 		gp.MapComp.Render()
@@ -266,18 +270,19 @@ func (gp *GamePage) Render() {
 		gp.HPBar.Render()
 	}
 	rl.EndScissorMode()
+	rl.DrawRectangleLinesEx(rl.NewRectangle(0, 0, topMapSize, topMapSize), 2, rl.NewColor(180, 190, 200, 255))
 
 	if gp.RoomDetailsComp != nil {
-		gp.RoomDetailsComp.Render(topMapW, 0, topDetailsW, halfH)
+		gp.RoomDetailsComp.Render(topMapSize, 0, topDetailsW, topMapSize)
 	}
 
-	rl.DrawLineEx(rl.NewVector2(0, halfH), rl.NewVector2(totalW, halfH), 2, rl.NewColor(180, 190, 200, 255))
+	rl.DrawLineEx(rl.NewVector2(0, topMapSize), rl.NewVector2(totalW, topMapSize), 2, rl.NewColor(180, 190, 200, 255))
 
 	bottomLeftW := totalW * 0.52
 	bottomRightW := totalW - bottomLeftW
 
-	botY := halfH + 8
-	botH := halfH - 16
+	botY := topMapSize + 8
+	botH := float32(gp.WindowHeight) - topMapSize - 16
 
 	roomPlayerH := botH*0.55 - 4
 	roomViewW := (bottomLeftW - 20) * 0.58
@@ -309,7 +314,6 @@ func (gp *GamePage) Render() {
 	if gp.InventoryComp != nil {
 		gp.InventoryComp.Render(gp.WindowWidth, gp.WindowHeight)
 	}
-
 	if gp.ChatComp != nil {
 		gp.ChatComp.Render(gp.WindowWidth, gp.WindowHeight)
 	}

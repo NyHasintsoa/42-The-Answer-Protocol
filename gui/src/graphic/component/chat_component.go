@@ -55,45 +55,12 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 	mousePos := rl.GetMousePosition()
 	mouseClicked := rl.IsMouseButtonPressed(rl.MouseLeftButton)
 
-	
-	btnW := float32(110)
-	btnH := float32(40)
-	btnX := float32(20)
-	btnY := (float32(winHeight) - btnH) / 2
-	btnRect := rl.NewRectangle(btnX, btnY, btnW, btnH)
-
-	btnBg := rl.NewColor(30, 35, 55, 240)
-	btnBorder := rl.NewColor(0, 180, 255, 255)
-	if rl.CheckCollisionPointRec(mousePos, btnRect) {
-		btnBg = rl.NewColor(50, 70, 110, 255)
-		btnBorder = rl.Gold
-		if mouseClicked {
-			cc.Manager.Toggle()
-			if cc.Manager.IsOpen {
-				cc.scrollToBottom = true
-			}
-		}
-	}
-
-	rl.DrawRectangleRounded(btnRect, 0.25, 8, btnBg)
-	rl.DrawRectangleRoundedLinesEx(btnRect, 0.25, 8, 2, btnBorder)
-	rl.DrawText("CHAT [C]", int32(btnX+20), int32(btnY+11), 18, rl.RayWhite)
-
-	if rl.IsKeyPressed(rl.KeyC) {
-		cc.Manager.Toggle()
-		if cc.Manager.IsOpen {
-			cc.scrollToBottom = true
-		}
-	}
-
 	if !cc.Manager.IsOpen {
 		return
 	}
 
-	
 	rl.DrawRectangle(0, 0, winWidth, winHeight, rl.NewColor(0, 0, 0, 160))
 
-	
 	modalW := float32(760)
 	modalH := float32(680)
 	modalX := (float32(winWidth) - modalW) / 2
@@ -103,7 +70,6 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 	rl.DrawRectangleRounded(modalRect, 0.05, 12, rl.NewColor(18, 22, 34, 250))
 	rl.DrawRectangleRoundedLinesEx(modalRect, 0.05, 12, 2, rl.NewColor(0, 180, 255, 255))
 
-	
 	headerH := float32(60)
 	headerRect := rl.NewRectangle(modalX, modalY, modalW, headerH)
 	rl.DrawRectangleRounded(headerRect, 0.08, 12, rl.NewColor(14, 18, 28, 255))
@@ -143,7 +109,6 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		tabStartX += tabW + 12
 	}
 
-	
 	closeBtn := rl.NewRectangle(modalX+modalW-42, modalY+14, 30, 30)
 	closeCol := rl.NewColor(180, 50, 50, 255)
 	if rl.CheckCollisionPointRec(mousePos, closeBtn) {
@@ -156,7 +121,6 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 	rl.DrawRectangleRoundedLinesEx(closeBtn, 0.3, 8, 1, rl.White)
 	rl.DrawText("X", int32(modalX+modalW-33), int32(modalY+19), 18, rl.White)
 
-	
 	messages := cc.Manager.GetCurrentMessages()
 	msgAreaY := modalY + headerH + 15
 	msgAreaH := modalH - headerH - 90
@@ -168,7 +132,6 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 	lineHeight := float32(18)
 	maxTextWidth := modalW - 280
 
-	
 	var totalContentH float32 = 20
 	type messageLayout struct {
 		lines   []string
@@ -198,7 +161,6 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		maxScroll = 0
 	}
 
-	
 	if rl.CheckCollisionPointRec(mousePos, msgAreaRect) {
 		wheel := rl.GetMouseWheelMove()
 		if wheel != 0 {
@@ -206,13 +168,11 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		}
 	}
 
-	
 	if cc.scrollToBottom {
 		cc.ScrollY = maxScroll
 		cc.scrollToBottom = false
 	}
 
-	
 	if cc.ScrollY < 0 {
 		cc.ScrollY = 0
 	}
@@ -220,7 +180,6 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		cc.ScrollY = maxScroll
 	}
 
-	
 	rl.BeginScissorMode(int32(modalX), int32(msgAreaY), int32(modalW), int32(msgAreaH))
 
 	currY := msgAreaY + 10 - cc.ScrollY
@@ -295,7 +254,6 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		currY += bubbleH + 20
 	}
 
-	
 	if maxScroll > 0 {
 		trackH := msgAreaH
 		thumbH := (msgAreaH / totalContentH) * trackH
@@ -309,7 +267,6 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 
 	rl.EndScissorMode()
 
-	
 	inputMargin := float32(20)
 	inputW := modalW - (inputMargin * 2)
 	inputH := float32(48)
