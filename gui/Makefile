@@ -5,14 +5,12 @@ IS_DOCKER := $(shell docker info >/dev/null 2>&1 && echo 1)
 #---------------------------------------------------------------
 # Docker Configuration
 #---------------------------------------------------------------
-GO_SERVICE_NAME := app
+GO_SERVICE_NAME := tap-gui
 USER_ID := $(shell id -u)
 GROUP_ID := $(shell id -g)
 #---------------------------------------------------------------
 
 DOCKER := docker
-COMPOSE := USER_ID=$(USER_ID) GROUP_ID=$(GROUP_ID) $(DOCKER) compose
-EXEC := $(COMPOSE) exec $(GO_SERVICE_NAME)
 
 BINARY_NAME = tap-gui
 
@@ -40,7 +38,12 @@ install:
 .PHONY: build
 build: ## Build the Go binary executable
 	$(call GREEN,"Building $(BINARY_NAME)...")
-	$(GO_BUILD) -o $(BINARY_NAME) .
+	@if [ "$(IS_DOCKER)" = "1" ]; then \
+		$(MAKE) docker-build; \
+		$(MAKE) docker-compile; \
+	else \
+		$(GO_BUILD) -o $(BINARY_NAME) .; \
+	fi
 
 .PHONY: run
 run: ## Run the Go project
@@ -63,36 +66,13 @@ re: fclean build ## Rebuild project from scratch
 ##-----------------------------------
 ## Docker Commands
 ##-----------------------------------
+docker-build: ## Build the Docker image
+	$(call GREEN,"Building Docker image...")
+	$(DOCKER) build -t $(GO_SERVICE_NAME) .
 
-.PHONY: docker-bash
-docker-bash: ## Terminal inside the Go container
-	$(COMPOSE) exec -it $(GO_SERVICE_NAME) sh
-
-.PHONY: docker-build
-docker-build: ## Build docker image
-	$(call GREEN,"Build docker image")
-	$(COMPOSE) build
-
-.PHONY: docker-up
-docker-up: ## Start docker containers
-	$(call GREEN,"Start docker containers")
-	$(COMPOSE) up --build -d
-
-.PHONY: docker-down
-docker-down: ## Stop docker containers
-	$(call GREEN,"Stop docker containers")
-	$(COMPOSE) down
-
-.PHONY: docker-restart
-docker-restart: ## Restart docker containers
-	$(call GREEN,"Restart docker containers")
-	make docker-down
-	make docker-up
-
-.PHONY: docker-logs
-docker-logs: ## Show docker logs
-	$(call GREEN,"Show docker logs")
-	$(COMPOSE) logs -f
+docker-compile: ## Compile the Go binary inside a Docker container
+	$(call GREEN,"Running Docker container...")
+	$(DOCKER) run --rm -v $(PWD):/output $(GO_SERVICE_NAME) cp /app/$(BINARY_NAME) /output/
 
 ##
 ##-----------------------------------
