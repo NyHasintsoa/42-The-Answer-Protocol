@@ -37,7 +37,7 @@ func (rdc *RoomDetailsComponent) Unload() {
 	}
 }
 
-func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc service.RoomNPCDetail, x float32, y float32) service.INpc {
+func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc service.NPCConfig, x float32, y float32) service.INpc {
 	if preview, exists := rdc.NPCPreviews[npc.Key]; exists {
 		return preview
 	}
@@ -46,13 +46,26 @@ func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc service.RoomNPCDetail
 	var err error
 	scale := float32(0.15)
 
-	switch npc.Kind {
+	imageType := strings.ToLower(npc.ImageType)
+	if imageType == "" {
+		imageType = strings.ToLower(npc.Type)
+	}
+
+	switch imageType {
+	case "boss":
+		npcComp, err = NewEnemyCharacter(rdc.PathResolver, "characters/boss", x, y, scale)
+	case "gobelin", "goblin":
+		npcComp, err = NewEnemyCharacter(rdc.PathResolver, "characters/gobelin", x, y, scale)
 	case "guard":
 		npcComp, err = NewGuardCharacter(rdc.PathResolver, "npc/guard", x, y, scale)
-	case "seller":
-		npcComp, err = NewSellerCharacter(rdc.PathResolver, "npc/seller", x, y, scale)
+	case "merchant", "seller":
+		npcComp, err = NewSellerCharacter(rdc.PathResolver, "npc/merchant", x, y, scale)
 	default:
-		npcComp, err = NewPersonCharacter(rdc.PathResolver, "npc/person", x, y, scale)
+		relDir := "npc/" + imageType
+		npcComp, err = NewPersonCharacter(rdc.PathResolver, relDir, x, y, scale)
+		if err != nil {
+			npcComp, err = NewPersonCharacter(rdc.PathResolver, "npc/person", x, y, scale)
+		}
 	}
 
 	if err != nil {
@@ -115,17 +128,19 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			btnH := float32(26)
 			btnX := leftColX + (colW-btnW)/2
 			btnY := itemY + 40
-			button := NewButton(btnX, btnY, btnW, btnH, "TAKE", 12)
-			button.BgColor = rl.NewColor(24, 160, 178, 255)
-			button.HoverBgColor = rl.NewColor(18, 130, 146, 255)
-			button.ClickedColor = button.HoverBgColor
-			button.TextColor = rl.White
-			button.BorderColor = rl.Blank
-			button.ShadowColor = rl.Blank
-			button.BorderWidth = 0
-			button.BorderRadius = 0.2
-			button.Render()
-			if button.IsClicked {
+
+			takeButton := NewButton(btnX, btnY, btnW, btnH, "TAKE", 12)
+			takeButton.BgColor = rl.NewColor(24, 160, 178, 255)
+			takeButton.HoverBgColor = rl.NewColor(18, 130, 146, 255)
+			takeButton.ClickedColor = takeButton.HoverBgColor
+			takeButton.TextColor = rl.White
+			takeButton.BorderColor = rl.Blank
+			takeButton.ShadowColor = rl.Blank
+			takeButton.BorderWidth = 0
+			takeButton.BorderRadius = 0.2
+			takeButton.Render()
+
+			if takeButton.IsClicked {
 				fmt.Printf("[ACTION LOG] TAKE clicked -> Item: %s (ID: %s)\n", item.Name, item.ID)
 				rdc.Manager.TakeItem(item.ID)
 			}
@@ -152,6 +167,7 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			previewX := rightColX + 12
 			previewY := npcY + 42
 			infoX := rightColX + 100
+
 			if npcComp != nil {
 				npcComp.Update(dt)
 				if npcChar, ok := npcComp.(*NpcCharacter); ok {
@@ -163,60 +179,80 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			rl.DrawText(npc.Name, int32(infoX), int32(npcY+42), 14, utils.ThemeText)
 			rl.DrawText(npc.Description, int32(infoX), int32(npcY+62), 10, utils.ThemeTextMuted)
 
-			btnW := float32(80)
+			type btnSpec struct {
+				label   string
+				action  string
+				bgColor rl.Color
+				hoverBg rl.Color
+			}
+
+			var buttons []btnSpec
+			npcType := strings.ToLower(npc.Type)
+
+			// 1. TALK button (for dialogue, quest_giver, or non-attackable dialogue NPCs)
+			if npcType == "dialogue" || npcType == "quest_giver" || (len(npc.Dialogue) > 0 && !npc.CanBeAttacked) {
+				buttons = append(buttons, btnSpec{
+					label:   "TALK",
+					action:  "TALK",
+					bgColor: rl.NewColor(24, 160, 178, 255),
+					hoverBg: rl.NewColor(18, 130, 146, 255),
+				})
+			}
+
+			// 2. QUEST button (for quest_giver or NPCs with quest_id)
+			if npcType == "quest_giver" || npc.QuestID != "" {
+				buttons = append(buttons, btnSpec{
+					label:   "QUEST",
+					action:  "QUEST",
+					bgColor: rl.NewColor(212, 160, 23, 255),
+					hoverBg: rl.NewColor(175, 130, 15, 255),
+				})
+			}
+
+			// 3. ATTACK button (if NPC can be attacked)
+			if npc.CanBeAttacked {
+				buttons = append(buttons, btnSpec{
+					label:   "ATTACK",
+					action:  "ATTACK",
+					bgColor: rl.NewColor(200, 50, 50, 255),
+					hoverBg: rl.NewColor(160, 35, 35, 255),
+				})
+			}
+
+			btnW := float32(75)
 			btnH := float32(26)
+			spacing := float32(6)
+			totalBtnsW := float32(len(buttons))*btnW + float32(len(buttons)-1)*spacing
+			availW := colW - (infoX - rightColX)
+			btnX := infoX + (availW-totalBtnsW)/2
+			if btnX < infoX {
+				btnX = infoX
+			}
 			btnY := npcY + 82
 
-			if npc.HasQuest {
-				buttonGroupW := btnW*2 + 10
-				talkX := infoX + (colW-(infoX-rightColX)-buttonGroupW)/2
-				questX := talkX + btnW + 10
+			for _, bSpec := range buttons {
+				button := NewButton(btnX, btnY, btnW, btnH, bSpec.label, 12)
+				button.BgColor = bSpec.bgColor
+				button.HoverBgColor = bSpec.hoverBg
+				button.ClickedColor = bSpec.hoverBg
+				button.TextColor = rl.White
+				button.BorderColor = rl.Blank
+				button.ShadowColor = rl.Blank
+				button.BorderWidth = 0
+				button.BorderRadius = 0.2
+				button.Render()
 
-				talkButton := NewButton(talkX, btnY, btnW, btnH, "TALK", 12)
-				talkButton.BgColor = rl.NewColor(24, 160, 178, 255)
-				talkButton.HoverBgColor = rl.NewColor(18, 130, 146, 255)
-				talkButton.ClickedColor = talkButton.HoverBgColor
-				talkButton.TextColor = rl.White
-				talkButton.BorderColor = rl.Blank
-				talkButton.ShadowColor = rl.Blank
-				talkButton.BorderWidth = 0
-				talkButton.BorderRadius = 0.2
-				talkButton.Render()
-				if talkButton.IsClicked {
-					fmt.Printf("[ACTION LOG] TALK button clicked -> NPC: %s (%s)\n", npc.Name, npc.Key)
-					rdc.Manager.TalkToNPC(npc.Key, npc.Name)
+				if button.IsClicked {
+					switch bSpec.action {
+					case "TALK":
+						rdc.Manager.TalkToNPC(npc.Key, npc.Name)
+					case "QUEST":
+						rdc.Manager.OpenQuest(npc.Key, npc.QuestID)
+					case "ATTACK":
+						rdc.Manager.AttackNPC(npc.Key, npc.Name)
+					}
 				}
-
-				questButton := NewButton(questX, btnY, btnW, btnH, "QUEST", 12)
-				questButton.BgColor = rl.NewColor(24, 160, 178, 255)
-				questButton.HoverBgColor = rl.NewColor(18, 130, 146, 255)
-				questButton.ClickedColor = questButton.HoverBgColor
-				questButton.TextColor = rl.White
-				questButton.BorderColor = rl.Blank
-				questButton.ShadowColor = rl.Blank
-				questButton.BorderWidth = 0
-				questButton.BorderRadius = 0.2
-				questButton.Render()
-				if questButton.IsClicked {
-					fmt.Printf("[ACTION LOG] QUEST button clicked -> NPC: %s (Quest ID: %s)\n", npc.Name, npc.QuestID)
-					rdc.Manager.OpenQuest(npc.Key, npc.QuestID)
-				}
-			} else {
-				talkX := infoX + (colW-(infoX-rightColX)-btnW)/2
-				talkButton := NewButton(talkX, btnY, btnW, btnH, "TALK", 12)
-				talkButton.BgColor = rl.NewColor(24, 160, 178, 255)
-				talkButton.HoverBgColor = rl.NewColor(18, 130, 146, 255)
-				talkButton.ClickedColor = talkButton.HoverBgColor
-				talkButton.TextColor = rl.White
-				talkButton.BorderColor = rl.Blank
-				talkButton.ShadowColor = rl.Blank
-				talkButton.BorderWidth = 0
-				talkButton.BorderRadius = 0.2
-				talkButton.Render()
-				if talkButton.IsClicked {
-					fmt.Printf("[ACTION LOG] TALK button clicked -> NPC: %s (%s)\n", npc.Name, npc.Key)
-					rdc.Manager.TalkToNPC(npc.Key, npc.Name)
-				}
+				btnX += btnW + spacing
 			}
 
 			npcY += 120

@@ -8,31 +8,22 @@ type RoomItemDetail struct {
 	Description string
 }
 
-type RoomNPCDetail struct {
-	Key         string
-	Name        string
-	Description string
-	Kind        string
-	HasQuest    bool
-	QuestID     string
-}
-
 type RoomDetailsManager struct {
-	IsOpen     bool
-	RoomName   string
-	Items      []RoomItemDetail
-	NPCs       []RoomNPCDetail
+	IsOpen   bool
+	RoomName string
+	Items    []RoomItemDetail
+	NPCs     []NPCConfig
 }
 
 func NewRoomDetailsManager() *RoomDetailsManager {
 	return &RoomDetailsManager{
 		IsOpen: true,
 		Items:  []RoomItemDetail{},
-		NPCs:   []RoomNPCDetail{},
+		NPCs:   []NPCConfig{},
 	}
 }
 
-func (rm *RoomDetailsManager) SetRoomDetails(roomName string, items []RoomItemDetail, npcs []RoomNPCDetail) {
+func (rm *RoomDetailsManager) SetRoomDetails(roomName string, items []RoomItemDetail, npcs []NPCConfig) {
 	rm.RoomName = roomName
 	rm.Items = items
 	rm.NPCs = npcs
@@ -54,6 +45,10 @@ func (rm *RoomDetailsManager) TalkToNPC(npcKey string, npcName string) {
 
 func (rm *RoomDetailsManager) OpenQuest(npcKey string, questID string) {
 	fmt.Printf("[ACTION] Opened Quest '%s' from NPC: %s\n", questID, npcKey)
+}
+
+func (rm *RoomDetailsManager) AttackNPC(npcKey string, npcName string) {
+	fmt.Printf("[ACTION] Attacking NPC: %s (%s) in room '%s'\n", npcName, npcKey, rm.RoomName)
 }
 
 func (rm *RoomDetailsManager) Toggle() {

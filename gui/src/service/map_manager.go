@@ -48,10 +48,22 @@ type RoomConfig struct {
 	NPCs        []string          `json:"npcs"`
 }
 
+type NPCConfig struct {
+	Key           string   `json:"key,omitempty"`
+	Name          string   `json:"name"`
+	Description   string   `json:"description"`
+	Type          string   `json:"type"`
+	ImageType     string   `json:"image_type"`
+	CanBeAttacked bool     `json:"can_be_attacked"`
+	QuestID       string   `json:"quest_id"`
+	Dialogue      []string `json:"dialogue"`
+}
+
 type MapConfig struct {
 	World struct {
 		Rooms map[string]RoomConfig `json:"rooms"`
 	} `json:"world"`
+	NPCs map[string]NPCConfig `json:"npcs"`
 }
 
 type RoomNode struct {
@@ -95,6 +107,7 @@ type EntityFactory struct {
 
 type MapManager struct {
 	World          *WorldMap
+	NPCConfigs     map[string]NPCConfig
 	Enemies        []Monster
 	NPCs           []INpc
 	PathTextures   map[string]rl.Texture2D
@@ -161,6 +174,23 @@ func (mm *MapManager) GetRoomInDirection(direction string) (*RoomNode, bool) {
 	return room, true
 }
 
+func (mm *MapManager) GetNPCConfig(key string) (NPCConfig, bool) {
+	keyLower := strings.ToLower(key)
+	if cfg, exists := mm.NPCConfigs[keyLower]; exists {
+		if cfg.Key == "" {
+			cfg.Key = key
+		}
+		return cfg, true
+	}
+	if cfg, exists := mm.NPCConfigs[key]; exists {
+		if cfg.Key == "" {
+			cfg.Key = key
+		}
+		return cfg, true
+	}
+	return NPCConfig{Key: key, Name: key}, false
+}
+
 func (mm *MapManager) Update(dt float32, playerPos rl.Vector2) {
 	for _, n := range mm.NPCs {
 		n.Update(dt)
@@ -225,45 +255,75 @@ func (mm *MapManager) Unload() {
 }
 
 func (mm *MapManager) spawnEntities() {
-	for _, room := range mm.World.Rooms {
-		roomX := float32(room.TileX)*TileSize + TileSize/2
-		roomY := float32(room.TileY)*TileSize + TileSize/2
+	mm.Enemies = make([]Monster, 0)
+	mm.NPCs = make([]INpc, 0)
 
-		for _, npcName := range room.NPCs {
-			nameLower := strings.ToLower(npcName)
-			if strings.Contains(nameLower, "boss") {
+	for _, room := range mm.World.Rooms {
+		roomX := float32(room.TileX)*TileSize + TileSize*2
+		roomY := float32(room.TileY)*TileSize + TileSize*2
+
+		totalEntities := len(room.NPCs)
+		for i, npcKey := range room.NPCs {
+			offsetX := float32(i-totalEntities/2) * 32.0
+			spawnX := roomX + offsetX
+			spawnY := roomY
+
+			npcDef, exists := mm.GetNPCConfig(npcKey)
+
+			imageType := ""
+			npcType := ""
+			npcName := npcKey
+
+			if exists {
+				imageType = strings.ToLower(npcDef.ImageType)
+				npcType = strings.ToLower(npcDef.Type)
+				if npcDef.Name != "" {
+					npcName = npcDef.Name
+				}
+			} else {
+				npcKeyLower := strings.ToLower(npcKey)
+				if strings.Contains(npcKeyLower, "boss") {
+					imageType = "boss"
+				} else if strings.Contains(npcKeyLower, "goblin") || strings.Contains(npcKeyLower, "gobelin") {
+					imageType = "gobelin"
+				} else if strings.Contains(npcKeyLower, "guard") {
+					imageType = "guard"
+				} else if strings.Contains(npcKeyLower, "seller") || strings.Contains(npcKeyLower, "shop") || strings.Contains(npcKeyLower, "merchant") {
+					imageType = "merchant"
+				} else {
+					imageType = "person"
+				}
+			}
+
+			if imageType == "boss" || imageType == "gobelin" || imageType == "goblin" || npcType == "boss" || npcType == "gobelin" {
+				charFolder := imageType
+				if charFolder == "goblin" {
+					charFolder = "gobelin"
+				}
 				if mm.entityFactory.NewMonster != nil {
-					e := mm.entityFactory.NewMonster(roomX+100, roomY+100, CharScale, mm.PathResolver, mm.PathResolver.Resolve("characters", "boss"), "Boss")
-					mm.Enemies = append(mm.Enemies, e)
-				}
-			} else if strings.Contains(nameLower, "goblin") {
-				if mm.entityFactory.NewMonster != nil {
-					e := mm.entityFactory.NewMonster(roomX+100, roomY-100, CharScale, mm.PathResolver, mm.PathResolver.Resolve("characters", "gobelin"), "Goblin")
-					mm.Enemies = append(mm.Enemies, e)
-				}
-			} else if strings.Contains(nameLower, "guard") {
-				relDir := filepath.Join("npc", "guard")
-				if mm.entityFactory.NewNPC != nil {
-					if n, err := mm.entityFactory.NewNPC("guard", relDir, roomX-120, roomY+80, CharScale); err == nil {
-						mm.NPCs = append(mm.NPCs, n)
-					}
-				}
-			} else if strings.Contains(nameLower, "seller") || strings.Contains(nameLower, "shop") {
-				relDir := filepath.Join("npc", "seller")
-				if mm.entityFactory.NewNPC != nil {
-					if n, err := mm.entityFactory.NewNPC("seller", relDir, roomX-120, roomY+80, CharScale); err == nil {
-						mm.NPCs = append(mm.NPCs, n)
+					assetPath := mm.PathResolver.Resolve("characters", charFolder)
+					e := mm.entityFactory.NewMonster(spawnX, spawnY, CharScale, mm.PathResolver, assetPath, npcName)
+					if e != nil {
+						mm.Enemies = append(mm.Enemies, e)
 					}
 				}
 			} else {
-				relDir := filepath.Join("npc", nameLower)
+				kind := "person"
+				switch imageType {
+				case "guard":
+					kind = "guard"
+				case "merchant", "seller":
+					kind = "seller"
+				}
+
+				relDir := filepath.Join("npc", imageType)
 				if mm.entityFactory.NewNPC != nil {
-					if n, err := mm.entityFactory.NewNPC("person", relDir, roomX-120, roomY+80, CharScale); err != nil {
+					n, err := mm.entityFactory.NewNPC(kind, relDir, spawnX, spawnY, CharScale)
+					if err != nil {
 						relDir = filepath.Join("npc", "person")
-						if n, err = mm.entityFactory.NewNPC("person", relDir, roomX-120, roomY+80, CharScale); err == nil {
-							mm.NPCs = append(mm.NPCs, n)
-						}
-					} else {
+						n, err = mm.entityFactory.NewNPC("person", relDir, spawnX, spawnY, CharScale)
+					}
+					if err == nil && n != nil {
 						mm.NPCs = append(mm.NPCs, n)
 					}
 				}
@@ -277,6 +337,12 @@ func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 	if err := json.Unmarshal([]byte(configJSON), &config); err != nil {
 		_ = json.Unmarshal([]byte(defaultMapConfigJSON), &config)
 	}
+
+	for k, npcCfg := range config.NPCs {
+		npcCfg.Key = k
+		config.NPCs[k] = npcCfg
+	}
+	mm.NPCConfigs = config.NPCs
 
 	roomGridCoords := make(map[string][2]int)
 	visited := make(map[string]bool)
@@ -368,7 +434,6 @@ func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 		}
 		worldMap.Rooms[roomID] = roomNode
 
-		// 4x4 room sizing
 		for ry := 0; ry < 4; ry++ {
 			for rx := 0; rx < 4; rx++ {
 				if tileY+ry >= 0 && tileY+ry < mapHeight && tileX+rx >= 0 && tileX+rx < mapWidth {
@@ -378,7 +443,6 @@ func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 		}
 	}
 
-	// 2x2 wide paths centered on the 4x4 room edges
 	for roomID, roomNode := range worldMap.Rooms {
 		roomCfg := config.World.Rooms[roomID]
 		for dir, targetID := range roomCfg.Exits {
@@ -493,85 +557,308 @@ const defaultMapConfigJSON = `{
     "world": {
         "rooms": {
             "start": {
-                "items": ["0:ale"],
                 "name": "Village Square",
-                "description": "A bustling square with cobblestone paths.",
+                "description": "A bustling square with cobblestone paths, surrounded by old stone buildings and a suspicious potion puddle.",
                 "exits": {
-                    "north": "tavern",
+                    "north": "alchemist_shop",
                     "east": "shop",
                     "south": "forest_edge",
                     "west": "hidden_grove"
                 },
-                "npcs": ["guard"]
+                "items": ["potion_health_PM"],
+                "npcs": ["guard", "mayor"]
             },
-            "tavern": {
-                "items": [],
-                "name": "Tavern",
-                "description": "A lively tavern smelling of ale.",
+            "alchemist_shop": {
+                "name": "Alchemist Shop",
+                "description": "A cozy, bubbling workshop smelling of sulfur, glowing herbs, and explosive trial potions.",
                 "exits": {
-                    "south": "start"
+                    "south": "start",
+                    "east": "library"
                 },
-                "npcs": ["mayor", "person"]
+                "items": ["potion_health_GM", "potion_attack_PM"],
+                "npcs": ["alchemist", "person"]
+            },
+            "library": {
+                "name": "Ancient Library",
+                "description": "Dusty bookshelves stretch to the ceiling, filled with ancient combat manuals and coffee-stained scrolls.",
+                "exits": {
+                    "west": "alchemist_shop",
+                    "south": "shop",
+                    "north": "training_grounds"
+                },
+                "items": ["book_dagger", "book_sword"],
+                "npcs": ["scholar"]
+            },
+            "training_grounds": {
+                "name": "Training Grounds",
+                "description": "A muddy yard filled with wooden dummies, targets full of arrows, and discarded practice weapons.",
+                "exits": {
+                    "south": "library"
+                },
+                "items": ["dagger"],
+                "npcs": ["veteran"]
             },
             "shop": {
-                "items": ["156:sword"],
-                "name": "Shop",
-                "description": "A cluttered shop filled with oddities.",
+                "name": "General Store",
+                "description": "A cluttered shop filled with oddities, heavy armor, and sharp iron weapons.",
                 "exits": {
                     "west": "start",
+                    "north": "library",
                     "south": "deep_forest"
                 },
-                "npcs": ["seller"]
+                "items": ["sword", "potion_attack_GM"],
+                "npcs": ["merchant"]
             },
             "forest_edge": {
-                "items": [],
                 "name": "Forest Edge",
-                "description": "The trees start to thicken here.",
+                "description": "The trees start to thicken here. Strange giggling noises echo from deeper in the woods.",
                 "exits": {
                     "north": "start",
                     "east": "deep_forest"
                 },
+                "items": [],
                 "npcs": ["goblin"]
             },
             "hidden_grove": {
-                "items": ["241:herb"],
                 "name": "Hidden Grove",
-                "description": "A quiet grove with rare plants.",
+                "description": "A quiet, misty grove where rare medicinal plants glow under the moonlight.",
                 "exits": {
                     "east": "start"
                 },
-                "npcs": []
+                "items": ["herb"],
+                "npcs": ["hermit"]
             },
             "deep_forest": {
-                "items": [],
                 "name": "Deep Forest",
-                "description": "The woods are dark and full of shadows.",
+                "description": "The woods are dark and full of shadows. You feel like several pairs of eyes are judging your outfit.",
                 "exits": {
                     "north": "shop",
                     "west": "forest_edge",
                     "south": "cave_entrance"
                 },
-                "npcs": ["goblin"]
+                "items": [],
+                "npcs": ["goblin_chief"]
             },
             "cave_entrance": {
-                "items": [],
                 "name": "Cave Entrance",
-                "description": "A dark hole in the rock face.",
+                "description": "A gaping dark hole in the rock face emitting scorched heat and dragon snorts.",
                 "exits": {
                     "north": "deep_forest",
                     "south": "boss_lair"
                 },
+                "items": [],
                 "npcs": []
             },
             "boss_lair": {
-                "items": ["117:magic_amulet"],
                 "name": "Boss Lair",
-                "description": "A vast cavern filled with bones.",
+                "description": "A vast cavern filled with charred bones, shiny gold coins, and an extremely grumpy dragon.",
                 "exits": {
                     "north": "cave_entrance"
                 },
-                "npcs": ["boss"]
+                "items": ["magic_amulet", "boss_horn"],
+                "npcs": ["boss_dragon"]
             }
+        }
+    },
+    "npcs": {
+        "guard": {
+            "name": "Village Guard",
+            "description": "A stern-looking guard leaning heavily on a spear.",
+            "type": "quest_giver",
+            "image_type": "guard",
+            "can_be_attacked": false,
+            "quest_id": "fetch_herbs",
+            "dialogue": [
+                "I used to be an adventurer like you, but then I realized guard duty has a dental plan.",
+                "Stand clear! I am guarding this cobblestone with my life. It is very special cobblestone.",
+                "If you bring me that Healing Herb from the Hidden Grove, I'll reward you with a Petite Health Potion!"
+            ]
+        },
+        "alchemist": {
+            "name": "Mad Alchemist",
+            "description": "A eccentric brewer wearing singed goggles and mixing glowing liquids.",
+            "type": "merchant",
+            "image_type": "merchant",
+            "can_be_attacked": false,
+            "dialogue": [
+                "Welcome to my lab! Drink the green potion for health, and the red potion for attack power! Don't mix them unless you want extra arms.",
+                "Petite Potions (PM) are great for quick boosts, but Grand Potions (GM) pack a real punch!",
+                "No refunds if a potion turns your eyebrows blue for three weeks."
+            ]
+        },
+        "merchant": {
+            "name": "Shop Keeper",
+            "description": "A friendly but suspiciously wealthy merchant.",
+            "type": "merchant",
+            "image_type": "merchant",
+            "can_be_attacked": false,
+            "dialogue": [
+                "Welcome! Buy something or please stop breathing on my shiny weapons.",
+                "Need weapons? Grab an Iron Sword or a Grand Attack Potion (GM) before venturing out!",
+                "I accept gold, silver, or juicy gossip about the Mayor."
+            ]
+        },
+        "mayor": {
+            "name": "Village Mayor",
+            "description": "The pompous mayor wearing a sash that is slightly too tight.",
+            "type": "quest_giver",
+            "image_type": "person",
+            "can_be_attacked": false,
+            "quest_id": "fetch_amulet",
+            "dialogue": [
+                "As Mayor, I decree that someone else should go into the dangerous cave and save us!",
+                "My campaign promise was zero dragon attacks. Technically the dragon stays in its cave, so I am winning!",
+                "Retrieve my Magic Amulet from the Cave Dragon and I shall award you official Village Medals of Honor!"
+            ]
+        },
+        "scholar": {
+            "name": "Royal Scholar",
+            "description": "An old wizard in thick spectacles surrounded by piles of books.",
+            "type": "quest_giver",
+            "image_type": "person",
+            "can_be_attacked": false,
+            "quest_id": "scholar_research",
+            "dialogue": [
+                "Knowledge is power! Have you read 'Dagger Techniques' or 'Mastering the Blade' yet?",
+                "If you can bring me the Dragon Horn from the Boss Lair, I will teach you secret weapon techniques!"
+            ]
+        },
+        "veteran": {
+            "name": "Master at Arms",
+            "description": "A scarred warrior demonstrating sword maneuvers.",
+            "type": "dialogue",
+            "image_type": "guard",
+            "can_be_attacked": false,
+            "dialogue": [
+                "A dagger in the dark is worth two swords in the scabbard!",
+                "Always drink an Attack Potion before charging into a dragon's lair kid!"
+            ]
+        },
+        "person": {
+            "name": "Tipsy Bard",
+            "description": "A local bard slumping near the alchemist's brewing vats.",
+            "type": "dialogue",
+            "image_type": "person",
+            "can_be_attacked": false,
+            "dialogue": [
+                "*Hic* I drank an Attack Potion (PM) thinking it was apple juice, and now I punched a wooden fence down!",
+                "Did you know if you chug a Grand Health Potion (GM), you feel like you could wrestle a goblin with one hand?"
+            ]
+        },
+        "hermit": {
+            "name": "Misty Hermit",
+            "description": "An old gardener picking glowing herbs in the mist.",
+            "type": "dialogue",
+            "image_type": "person",
+            "can_be_attacked": false,
+            "dialogue": [
+                "The herbs here make the finest Health Potions in the realm. The guard loves them for his sore joints!"
+            ]
+        },
+        "goblin": {
+            "name": "Nasty Goblin",
+            "description": "A twitchy green creature clutching a rusty dagger.",
+            "type": "gobelin",
+            "image_type": "gobelin",
+            "can_be_attacked": true,
+            "hp": 30,
+            "max_hp": 30,
+            "attack_damage": 5,
+            "dialogue": [
+                "Grah! Give me your shiny potions or I will bite your ankles!",
+                "You think you tough because you tall? Short goblins strike knee level first!",
+                "Hey! That's my shiny dagger! Drop it or face my pointy stick!"
+            ]
+        },
+        "goblin_chief": {
+            "name": "Goblin Chief",
+            "description": "A bulkier goblin wearing a helmet made from an old cooking pot.",
+            "type": "gobelin",
+            "image_type": "gobelin",
+            "can_be_attacked": true,
+            "hp": 55,
+            "max_hp": 55,
+            "attack_damage": 10,
+            "dialogue": [
+                "I am Chief of Forest! No tall humans allowed without paying potion tax!"
+            ]
+        },
+        "boss_dragon": {
+            "name": "Cave Dragon",
+            "description": "A massive, scaly beast sleeping atop a pile of stolen shiny trinkets.",
+            "type": "boss",
+            "image_type": "boss",
+            "can_be_attacked": true,
+            "hp": 150,
+            "max_hp": 150,
+            "attack_damage": 20,
+            "dialogue": [
+                "WHO DARES DISTURB MY NAP?! Do you have any idea how hard it is to sleep on pointy amulets and dragon horns?!",
+                "ROAR! I will roast you like a marshmallow on a stick!",
+                "Another 'hero'? Great, more crunchy armor to pick out of my teeth..."
+            ]
+        }
+    },
+    "items": {
+        "book_dagger": {
+            "id": "book_dagger",
+            "name": "Dagger Mastery Book",
+            "description": "A leather-bound manual detailing quick strikes and stealth assassination maneuvers."
+        },
+        "book_sword": {
+            "id": "book_sword",
+            "name": "Sword Combat Manual",
+            "description": "An ancient tome describing heavy swings, parries, and knightly stances."
+        },
+        "boss_horn": {
+            "id": "boss_horn",
+            "name": "Dragon Horn",
+            "description": "A razor-sharp horn severed from the Cave Dragon. It radiates intense heat."
+        },
+        "dagger": {
+            "id": "dagger",
+            "name": "Rogue Dagger",
+            "description": "A swift, light blade perfect for sneaky critical strikes."
+        },
+        "medals": {
+            "id": "medals",
+            "name": "Mayor's Medal of Honor",
+            "description": "A shiny gold medal awarded by the Mayor. It looks expensive, but is mostly painted cardboard."
+        },
+        "potion_attack_PM": {
+            "id": "potion_attack_PM",
+            "name": "Petite Attack Potion",
+            "description": "A small vial of glowing red elixir that temporarily boosts your attack damage (+5 ATK)."
+        },
+        "potion_attack_GM": {
+            "id": "potion_attack_GM",
+            "name": "Grand Attack Potion",
+            "description": "A large flask of surging crimson brew that drastically empowers your strikes (+20 ATK)."
+        },
+        "potion_health_PM": {
+            "id": "potion_health_PM",
+            "name": "Petite Health Potion",
+            "description": "A small green potion that instantly restores 25 HP."
+        },
+        "potion_health_GM": {
+            "id": "potion_health_GM",
+            "name": "Grand Health Potion",
+            "description": "A potent, bubbling green brew that fully restores up to 100 HP."
+        },
+        "sword": {
+            "id": "sword",
+            "name": "Iron Sword",
+            "description": "A sturdy iron sword. Far better than throwing harsh words at a dragon."
+        },
+        "herb": {
+            "id": "herb",
+            "name": "Healing Herb",
+            "description": "A glowing medicinal plant emitting a soothing peppermint aroma."
+        },
+        "magic_amulet": {
+            "id": "magic_amulet",
+            "name": "Magic Amulet",
+            "description": "A glowing ancient amulet belonging to the Mayor. It hums with tacky magical energy."
         }
     }
 }`

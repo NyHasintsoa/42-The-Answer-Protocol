@@ -1,0 +1,335 @@
+{
+    "world": {
+        "rooms": {
+            "start": {
+                "name": "Village Square",
+                "description": "A bustling square with cobblestone paths, surrounded by old stone buildings and a suspicious potion puddle.",
+                "exits": {
+                    "north": "alchemist_shop",
+                    "east": "shop",
+                    "south": "forest_edge",
+                    "west": "hidden_grove"
+                },
+                "items": ["potion_health_PM"],
+                "npcs": ["guard", "mayor"]
+            },
+            "alchemist_shop": {
+                "name": "Alchemist Shop",
+                "description": "A cozy, bubbling workshop smelling of sulfur, glowing herbs, and explosive trial potions.",
+                "exits": {
+                    "south": "start",
+                    "east": "library"
+                },
+                "items": ["potion_health_GM", "potion_attack_PM"],
+                "npcs": ["alchemist", "person"]
+            },
+            "library": {
+                "name": "Ancient Library",
+                "description": "Dusty bookshelves stretch to the ceiling, filled with ancient combat manuals and coffee-stained scrolls.",
+                "exits": {
+                    "west": "alchemist_shop",
+                    "south": "shop",
+                    "north": "training_grounds"
+                },
+                "items": ["book_dagger", "book_sword"],
+                "npcs": ["scholar"]
+            },
+            "training_grounds": {
+                "name": "Training Grounds",
+                "description": "A muddy yard filled with wooden dummies, targets full of arrows, and discarded practice weapons.",
+                "exits": {
+                    "south": "library"
+                },
+                "items": ["dagger"],
+                "npcs": ["veteran"]
+            },
+            "shop": {
+                "name": "General Store",
+                "description": "A cluttered shop filled with oddities, heavy armor, and sharp iron weapons.",
+                "exits": {
+                    "west": "start",
+                    "north": "library",
+                    "south": "deep_forest"
+                },
+                "items": ["sword", "potion_attack_GM"],
+                "npcs": ["merchant"]
+            },
+            "forest_edge": {
+                "name": "Forest Edge",
+                "description": "The trees start to thicken here. Strange giggling noises echo from deeper in the woods.",
+                "exits": {
+                    "north": "start",
+                    "east": "deep_forest"
+                },
+                "items": [],
+                "npcs": ["goblin"]
+            },
+            "hidden_grove": {
+                "name": "Hidden Grove",
+                "description": "A quiet, misty grove where rare medicinal plants glow under the moonlight.",
+                "exits": {
+                    "east": "start"
+                },
+                "items": ["herb"],
+                "npcs": ["hermit"]
+            },
+            "deep_forest": {
+                "name": "Deep Forest",
+                "description": "The woods are dark and full of shadows. You feel like several pairs of eyes are judging your outfit.",
+                "exits": {
+                    "north": "shop",
+                    "west": "forest_edge",
+                    "south": "cave_entrance"
+                },
+                "items": [],
+                "npcs": ["goblin_chief"]
+            },
+            "cave_entrance": {
+                "name": "Cave Entrance",
+                "description": "A gaping dark hole in the rock face emitting scorched heat and dragon snorts.",
+                "exits": {
+                    "north": "deep_forest",
+                    "south": "boss_lair"
+                },
+                "items": [],
+                "npcs": []
+            },
+            "boss_lair": {
+                "name": "Boss Lair",
+                "description": "A vast cavern filled with charred bones, shiny gold coins, and an extremely grumpy dragon.",
+                "exits": {
+                    "north": "cave_entrance"
+                },
+                "items": ["magic_amulet", "boss_horn"],
+                "npcs": ["boss_dragon"]
+            }
+        }
+    },
+    "npcs": {
+        "guard": {
+            "name": "Village Guard",
+            "description": "A stern-looking guard leaning heavily on a spear.",
+            "type": "quest_giver",
+            "image_type": "guard",
+            "can_be_attacked": false,
+            "quest_id": "fetch_herbs",
+            "dialogue": [
+                "I used to be an adventurer like you, but then I realized guard duty has a dental plan.",
+                "Stand clear! I am guarding this cobblestone with my life. It is very special cobblestone.",
+                "If you bring me that Healing Herb from the Hidden Grove, I'll reward you with a Petite Health Potion!"
+            ]
+        },
+        "alchemist": {
+            "name": "Mad Alchemist",
+            "description": "A eccentric brewer wearing singed goggles and mixing glowing liquids.",
+            "type": "dialogue",
+            "image_type": "merchant",
+            "can_be_attacked": false,
+            "dialogue": [
+                "Welcome to my lab! Drink the green potion for health, and the red potion for attack power! Don't mix them unless you want extra arms.",
+                "Petite Potions (PM) are great for quick boosts, but Grand Potions (GM) pack a real punch!",
+                "No refunds if a potion turns your eyebrows blue for three weeks."
+            ]
+        },
+        "merchant": {
+            "name": "Shop Keeper",
+            "description": "A friendly but suspiciously wealthy merchant.",
+            "type": "dialogue",
+            "image_type": "merchant",
+            "can_be_attacked": false,
+            "dialogue": [
+                "Welcome! Buy something or please stop breathing on my shiny weapons.",
+                "Need weapons? Grab an Iron Sword or a Grand Attack Potion (GM) before venturing out!",
+                "I accept gold, silver, or juicy gossip about the Mayor."
+            ]
+        },
+        "mayor": {
+            "name": "Village Mayor",
+            "description": "The pompous mayor wearing a sash that is slightly too tight.",
+            "type": "quest_giver",
+            "image_type": "person",
+            "can_be_attacked": false,
+            "quest_id": "fetch_amulet",
+            "dialogue": [
+                "As Mayor, I decree that someone else should go into the dangerous cave and save us!",
+                "My campaign promise was zero dragon attacks. Technically the dragon stays in its cave, so I am winning!",
+                "Retrieve my Magic Amulet from the Cave Dragon and I shall award you official Village Medals of Honor!"
+            ]
+        },
+        "scholar": {
+            "name": "Royal Scholar",
+            "description": "An old wizard in thick spectacles surrounded by piles of books.",
+            "type": "quest_giver",
+            "image_type": "person",
+            "can_be_attacked": false,
+            "quest_id": "scholar_research",
+            "dialogue": [
+                "Knowledge is power! Have you read 'Dagger Techniques' or 'Mastering the Blade' yet?",
+                "If you can bring me the Dragon Horn from the Boss Lair, I will teach you secret weapon techniques!"
+            ]
+        },
+        "veteran": {
+            "name": "Master at Arms",
+            "description": "A scarred warrior demonstrating sword maneuvers.",
+            "type": "dialogue",
+            "image_type": "guard",
+            "can_be_attacked": false,
+            "dialogue": [
+                "A dagger in the dark is worth two swords in the scabbard!",
+                "Always drink an Attack Potion before charging into a dragon's lair kid!"
+            ]
+        },
+        "person": {
+            "name": "Tipsy Bard",
+            "description": "A local bard slumping near the alchemist's brewing vats.",
+            "type": "dialogue",
+            "image_type": "person",
+            "can_be_attacked": false,
+            "dialogue": [
+                "*Hic* I drank an Attack Potion (PM) thinking it was apple juice, and now I punched a wooden fence down!",
+                "Did you know if you chug a Grand Health Potion (GM), you feel like you could wrestle a goblin with one hand?"
+            ]
+        },
+        "hermit": {
+            "name": "Misty Hermit",
+            "description": "An old gardener picking glowing herbs in the mist.",
+            "type": "dialogue",
+            "image_type": "person",
+            "can_be_attacked": false,
+            "dialogue": [
+                "The herbs here make the finest Health Potions in the realm. The guard loves them for his sore joints!"
+            ]
+        },
+        "goblin": {
+            "name": "Nasty Goblin",
+            "description": "A twitchy green creature clutching a rusty dagger.",
+            "type": "gobelin",
+            "image_type": "gobelin",
+            "can_be_attacked": true,
+            "hp": 30,
+            "max_hp": 30,
+            "attack_damage": 5,
+            "dialogue": [
+                "Grah! Give me your shiny potions or I will bite your ankles!",
+                "You think you tough because you tall? Short goblins strike knee level first!",
+                "Hey! That's my shiny dagger! Drop it or face my pointy stick!"
+            ]
+        },
+        "goblin_chief": {
+            "name": "Goblin Chief",
+            "description": "A bulkier goblin wearing a helmet made from an old cooking pot.",
+            "type": "gobelin",
+            "image_type": "gobelin",
+            "can_be_attacked": true,
+            "hp": 55,
+            "max_hp": 55,
+            "attack_damage": 10,
+            "dialogue": [
+                "I am Chief of Forest! No tall humans allowed without paying potion tax!"
+            ]
+        },
+        "boss_dragon": {
+            "name": "Cave Dragon",
+            "description": "A massive, scaly beast sleeping atop a pile of stolen shiny trinkets.",
+            "type": "boss",
+            "image_type": "boss",
+            "can_be_attacked": true,
+            "hp": 150,
+            "max_hp": 150,
+            "attack_damage": 20,
+            "dialogue": [
+                "WHO DARES DISTURB MY NAP?! Do you have any idea how hard it is to sleep on pointy amulets and dragon horns?!",
+                "ROAR! I will roast you like a marshmallow on a stick!",
+                "Another 'hero'? Great, more crunchy armor to pick out of my teeth..."
+            ]
+        }
+    },
+    "items": {
+        "book_dagger": {
+            "id": "book_dagger",
+            "name": "Dagger Mastery Book",
+            "description": "A leather-bound manual detailing quick strikes and stealth assassination maneuvers."
+        },
+        "book_sword": {
+            "id": "book_sword",
+            "name": "Sword Combat Manual",
+            "description": "An ancient tome describing heavy swings, parries, and knightly stances."
+        },
+        "boss_horn": {
+            "id": "boss_horn",
+            "name": "Dragon Horn",
+            "description": "A razor-sharp horn severed from the Cave Dragon. It radiates intense heat."
+        },
+        "dagger": {
+            "id": "dagger",
+            "name": "Rogue Dagger",
+            "description": "A swift, light blade perfect for sneaky critical strikes."
+        },
+        "medals": {
+            "id": "medals",
+            "name": "Mayor's Medal of Honor",
+            "description": "A shiny gold medal awarded by the Mayor. It looks expensive, but is mostly painted cardboard."
+        },
+        "potion_attack_PM": {
+            "id": "potion_attack_PM",
+            "name": "Petite Attack Potion",
+            "description": "A small vial of glowing red elixir that temporarily boosts your attack damage (+5 ATK)."
+        },
+        "potion_attack_GM": {
+            "id": "potion_attack_GM",
+            "name": "Grand Attack Potion",
+            "description": "A large flask of surging crimson brew that drastically empowers your strikes (+20 ATK)."
+        },
+        "potion_health_PM": {
+            "id": "potion_health_PM",
+            "name": "Petite Health Potion",
+            "description": "A small green potion that instantly restores 25 HP."
+        },
+        "potion_health_GM": {
+            "id": "potion_health_GM",
+            "name": "Grand Health Potion",
+            "description": "A potent, bubbling green brew that fully restores up to 100 HP."
+        },
+        "sword": {
+            "id": "sword",
+            "name": "Iron Sword",
+            "description": "A sturdy iron sword. Far better than throwing harsh words at a dragon."
+        },
+        "herb": {
+            "id": "herb",
+            "name": "Healing Herb",
+            "description": "A glowing medicinal plant emitting a soothing peppermint aroma."
+        },
+        "magic_amulet": {
+            "id": "magic_amulet",
+            "name": "Magic Amulet",
+            "description": "A glowing ancient amulet belonging to the Mayor. It hums with tacky magical energy."
+        }
+    },
+    "quests": {
+        "fetch_herbs": {
+            "id": "fetch_herbs",
+            "title": "Herb Gathering",
+            "giver": "guard",
+            "description": "Bring 1 Healing Herb from the Hidden Grove to the Village Guard.",
+            "required_item": "herb",
+            "reward": "potion_health_PM"
+        },
+        "fetch_amulet": {
+            "id": "fetch_amulet",
+            "title": "The Mayor's Lost Amulet",
+            "giver": "mayor",
+            "description": "Defeat the Cave Dragon in the Boss Lair and recover the Mayor's Magic Amulet.",
+            "required_item": "magic_amulet",
+            "reward": "medals"
+        },
+        "scholar_research": {
+            "id": "scholar_research",
+            "title": "Dragon Trophy Research",
+            "giver": "scholar",
+            "description": "Bring the Dragon Horn from the Boss Lair to the Royal Scholar in the Library.",
+            "required_item": "boss_horn",
+            "reward": "book_sword"
+        }
+    }
+}

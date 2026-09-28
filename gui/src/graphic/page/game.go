@@ -287,20 +287,17 @@ func (gp *GamePage) syncRoomContext() {
 		})
 	}
 
-	npcs := make([]service.RoomNPCDetail, 0, len(room.NPCs))
+	npcs := make([]service.NPCConfig, 0, len(room.NPCs))
 	for _, npcKey := range room.NPCs {
-		kind := "person"
-		switch strings.ToLower(npcKey) {
-		case "guard":
-			kind = "guard"
-		case "seller", "shop":
-			kind = "seller"
+		npcCfg, exists := gp.MapManager.GetNPCConfig(npcKey)
+		if !exists {
+			npcCfg = service.NPCConfig{
+				Key:       npcKey,
+				Name:      roomEntityName(npcKey),
+				ImageType: npcKey,
+			}
 		}
-		npcs = append(npcs, service.RoomNPCDetail{
-			Key:  npcKey,
-			Name: roomEntityName(npcKey),
-			Kind: kind,
-		})
+		npcs = append(npcs, npcCfg)
 	}
 	gp.RoomDetailsMgr.SetRoomDetails(room.Name, items, npcs)
 }
