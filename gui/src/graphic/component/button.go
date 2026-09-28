@@ -6,6 +6,12 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+var buttonInputEnabled = true
+
+func SetButtonInputEnabled(enabled bool) {
+	buttonInputEnabled = enabled
+}
+
 type Button struct {
 	Rect           rl.Rectangle
 	Text           string
@@ -45,7 +51,7 @@ func (b *Button) Render() {
 	currentBorderColor := b.BorderColor
 	var currentColor rl.Color
 
-	if b.Disabled {
+	if b.Disabled || !buttonInputEnabled {
 		currentColor = utils.ThemeSurfaceInset
 	} else {
 		mousePos := rl.GetMousePosition()

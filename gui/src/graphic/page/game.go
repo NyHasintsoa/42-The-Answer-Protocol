@@ -163,15 +163,19 @@ func (gp *GamePage) EventListener() {
 	}
 }
 
+func (gp *GamePage) hasOpenModal() bool {
+	return (gp.QuestMgr != nil && gp.QuestMgr.IsOpen) ||
+		(gp.InventoryMgr != nil && gp.InventoryMgr.IsOpen) ||
+		(gp.ChatMgr != nil && gp.ChatMgr.IsOpen)
+}
+
 func (gp *GamePage) Update(dt float32) {
 	if gp.MainChar.IsDead {
 		gp.MainChar.AdvanceFrame(dt, false)
 		return
 	}
 
-	if (gp.QuestMgr != nil && gp.QuestMgr.IsOpen) ||
-		(gp.InventoryMgr != nil && gp.InventoryMgr.IsOpen) ||
-		(gp.ChatMgr != nil && gp.ChatMgr.IsOpen) {
+	if gp.hasOpenModal() {
 		gp.MainChar.SetAction(component.ActionIdle)
 		return
 	}
@@ -247,6 +251,8 @@ func (gp *GamePage) Render() {
 	gp.EventListener()
 	dt := rl.GetFrameTime()
 	gp.Update(dt)
+	modalOpen := gp.hasOpenModal()
+	component.SetButtonInputEnabled(!modalOpen)
 
 	rl.ClearBackground(utils.ThemeBackground)
 
@@ -313,6 +319,8 @@ func (gp *GamePage) Render() {
 	if gp.LogViewComp != nil {
 		gp.LogViewComp.Render(logRect)
 	}
+
+	component.SetButtonInputEnabled(true)
 
 	if gp.InventoryComp != nil {
 		gp.InventoryComp.Render(gp.WindowWidth, gp.WindowHeight)
