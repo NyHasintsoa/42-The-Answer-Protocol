@@ -24,6 +24,8 @@ type RoomViewData struct {
 
 type RoomViewManager struct {
 	CurrentRoom RoomViewData
+	OnMove      func(ExitDirection)
+	IsMoving    bool
 }
 
 func NewRoomViewManager() *RoomViewManager {
@@ -42,7 +44,13 @@ func NewRoomViewManager() *RoomViewManager {
 }
 
 func (rvm *RoomViewManager) Move(dir ExitDirection) {
+	if !rvm.CurrentRoom.Exits[dir] {
+		return
+	}
 	fmt.Printf("[ROOM ACTION] Moved direction: %s\n", dir)
+	if rvm.OnMove != nil {
+		rvm.OnMove(dir)
+	}
 }
 
 type RoomViewComponent struct {
@@ -58,6 +66,9 @@ func (rvc *RoomViewComponent) Render(rect rl.Rectangle) {
 	rl.DrawRectangleRoundedLinesEx(rect, 0.03, 6, 2, utils.ThemeBorder)
 
 	title := "Room View"
+	if rvc.Manager != nil && rvc.Manager.CurrentRoom.Title != "" {
+		title = rvc.Manager.CurrentRoom.Title
+	}
 	titleWidth := float32(rl.MeasureText(title, 14))
 	rl.DrawText(title, int32(rect.X+(rect.Width-titleWidth)/2), int32(rect.Y+10), 14, utils.ThemeText)
 	rl.DrawLineEx(rl.NewVector2(rect.X+10, rect.Y+30), rl.NewVector2(rect.X+rect.Width-10, rect.Y+30), 1, utils.ThemeBorder)
@@ -77,7 +88,7 @@ func (rvc *RoomViewComponent) Render(rect rl.Rectangle) {
 		Label string
 		Dir   ExitDirection
 	}{
-		{"NORD", DirNorth},
+		{"NORTH", DirNorth},
 		{"SOUTH", DirSouth},
 		{"EAST", DirEast},
 		{"WEST", DirWest},
@@ -101,9 +112,9 @@ func (rvc *RoomViewComponent) Render(rect rl.Rectangle) {
 		button.ShadowColor = rl.Blank
 		button.BorderWidth = 0
 		button.BorderRadius = 0.2
+		button.Disabled = rvc.Manager == nil || rvc.Manager.IsMoving || !rvc.Manager.CurrentRoom.Exits[d.Dir]
 		button.Render()
 		if button.IsClicked {
-			fmt.Printf("[ACTION LOG] Movement button clicked: %s\n", d.Label)
 			if rvc.Manager != nil {
 				rvc.Manager.Move(d.Dir)
 			}

@@ -92,9 +92,6 @@ func (mc *MapComponent) Render() {
 		rl.DrawText(room.Name, labelX, labelY, 14, rl.RayWhite)
 	}
 
-	for _, n := range mm.NPCs {
-		n.Render()
-	}
 	for _, e := range mm.Enemies {
 		e.Render()
 	}

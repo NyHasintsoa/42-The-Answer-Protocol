@@ -1,6 +1,8 @@
 package page
 
 import (
+	"strings"
+
 	"tap-gui/src/graphic/component"
 	"tap-gui/src/model"
 	"tap-gui/src/model/enums"
@@ -34,6 +36,8 @@ type GamePage struct {
 	WindowWidth     int32
 	WindowHeight    int32
 	Camera          rl.Camera2D
+	RoomTarget      rl.Vector2
+	IsMovingToRoom  bool
 }
 
 func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
@@ -64,14 +68,6 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	roomDetailsMgr := service.NewRoomDetailsManager()
 	roomViewMgr := component.NewRoomViewManager()
 	playerMgr := component.NewPlayerManager()
-
-	roomDetailsMgr.SetRoomDetails("Village Square", []service.RoomItemDetail{
-		{ID: "156:sword", Name: "Magic Sword", Description: "Cras mattis consectetur purus sit amet fermentum."},
-		{ID: "241:potion_health_PM", Name: "Healthy potion", Description: "Cras mattis consectetur purus sit amet fermentum."},
-	}, []service.RoomNPCDetail{
-		{Key: "guard", Name: "Guard knight", Description: "Cras mattis consectetur purus sit amet fermentum.", Kind: "guard", HasQuest: false},
-		{Key: "seller", Name: "Seller", Description: "Cras mattis consectetur purus sit amet fermentum.", Kind: "seller", HasQuest: true, QuestID: "npc_2"},
-	})
 
 	mapComp := component.NewMapComponent(mapManager)
 	inventoryComp := component.NewInventoryComponent(inventoryMgr, pathResolver)
@@ -123,6 +119,8 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 		},
 	}
 	gp.State = enums.GamePage
+	gp.RoomViewMgr.OnMove = gp.moveToRoom
+	gp.syncRoomContext()
 
 	return gp
 }
@@ -192,59 +190,130 @@ func (gp *GamePage) Update(dt float32) {
 		return
 	}
 
-	moveDir := rl.NewVector2(0, 0)
-	newDir := gp.MainChar.Direction
-
-	if rl.IsKeyDown(rl.KeyUp) || rl.IsKeyDown(rl.KeyW) {
-		moveDir.Y -= 1
-		newDir = component.DirBack
-	}
-	if rl.IsKeyDown(rl.KeyDown) || rl.IsKeyDown(rl.KeyS) {
-		moveDir.Y += 1
-		newDir = component.DirFront
-	}
-	if rl.IsKeyDown(rl.KeyLeft) || rl.IsKeyDown(rl.KeyA) {
-		moveDir.X -= 1
-		newDir = component.DirLeft
-	}
-	if rl.IsKeyDown(rl.KeyRight) || rl.IsKeyDown(rl.KeyD) {
-		moveDir.X += 1
-		newDir = component.DirRight
-	}
-
-	if newDir != gp.MainChar.Direction {
-		gp.MainChar.Direction = newDir
-		gp.MainChar.FrameIndex = 0
-		gp.MainChar.FrameTimer = 0
-	}
-
-	if moveDir.X != 0 || moveDir.Y != 0 {
-		gp.MainChar.SetAction(component.ActionWalking)
-		length := float32(rl.Vector2Length(moveDir))
-
-		nextX := gp.MainChar.Position.X + (moveDir.X/length)*gp.MainChar.Speed*dt
-		nextY := gp.MainChar.Position.Y + (moveDir.Y/length)*gp.MainChar.Speed*dt
-
-		radius := float32(8.0)
-		if gp.MapManager.IsWalkable(nextX-radius, gp.MainChar.Position.Y-radius) &&
-			gp.MapManager.IsWalkable(nextX+radius, gp.MainChar.Position.Y+radius) {
-			gp.MainChar.Position.X = nextX
-		}
-		if gp.MapManager.IsWalkable(gp.MainChar.Position.X-radius, nextY-radius) &&
-			gp.MapManager.IsWalkable(gp.MainChar.Position.X+radius, nextY+radius) {
-			gp.MainChar.Position.Y = nextY
+	if gp.IsMovingToRoom {
+		delta := rl.Vector2Subtract(gp.RoomTarget, gp.MainChar.Position)
+		distance := float32(rl.Vector2Length(delta))
+		step := gp.MainChar.Speed * dt
+		if distance <= step || distance == 0 {
+			gp.MainChar.Position = gp.RoomTarget
+			gp.IsMovingToRoom = false
+			gp.RoomViewMgr.IsMoving = false
+			gp.MainChar.SetAction(component.ActionIdle)
+		} else {
+			moveX := delta.X / distance
+			moveY := delta.Y / distance
+			gp.MainChar.Position.X += moveX * step
+			gp.MainChar.Position.Y += moveY * step
+			if moveX < 0 {
+				gp.MainChar.Direction = component.DirLeft
+			} else if moveX > 0 {
+				gp.MainChar.Direction = component.DirRight
+			} else if moveY < 0 {
+				gp.MainChar.Direction = component.DirBack
+			} else {
+				gp.MainChar.Direction = component.DirFront
+			}
+			gp.MainChar.SetAction(component.ActionWalking)
 		}
 	} else {
 		gp.MainChar.SetAction(component.ActionIdle)
 	}
 
+	previousRoom := gp.MapManager.ActiveRoom
 	gp.MapManager.Update(dt, gp.MainChar.Position)
+	if gp.MapManager.ActiveRoom != previousRoom {
+		gp.syncRoomContext()
+	}
 	gp.Camera.Target = gp.MainChar.Position
 	gp.MainChar.AdvanceFrame(dt, true)
 
 	if gp.HPBar != nil {
 		gp.HPBar.Update(dt)
 	}
+}
+
+func (gp *GamePage) moveToRoom(direction component.ExitDirection) {
+	if gp.IsMovingToRoom {
+		return
+	}
+
+	room, exists := gp.MapManager.GetRoomInDirection(string(direction))
+	if !exists {
+		return
+	}
+
+	gp.RoomTarget = rl.NewVector2(
+		float32(room.TileX)*service.TileSize+service.TileSize*2,
+		float32(room.TileY)*service.TileSize+service.TileSize*2,
+	)
+	switch direction {
+	case component.DirNorth:
+		gp.MainChar.Direction = component.DirBack
+	case component.DirSouth:
+		gp.MainChar.Direction = component.DirFront
+	case component.DirEast:
+		gp.MainChar.Direction = component.DirRight
+	case component.DirWest:
+		gp.MainChar.Direction = component.DirLeft
+	}
+	gp.IsMovingToRoom = true
+	gp.RoomViewMgr.IsMoving = true
+	gp.MainChar.SetAction(component.ActionWalking)
+	gp.MainChar.FrameIndex = 0
+	gp.MainChar.FrameTimer = 0
+}
+
+func (gp *GamePage) syncRoomContext() {
+	if gp.MapManager == nil || gp.MapManager.ActiveRoom == nil {
+		return
+	}
+
+	room := gp.MapManager.ActiveRoom
+	exits := make(map[component.ExitDirection]bool, len(room.Exits))
+	for direction := range room.Exits {
+		exits[component.ExitDirection(strings.ToUpper(direction))] = true
+	}
+	gp.RoomViewMgr.CurrentRoom = component.RoomViewData{
+		Title:       room.Name,
+		Description: room.Description,
+		Exits:       exits,
+	}
+
+	items := make([]service.RoomItemDetail, 0, len(room.Items))
+	for _, itemID := range room.Items {
+		items = append(items, service.RoomItemDetail{
+			ID:   itemID,
+			Name: roomEntityName(itemID),
+		})
+	}
+
+	npcs := make([]service.RoomNPCDetail, 0, len(room.NPCs))
+	for _, npcKey := range room.NPCs {
+		kind := "person"
+		switch strings.ToLower(npcKey) {
+		case "guard":
+			kind = "guard"
+		case "seller", "shop":
+			kind = "seller"
+		}
+		npcs = append(npcs, service.RoomNPCDetail{
+			Key:  npcKey,
+			Name: roomEntityName(npcKey),
+			Kind: kind,
+		})
+	}
+	gp.RoomDetailsMgr.SetRoomDetails(room.Name, items, npcs)
+}
+
+func roomEntityName(value string) string {
+	if separator := strings.LastIndex(value, ":"); separator >= 0 {
+		value = value[separator+1:]
+	}
+	value = strings.NewReplacer("_", " ", "-", " ").Replace(value)
+	if value == "" {
+		return value
+	}
+	return strings.ToUpper(value[:1]) + value[1:]
 }
 
 func (gp *GamePage) Render() {

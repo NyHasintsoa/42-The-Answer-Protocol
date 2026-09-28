@@ -58,6 +58,7 @@ type RoomNode struct {
 	ID          string
 	Name        string
 	Description string
+	Exits       map[string]string
 	GridX       int
 	GridY       int
 	TileX       int
@@ -140,6 +141,24 @@ func (mm *MapManager) IsWalkable(x, y float32) bool {
 	}
 	tile := mm.World.Grid[gridY][gridX]
 	return tile == TilePath || tile == TileRoom
+}
+
+func (mm *MapManager) GetRoomInDirection(direction string) (*RoomNode, bool) {
+	if mm.ActiveRoom == nil {
+		return nil, false
+	}
+
+	targetID, exists := mm.ActiveRoom.Exits[strings.ToLower(direction)]
+	if !exists {
+		return nil, false
+	}
+
+	room, exists := mm.World.Rooms[targetID]
+	if !exists {
+		return nil, false
+	}
+
+	return room, true
 }
 
 func (mm *MapManager) Update(dt float32, playerPos rl.Vector2) {
@@ -339,6 +358,7 @@ func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 			ID:          roomID,
 			Name:        roomCfg.Name,
 			Description: roomCfg.Description,
+			Exits:       roomCfg.Exits,
 			GridX:       coord[0],
 			GridY:       coord[1],
 			TileX:       tileX,
