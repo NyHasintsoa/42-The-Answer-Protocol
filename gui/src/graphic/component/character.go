@@ -42,7 +42,7 @@ func NewCharacter(x, y float32, scale float32, resolver *utils.PathResolver, ass
 	if resolver == nil {
 		resolver = utils.NewPathResolver(assetPath)
 	} else {
-		resolver = utils.NewPathResolverWithImageManager(assetPath, resolver.ImageManager)
+		resolver = utils.NewPathResolverWithResourceManager(assetPath, resolver.ResourceManager)
 	}
 	return Character{
 		Position:     rl.NewVector2(x, y),
@@ -60,7 +60,7 @@ func (c *Character) LoadAnim(key, subFolder, filePattern string, count int) {
 	frames := make([]rl.Texture2D, count)
 	for i := range count {
 		path := c.PathResolver.ResolveFramePath(subFolder, filePattern, i)
-		frames[i] = c.PathResolver.ImageManager.Load(path)
+		frames[i] = c.PathResolver.ResourceManager.Load(path)
 	}
 	c.Animations[key] = frames
 }

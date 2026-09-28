@@ -2,6 +2,7 @@ package page
 
 import (
 	"tap-gui/src/graphic/component"
+	"tap-gui/src/model"
 	"tap-gui/src/model/enums"
 	"tap-gui/src/service"
 	"tap-gui/src/utils"
@@ -35,8 +36,12 @@ type GamePage struct {
 	Camera          rl.Camera2D
 }
 
-func NewGamePage(winWidth, winHeight int32) *GamePage {
-	pathResolver := utils.NewPathResolver("assets")
+func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
+	var resourceManager *utils.ResourceManager
+	if ctx != nil {
+		resourceManager = ctx.ResourceManager
+	}
+	pathResolver := utils.NewPathResolverWithResourceManager("assets", resourceManager)
 	mapManager := service.NewMapManager(pathResolver, "", service.EntityFactory{
 		NewMonster: func(x, y, scale float32, resolver *utils.PathResolver, assetPath, name string) service.Monster {
 			return component.NewMonster(x, y, scale, resolver, assetPath, name)
@@ -137,9 +142,6 @@ func (gp *GamePage) Unload() {
 	}
 	if gp.InventoryComp != nil {
 		gp.InventoryComp.Unload()
-	}
-	if gp.PathResolver != nil && gp.PathResolver.ImageManager != nil {
-		gp.PathResolver.ImageManager.UnloadAll()
 	}
 	gp.BasePage.Unload()
 }

@@ -422,12 +422,12 @@ func (mm *MapManager) loadGroundTextures() {
 	for i := range 16 {
 		key := fmt.Sprintf("%04b", i)
 		path := mm.PathResolver.Resolve("ground", key+".png")
-		mm.PathTextures[key] = mm.PathResolver.ImageManager.Load(path)
+		mm.PathTextures[key] = mm.PathResolver.ResourceManager.Load(path)
 	}
-	mm.EmptyTexture = mm.PathResolver.ImageManager.Load(mm.PathResolver.Resolve("ground", "lawn.png"))
+	mm.EmptyTexture = mm.PathResolver.ResourceManager.Load(mm.PathResolver.Resolve("ground", "lawn.png"))
 
 	fullPath := mm.PathResolver.Resolve("ground", "full.png")
-	mm.RoomTextures["full"] = mm.PathResolver.ImageManager.Load(fullPath)
+	mm.RoomTextures["full"] = mm.PathResolver.ResourceManager.Load(fullPath)
 }
 
 func (mm *MapManager) loadEnvironmentObjects() {
@@ -457,7 +457,7 @@ func (mm *MapManager) loadEnvironmentObjects() {
 			Path:     fullPath,
 			Category: CategoryScenery,
 			Scale:    file.Scale,
-			Texture:  mm.PathResolver.ImageManager.Load(fullPath),
+			Texture:  mm.PathResolver.ResourceManager.Load(fullPath),
 		}
 	}
 }

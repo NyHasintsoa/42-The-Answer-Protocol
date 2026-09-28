@@ -63,7 +63,7 @@ func (n *NpcCharacter) LoadAnim(action string) error {
 	var textures []rl.Texture2D
 	for _, name := range fileNames {
 		texPath := filepath.Join(dirPath, name)
-		textures = append(textures, n.PathResolver.ImageManager.Load(texPath))
+		textures = append(textures, n.PathResolver.ResourceManager.Load(texPath))
 	}
 
 	n.Animations[action] = textures

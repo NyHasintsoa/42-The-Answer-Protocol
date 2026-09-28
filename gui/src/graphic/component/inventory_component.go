@@ -36,7 +36,7 @@ func (ic *InventoryComponent) GetTexture(itemType enums.InventoryItemType) rl.Te
 		imagePath = "inventory/" + itemType.Filename()
 	}
 
-	tex := ic.Resolver.ImageManager.Load(imagePath)
+	tex := ic.Resolver.ResourceManager.Load(imagePath)
 	ic.textures[itemType] = tex
 	return tex
 }

@@ -40,7 +40,7 @@ func (ic *ItemComponent) GetTextureByName(filename string) rl.Texture2D {
 		imagePath = "assets/inventory/" + filename
 	}
 
-	tex := ic.Resolver.ImageManager.Load(imagePath)
+	tex := ic.Resolver.ResourceManager.Load(imagePath)
 	ic.textures[filename] = tex
 	return tex
 }

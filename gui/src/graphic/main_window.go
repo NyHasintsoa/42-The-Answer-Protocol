@@ -28,11 +28,12 @@ func NewMainWindow(width, height int32, config model.GameConfig, title string) *
 		Title:  title,
 		Closed: false,
 		Context: &model.GameContext{
-			Config: config,
+			Config:          config,
+			ResourceManager: utils.NewResourceManager(),
 		},
 		Windows: make(map[enums.PageState]page.Page),
 	}
-	rl.SetTraceLogLevel(rl.LogNone)
+	rl.SetTraceLogLevel(rl.LogAll)
 	rl.InitWindow(mw.Width, mw.Height, mw.Title)
 	rl.SetTargetFPS(60)
 
@@ -52,6 +53,9 @@ func (mw *MainWindow) Close() {
 			p.Unload()
 		}
 	}
+	if mw.Context != nil && mw.Context.ResourceManager != nil {
+		mw.Context.ResourceManager.UnloadAll()
+	}
 	rl.CloseWindow()
 	mw.Closed = true
 }
@@ -70,7 +74,7 @@ func (mw *MainWindow) LoadPage() {
 
 func (mw *MainWindow) loadPages() {
 	mw.Windows[enums.MainMenu] = page.NewMenuPage(mw.Width, mw.Height)
-	mw.Windows[enums.GamePage] = page.NewGamePage(mw.Width, mw.Height)
+	mw.Windows[enums.GamePage] = page.NewGamePage(mw.Width, mw.Height, mw.Context)
 }
 
 func (mw *MainWindow) Render() {
@@ -102,10 +106,19 @@ func (mw *MainWindow) Render() {
 		}
 		rl.EndDrawing()
 
-		if mw.CurrentState == enums.LoadingPage && !mw.pagesLoaded {
-			mw.loadPages()
-			mw.pagesLoaded = true
-			mw.CurrentPage.SetNextState(enums.MainMenu)
+		if loadingPage, ok := mw.CurrentPage.(*page.LoadingPage); ok && !mw.pagesLoaded && loadingPage.LoadError == "" {
+			if mw.Context == nil || mw.Context.ResourceManager == nil {
+				loadingPage.SetLoadError("resource manager is not initialized")
+			} else {
+				done, err := mw.Context.ResourceManager.PreloadNextBatch("assets", 8)
+				if err != nil {
+					loadingPage.SetLoadError(err.Error())
+				} else if done {
+					mw.loadPages()
+					mw.pagesLoaded = true
+					loadingPage.SetNextState(enums.MainMenu)
+				}
+			}
 		}
 	}
 	mw.Close()
