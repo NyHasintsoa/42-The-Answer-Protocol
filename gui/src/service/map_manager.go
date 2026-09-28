@@ -55,6 +55,9 @@ type NPCConfig struct {
 	Type          string   `json:"type"`
 	ImageType     string   `json:"image_type"`
 	CanBeAttacked bool     `json:"can_be_attacked"`
+	HP            int      `json:"hp"`
+	MaxHP         int      `json:"max_hp"`
+	AttackDamage  int      `json:"attack_damage"`
 	QuestID       string   `json:"quest_id"`
 	Dialogue      []string `json:"dialogue"`
 }
@@ -189,6 +192,25 @@ func (mm *MapManager) GetNPCConfig(key string) (NPCConfig, bool) {
 		return cfg, true
 	}
 	return NPCConfig{Key: key, Name: key}, false
+}
+
+func (mm *MapManager) DamageNPC(key string, damage int) (NPCConfig, bool) {
+	key = strings.ToLower(key)
+	npc, exists := mm.NPCConfigs[key]
+	if !exists || !npc.CanBeAttacked || damage <= 0 || (npc.MaxHP > 0 && npc.HP <= 0) {
+		return npc, false
+	}
+	if npc.MaxHP > 0 {
+		npc.HP -= damage
+		if npc.HP < 0 {
+			npc.HP = 0
+		}
+		if npc.HP == 0 {
+			npc.CanBeAttacked = false
+		}
+	}
+	mm.NPCConfigs[key] = npc
+	return npc, true
 }
 
 func (mm *MapManager) Update(dt float32, playerPos rl.Vector2) {

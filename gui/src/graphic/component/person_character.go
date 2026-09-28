@@ -10,8 +10,9 @@ type PersonCharacter struct {
 
 func NewPersonCharacter(resolver *utils.PathResolver, relativeDir string, x, y, scale float32) (*PersonCharacter, error) {
 	person := &PersonCharacter{
-		NpcCharacter: NewNpcCharacter("Person", resolver, relativeDir, x, y, scale),
+		NpcCharacter: NewNpcCharacter("Person", resolver, relativeDir, scale),
 	}
+	person.SetPositionOffset(-10, -30)
 	actions := []string{"Communication", "Idle", "Greeting", "Idle_Blinking"}
 	for _, act := range actions {
 		if err := person.LoadAnim(act); err != nil {

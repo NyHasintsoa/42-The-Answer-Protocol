@@ -14,7 +14,7 @@ type RoomDetailsComponent struct {
 	Manager      *service.RoomDetailsManager
 	PathResolver *utils.PathResolver
 	ItemComp     *ItemComponent
-	NPCPreviews  map[string]service.INpc
+	NPCPreviews  map[string]INpc
 }
 
 func NewRoomDetailsComponent(mgr *service.RoomDetailsManager, pathResolver *utils.PathResolver) *RoomDetailsComponent {
@@ -22,7 +22,7 @@ func NewRoomDetailsComponent(mgr *service.RoomDetailsManager, pathResolver *util
 		Manager:      mgr,
 		PathResolver: pathResolver,
 		ItemComp:     NewItemComponent(pathResolver),
-		NPCPreviews:  make(map[string]service.INpc),
+		NPCPreviews:  make(map[string]INpc),
 	}
 }
 
@@ -37,12 +37,12 @@ func (rdc *RoomDetailsComponent) Unload() {
 	}
 }
 
-func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc service.NPCConfig, x float32, y float32) service.INpc {
+func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc service.NPCConfig, x float32, y float32) INpc {
 	if preview, exists := rdc.NPCPreviews[npc.Key]; exists {
 		return preview
 	}
 
-	var npcComp service.INpc
+	var npcComp INpc
 	var err error
 	scale := float32(0.15)
 
@@ -170,89 +170,30 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 
 			if npcComp != nil {
 				npcComp.Update(dt)
-				if npcChar, ok := npcComp.(*NpcCharacter); ok {
-					npcChar.Position = rl.NewVector2(previewX, previewY)
-				}
+				npcComp.SetPosition(previewX, previewY)
 				npcComp.Render()
 			}
 
 			rl.DrawText(npc.Name, int32(infoX), int32(npcY+42), 14, utils.ThemeText)
 			rl.DrawText(npc.Description, int32(infoX), int32(npcY+62), 10, utils.ThemeTextMuted)
 
-			type btnSpec struct {
-				label   string
-				action  string
-				bgColor rl.Color
-				hoverBg rl.Color
-			}
-
-			var buttons []btnSpec
-			npcType := strings.ToLower(npc.Type)
-
-			// 1. TALK button (for dialogue, quest_giver, or non-attackable dialogue NPCs)
-			if npcType == "dialogue" || npcType == "quest_giver" || (len(npc.Dialogue) > 0 && !npc.CanBeAttacked) {
-				buttons = append(buttons, btnSpec{
-					label:   "TALK",
-					action:  "TALK",
-					bgColor: rl.NewColor(24, 160, 178, 255),
-					hoverBg: rl.NewColor(18, 130, 146, 255),
-				})
-			}
-
-			// 2. QUEST button (for quest_giver or NPCs with quest_id)
-			if npcType == "quest_giver" || npc.QuestID != "" {
-				buttons = append(buttons, btnSpec{
-					label:   "QUEST",
-					action:  "QUEST",
-					bgColor: rl.NewColor(212, 160, 23, 255),
-					hoverBg: rl.NewColor(175, 130, 15, 255),
-				})
-			}
-
-			// 3. ATTACK button (if NPC can be attacked)
-			if npc.CanBeAttacked {
-				buttons = append(buttons, btnSpec{
-					label:   "ATTACK",
-					action:  "ATTACK",
-					bgColor: rl.NewColor(200, 50, 50, 255),
-					hoverBg: rl.NewColor(160, 35, 35, 255),
-				})
-			}
-
-			btnW := float32(75)
+			btnW := float32(90)
 			btnH := float32(26)
-			spacing := float32(6)
-			totalBtnsW := float32(len(buttons))*btnW + float32(len(buttons)-1)*spacing
-			availW := colW - (infoX - rightColX)
-			btnX := infoX + (availW-totalBtnsW)/2
-			if btnX < infoX {
-				btnX = infoX
-			}
+			btnX := infoX
 			btnY := npcY + 82
 
-			for _, bSpec := range buttons {
-				button := NewButton(btnX, btnY, btnW, btnH, bSpec.label, 12)
-				button.BgColor = bSpec.bgColor
-				button.HoverBgColor = bSpec.hoverBg
-				button.ClickedColor = bSpec.hoverBg
-				button.TextColor = rl.White
-				button.BorderColor = rl.Blank
-				button.ShadowColor = rl.Blank
-				button.BorderWidth = 0
-				button.BorderRadius = 0.2
-				button.Render()
-
-				if button.IsClicked {
-					switch bSpec.action {
-					case "TALK":
-						rdc.Manager.TalkToNPC(npc.Key, npc.Name)
-					case "QUEST":
-						rdc.Manager.OpenQuest(npc.Key, npc.QuestID)
-					case "ATTACK":
-						rdc.Manager.AttackNPC(npc.Key, npc.Name)
-					}
-				}
-				btnX += btnW + spacing
+			actionsButton := NewButton(btnX, btnY, btnW, btnH, "ACTIONS", 12)
+			actionsButton.BgColor = rl.NewColor(24, 160, 178, 255)
+			actionsButton.HoverBgColor = rl.NewColor(18, 130, 146, 255)
+			actionsButton.ClickedColor = actionsButton.HoverBgColor
+			actionsButton.TextColor = rl.White
+			actionsButton.BorderColor = rl.Blank
+			actionsButton.ShadowColor = rl.Blank
+			actionsButton.BorderWidth = 0
+			actionsButton.BorderRadius = 0.2
+			actionsButton.Render()
+			if actionsButton.IsClicked {
+				rdc.Manager.OpenActions(npc)
 			}
 
 			npcY += 120

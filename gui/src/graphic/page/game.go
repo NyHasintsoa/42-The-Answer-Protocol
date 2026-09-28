@@ -18,6 +18,7 @@ type GamePage struct {
 	InventoryMgr    *service.InventoryManager
 	ChatMgr         *service.ChatManager
 	QuestMgr        *service.QuestManager
+	DialogMgr       *service.ActionManager
 	RoomDetailsMgr  *service.RoomDetailsManager
 	RoomViewMgr     *component.RoomViewManager
 	PlayerMgr       *component.PlayerManager
@@ -27,6 +28,7 @@ type GamePage struct {
 	InventoryComp   *component.InventoryComponent
 	ChatComp        *component.ChatComponent
 	QuestComp       *component.QuestComponent
+	DialogComp      *component.ActionComponent
 	RoomDetailsComp *component.RoomDetailsComponent
 	RoomViewComp    *component.RoomViewComponent
 	PlayerComp      *component.PlayerComponent
@@ -65,6 +67,7 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	questMgr := service.NewQuestManager()
 	inventoryMgr := service.NewInventoryManager()
 	chatMgr := service.NewChatManager()
+	dialogMgr := service.NewActionManager()
 	roomDetailsMgr := service.NewRoomDetailsManager()
 	roomViewMgr := component.NewRoomViewManager()
 	playerMgr := component.NewPlayerManager()
@@ -73,6 +76,7 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	inventoryComp := component.NewInventoryComponent(inventoryMgr, pathResolver)
 	chatComp := component.NewChatComponent(chatMgr)
 	questComp := component.NewQuestComponent(questMgr)
+	dialogComp := component.NewActionComponent(dialogMgr, pathResolver)
 	roomDetailsComp := component.NewRoomDetailsComponent(roomDetailsMgr, pathResolver)
 	roomViewComp := component.NewRoomViewComponent(roomViewMgr)
 	playerComp := component.NewPlayerComponent(playerMgr)
@@ -97,6 +101,7 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 		InventoryMgr:    inventoryMgr,
 		ChatMgr:         chatMgr,
 		QuestMgr:        questMgr,
+		DialogMgr:       dialogMgr,
 		RoomDetailsMgr:  roomDetailsMgr,
 		RoomViewMgr:     roomViewMgr,
 		PlayerMgr:       playerMgr,
@@ -106,6 +111,7 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 		InventoryComp:   inventoryComp,
 		ChatComp:        chatComp,
 		QuestComp:       questComp,
+		DialogComp:      dialogComp,
 		RoomDetailsComp: roomDetailsComp,
 		RoomViewComp:    roomViewComp,
 		PlayerComp:      playerComp,
@@ -120,6 +126,29 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	}
 	gp.State = enums.GamePage
 	gp.RoomViewMgr.OnMove = gp.moveToRoom
+
+	gp.RoomDetailsMgr.OnOpenActions = func(npc service.NPCConfig) {
+		gp.DialogMgr.OpenAction(npc)
+	}
+	gp.DialogMgr.HasQuest = func(npc service.NPCConfig) bool {
+		return gp.QuestMgr.HasQuest(npc.QuestID)
+	}
+	gp.DialogMgr.OnAcceptQuest = func(npc service.NPCConfig) bool {
+		return gp.QuestMgr.AcceptQuest(npc)
+	}
+	gp.DialogMgr.OnAttackNPC = func(npc service.NPCConfig) (service.NPCConfig, bool) {
+		updatedNPC, attacked := gp.MapManager.DamageNPC(npc.Key, 10)
+		if attacked {
+			for index := range gp.RoomDetailsMgr.NPCs {
+				if gp.RoomDetailsMgr.NPCs[index].Key == npc.Key {
+					gp.RoomDetailsMgr.NPCs[index] = updatedNPC
+					break
+				}
+			}
+		}
+		return updatedNPC, attacked
+	}
+
 	gp.syncRoomContext()
 
 	return gp
@@ -141,11 +170,14 @@ func (gp *GamePage) Unload() {
 	if gp.InventoryComp != nil {
 		gp.InventoryComp.Unload()
 	}
+	if gp.DialogComp != nil {
+		gp.DialogComp.Unload()
+	}
 	gp.BasePage.Unload()
 }
 
 func (gp *GamePage) EventListener() {
-	if rl.IsKeyPressed(rl.KeyEscape) {
+	if rl.IsKeyPressed(rl.KeyEscape) && !gp.hasOpenModal() {
 		gp.NextState = enums.MainMenu
 	}
 
@@ -164,7 +196,8 @@ func (gp *GamePage) EventListener() {
 func (gp *GamePage) hasOpenModal() bool {
 	return (gp.QuestMgr != nil && gp.QuestMgr.IsOpen) ||
 		(gp.InventoryMgr != nil && gp.InventoryMgr.IsOpen) ||
-		(gp.ChatMgr != nil && gp.ChatMgr.IsOpen)
+		(gp.ChatMgr != nil && gp.ChatMgr.IsOpen) ||
+		(gp.DialogMgr != nil && gp.DialogMgr.IsOpen)
 }
 
 func (gp *GamePage) Update(dt float32) {
@@ -394,8 +427,10 @@ func (gp *GamePage) Render() {
 	if gp.ChatComp != nil {
 		gp.ChatComp.Render(gp.WindowWidth, gp.WindowHeight)
 	}
-
 	if gp.QuestComp != nil {
 		gp.QuestComp.Render(gp.WindowWidth, gp.WindowHeight)
+	}
+	if gp.DialogComp != nil {
+		gp.DialogComp.Render(gp.WindowWidth, gp.WindowHeight)
 	}
 }

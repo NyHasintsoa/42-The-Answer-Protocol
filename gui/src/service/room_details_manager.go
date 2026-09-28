@@ -9,10 +9,11 @@ type RoomItemDetail struct {
 }
 
 type RoomDetailsManager struct {
-	IsOpen   bool
-	RoomName string
-	Items    []RoomItemDetail
-	NPCs     []NPCConfig
+	IsOpen        bool
+	RoomName      string
+	Items         []RoomItemDetail
+	NPCs          []NPCConfig
+	OnOpenActions func(npc NPCConfig)
 }
 
 func NewRoomDetailsManager() *RoomDetailsManager {
@@ -39,16 +40,10 @@ func (rm *RoomDetailsManager) TakeItem(itemID string) {
 	}
 }
 
-func (rm *RoomDetailsManager) TalkToNPC(npcKey string, npcName string) {
-	fmt.Printf("[ACTION] Talking to NPC: %s (%s) in room '%s'\n", npcName, npcKey, rm.RoomName)
-}
-
-func (rm *RoomDetailsManager) OpenQuest(npcKey string, questID string) {
-	fmt.Printf("[ACTION] Opened Quest '%s' from NPC: %s\n", questID, npcKey)
-}
-
-func (rm *RoomDetailsManager) AttackNPC(npcKey string, npcName string) {
-	fmt.Printf("[ACTION] Attacking NPC: %s (%s) in room '%s'\n", npcName, npcKey, rm.RoomName)
+func (rm *RoomDetailsManager) OpenActions(npc NPCConfig) {
+	if rm.OnOpenActions != nil {
+		rm.OnOpenActions(npc)
+	}
 }
 
 func (rm *RoomDetailsManager) Toggle() {

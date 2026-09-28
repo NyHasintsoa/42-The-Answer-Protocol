@@ -17,25 +17,27 @@ type INpc interface {
 	Render()
 	UnloadAnimations()
 	SetAction(action string)
+	SetPosition(x, y float32)
 }
 
 type NpcCharacter struct {
-	Name         string
-	Position     rl.Vector2
-	Scale        float32
-	Animations   map[string][]rl.Texture2D
-	CurrentAnim  string
-	FrameIndex   int
-	FrameTimer   float32
-	FrameSpeed   float32
-	PathResolver *utils.PathResolver
-	RelativeDir  string
+	Name           string
+	Position       rl.Vector2
+	PositionOffset rl.Vector2
+	Scale          float32
+	Animations     map[string][]rl.Texture2D
+	CurrentAnim    string
+	FrameIndex     int
+	FrameTimer     float32
+	FrameSpeed     float32
+	PathResolver   *utils.PathResolver
+	RelativeDir    string
 }
 
-func NewNpcCharacter(name string, resolver *utils.PathResolver, relativeDir string, x, y, scale float32) NpcCharacter {
+func NewNpcCharacter(name string, resolver *utils.PathResolver, relativeDir string, scale float32) NpcCharacter {
 	return NpcCharacter{
 		Name:         name,
-		Position:     rl.NewVector2(x, y),
+		Position:     rl.NewVector2(0, 0),
 		Scale:        scale,
 		Animations:   make(map[string][]rl.Texture2D),
 		CurrentAnim:  "Idle",
@@ -76,6 +78,14 @@ func (n *NpcCharacter) SetAction(action string) {
 		n.FrameIndex = 0
 		n.FrameTimer = 0
 	}
+}
+
+func (n *NpcCharacter) SetPosition(x, y float32) {
+	n.Position = rl.NewVector2(x+n.PositionOffset.X, y+n.PositionOffset.Y)
+}
+
+func (n *NpcCharacter) SetPositionOffset(x, y float32) {
+	n.PositionOffset = rl.NewVector2(x, y)
 }
 
 func (n *NpcCharacter) Update(dt float32) {

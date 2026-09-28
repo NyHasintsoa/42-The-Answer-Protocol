@@ -1,5 +1,7 @@
 package service
 
+import "fmt"
+
 type Quest struct {
 	ID              string
 	Title           string
@@ -48,4 +50,31 @@ func (qm *QuestManager) Toggle() {
 
 func (qm *QuestManager) AddQuest(quest *Quest) {
 	qm.Quests = append(qm.Quests, quest)
+}
+
+func (qm *QuestManager) AcceptQuest(npc NPCConfig) bool {
+	if npc.QuestID == "" {
+		return false
+	}
+	if qm.HasQuest(npc.QuestID) {
+		return false
+	}
+
+	qm.AddQuest(&Quest{
+		ID:              npc.QuestID,
+		Title:           fmt.Sprintf("Quest from %s", npc.Name),
+		NPCName:         npc.Name,
+		TargetProgress:  1,
+		CurrentProgress: 0,
+	})
+	return true
+}
+
+func (qm *QuestManager) HasQuest(questID string) bool {
+	for _, quest := range qm.Quests {
+		if quest.ID == questID {
+			return true
+		}
+	}
+	return false
 }

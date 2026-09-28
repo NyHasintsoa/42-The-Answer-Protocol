@@ -1,7 +1,6 @@
 package component
 
 import (
-	"fmt"
 	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -47,7 +46,6 @@ func (rvm *RoomViewManager) Move(dir ExitDirection) {
 	if !rvm.CurrentRoom.Exits[dir] {
 		return
 	}
-	fmt.Printf("[ROOM ACTION] Moved direction: %s\n", dir)
 	if rvm.OnMove != nil {
 		rvm.OnMove(dir)
 	}

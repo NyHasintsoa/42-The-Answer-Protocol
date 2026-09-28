@@ -10,7 +10,7 @@ type SellerCharacter struct {
 
 func NewSellerCharacter(resolver *utils.PathResolver, relativeDir string, x, y, scale float32) (*SellerCharacter, error) {
 	seller := &SellerCharacter{
-		NpcCharacter: NewNpcCharacter("Seller", resolver, relativeDir, x, y, scale),
+		NpcCharacter: NewNpcCharacter("Seller", resolver, relativeDir, scale),
 	}
 	actions := []string{"Chagrin", "Communication", "Greeting", "Idle", "Idle_Blinking", "Joy"}
 	for _, act := range actions {
