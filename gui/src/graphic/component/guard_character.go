@@ -8,7 +8,7 @@ type GuardCharacter struct {
 	NpcCharacter
 }
 
-func NewGuardCharacter(resolver *utils.PathResolver, relativeDir string, x, y, scale float32) (*GuardCharacter, error) {
+func NewGuardCharacter(resolver *utils.PathResolver, relativeDir string, scale float32) (*GuardCharacter, error) {
 	guard := &GuardCharacter{
 		NpcCharacter: NewNpcCharacter("Guard", resolver, relativeDir, scale),
 	}

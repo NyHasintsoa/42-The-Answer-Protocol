@@ -25,27 +25,27 @@ const (
 )
 
 type Character struct {
-	Position     rl.Vector2
-	Scale        float32
-	Speed        float32
-	PathResolver *utils.PathResolver
-	Direction    Direction
-	Action       Action
-	Animations   map[string][]rl.Texture2D
-	FrameIndex   int
-	FrameTimer   float32
-	FrameSpeed   float32
-	IsDead       bool
+	Position       rl.Vector2
+	PositionOffset rl.Vector2
+	Scale          float32
+	Speed          float32
+	PathResolver   *utils.PathResolver
+	Direction      Direction
+	Action         Action
+	Animations     map[string][]rl.Texture2D
+	FrameIndex     int
+	FrameTimer     float32
+	FrameSpeed     float32
+	IsDead         bool
 }
 
-func NewCharacter(x, y float32, scale float32, resolver *utils.PathResolver, assetPath string) Character {
+func NewCharacter(scale float32, resolver *utils.PathResolver, assetPath string) Character {
 	if resolver == nil {
 		resolver = utils.NewPathResolver(assetPath)
 	} else {
 		resolver = utils.NewPathResolverWithResourceManager(assetPath, resolver.ResourceManager)
 	}
 	return Character{
-		Position:     rl.NewVector2(x, y),
 		Scale:        scale,
 		Speed:        200.0,
 		PathResolver: resolver,
@@ -54,6 +54,14 @@ func NewCharacter(x, y float32, scale float32, resolver *utils.PathResolver, ass
 		Animations:   make(map[string][]rl.Texture2D),
 		FrameSpeed:   80.0,
 	}
+}
+
+func (c *Character) SetPosition(x, y float32) {
+	c.Position = rl.NewVector2(x+c.PositionOffset.X, y+c.PositionOffset.Y)
+}
+
+func (c *Character) SetPositionOffset(x, y float32) {
+	c.PositionOffset = rl.NewVector2(x, y)
 }
 
 func (c *Character) LoadAnim(key, subFolder, filePattern string, count int) {

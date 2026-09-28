@@ -37,7 +37,7 @@ func (dc *ActionComponent) Unload() {
 	}
 }
 
-func (dc *ActionComponent) getOrCreateNPCPreview(npc service.NPCConfig, x float32, y float32) INpc {
+func (dc *ActionComponent) getOrCreateNPCPreview(npc service.NPCConfig) INpc {
 	if preview, exists := dc.NPCPreviews[npc.Key]; exists {
 		return preview
 	}
@@ -53,18 +53,18 @@ func (dc *ActionComponent) getOrCreateNPCPreview(npc service.NPCConfig, x float3
 
 	switch imageType {
 	case "boss":
-		npcComp, err = NewEnemyCharacter(dc.PathResolver, "characters/boss", x, y, scale)
+		npcComp, err = NewEnemyCharacter(dc.PathResolver, "characters/boss", scale)
 	case "gobelin", "goblin":
-		npcComp, err = NewEnemyCharacter(dc.PathResolver, "characters/gobelin", x, y, scale)
+		npcComp, err = NewEnemyCharacter(dc.PathResolver, "characters/gobelin", scale)
 	case "guard":
-		npcComp, err = NewGuardCharacter(dc.PathResolver, "npc/guard", x, y, scale)
+		npcComp, err = NewGuardCharacter(dc.PathResolver, "npc/guard", scale)
 	case "merchant", "seller":
-		npcComp, err = NewSellerCharacter(dc.PathResolver, "npc/merchant", x, y, scale)
+		npcComp, err = NewSellerCharacter(dc.PathResolver, "npc/merchant", scale)
 	default:
 		relDir := "npc/" + imageType
-		npcComp, err = NewPersonCharacter(dc.PathResolver, relDir, x, y, scale)
+		npcComp, err = NewPersonCharacter(dc.PathResolver, relDir, scale)
 		if err != nil {
-			npcComp, err = NewPersonCharacter(dc.PathResolver, "npc/person", x, y, scale)
+			npcComp, err = NewPersonCharacter(dc.PathResolver, "npc/person", scale)
 		}
 	}
 
@@ -152,7 +152,7 @@ func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 	}
 	rl.DrawRectangleRoundedLinesEx(portraitRect, 0.03, 6, 1, cyanBorder)
 
-	previewChar := dc.getOrCreateNPCPreview(dc.Manager.NPC, portraitX+portraitW/2, portraitY+portraitH-30)
+	previewChar := dc.getOrCreateNPCPreview(dc.Manager.NPC)
 	if previewChar != nil {
 		previewChar.SetPosition(portraitX+portraitW/2, portraitY+portraitH-30)
 		previewChar.SetAction("Communication")

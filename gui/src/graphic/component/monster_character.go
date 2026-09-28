@@ -12,9 +12,9 @@ type Monster struct {
 	Name string
 }
 
-func NewMonster(x, y float32, scale float32, resolver *utils.PathResolver, assetPath string, name string) *Monster {
+func NewMonster(scale float32, resolver *utils.PathResolver, assetPath string, name string) *Monster {
 	m := &Monster{
-		Character: NewCharacter(x, y, scale, resolver, assetPath),
+		Character: NewCharacter(scale, resolver, assetPath),
 		Name:      name,
 	}
 	m.Speed = 120.0

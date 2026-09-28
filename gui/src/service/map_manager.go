@@ -95,17 +95,19 @@ type Monster interface {
 	UpdateAI(dt float32, target rl.Vector2, isWalkable func(float32, float32) bool)
 	Render()
 	UnloadAnimations()
+	SetPosition(x, y float32)
 }
 
 type INpc interface {
 	Update(dt float32)
 	Render()
 	UnloadAnimations()
+	SetPosition(x, y float32)
 }
 
 type EntityFactory struct {
-	NewMonster func(x, y, scale float32, resolver *utils.PathResolver, assetPath, name string) Monster
-	NewNPC     func(kind, relativeDir string, x, y, scale float32) (INpc, error)
+	NewMonster func(scale float32, resolver *utils.PathResolver, assetPath, name string) Monster
+	NewNPC     func(kind, relativeDir string, scale float32) (INpc, error)
 }
 
 type MapManager struct {
@@ -324,8 +326,9 @@ func (mm *MapManager) spawnEntities() {
 				}
 				if mm.entityFactory.NewMonster != nil {
 					assetPath := mm.PathResolver.Resolve("characters", charFolder)
-					e := mm.entityFactory.NewMonster(spawnX, spawnY, CharScale, mm.PathResolver, assetPath, npcName)
+					e := mm.entityFactory.NewMonster(CharScale, mm.PathResolver, assetPath, npcName)
 					if e != nil {
+						e.SetPosition(spawnX, spawnY)
 						mm.Enemies = append(mm.Enemies, e)
 					}
 				}
@@ -340,12 +343,13 @@ func (mm *MapManager) spawnEntities() {
 
 				relDir := filepath.Join("npc", imageType)
 				if mm.entityFactory.NewNPC != nil {
-					n, err := mm.entityFactory.NewNPC(kind, relDir, spawnX, spawnY, CharScale)
+					n, err := mm.entityFactory.NewNPC(kind, relDir, CharScale)
 					if err != nil {
 						relDir = filepath.Join("npc", "person")
-						n, err = mm.entityFactory.NewNPC("person", relDir, spawnX, spawnY, CharScale)
+						n, err = mm.entityFactory.NewNPC("person", relDir, CharScale)
 					}
 					if err == nil && n != nil {
+						n.SetPosition(spawnX, spawnY)
 						mm.NPCs = append(mm.NPCs, n)
 					}
 				}

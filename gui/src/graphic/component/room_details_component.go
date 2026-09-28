@@ -53,18 +53,18 @@ func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc service.NPCConfig, x 
 
 	switch imageType {
 	case "boss":
-		npcComp, err = NewEnemyCharacter(rdc.PathResolver, "characters/boss", x, y, scale)
+		npcComp, err = NewEnemyCharacter(rdc.PathResolver, "characters/boss", scale)
 	case "gobelin", "goblin":
-		npcComp, err = NewEnemyCharacter(rdc.PathResolver, "characters/gobelin", x, y, scale)
+		npcComp, err = NewEnemyCharacter(rdc.PathResolver, "characters/gobelin", scale)
 	case "guard":
-		npcComp, err = NewGuardCharacter(rdc.PathResolver, "npc/guard", x, y, scale)
+		npcComp, err = NewGuardCharacter(rdc.PathResolver, "npc/guard", scale)
 	case "merchant", "seller":
-		npcComp, err = NewSellerCharacter(rdc.PathResolver, "npc/merchant", x, y, scale)
+		npcComp, err = NewSellerCharacter(rdc.PathResolver, "npc/merchant", scale)
 	default:
 		relDir := "npc/" + imageType
-		npcComp, err = NewPersonCharacter(rdc.PathResolver, relDir, x, y, scale)
+		npcComp, err = NewPersonCharacter(rdc.PathResolver, relDir, scale)
 		if err != nil {
-			npcComp, err = NewPersonCharacter(rdc.PathResolver, "npc/person", x, y, scale)
+			npcComp, err = NewPersonCharacter(rdc.PathResolver, "npc/person", scale)
 		}
 	}
 

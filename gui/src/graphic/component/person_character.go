@@ -8,7 +8,7 @@ type PersonCharacter struct {
 	NpcCharacter
 }
 
-func NewPersonCharacter(resolver *utils.PathResolver, relativeDir string, x, y, scale float32) (*PersonCharacter, error) {
+func NewPersonCharacter(resolver *utils.PathResolver, relativeDir string, scale float32) (*PersonCharacter, error) {
 	person := &PersonCharacter{
 		NpcCharacter: NewNpcCharacter("Person", resolver, relativeDir, scale),
 	}

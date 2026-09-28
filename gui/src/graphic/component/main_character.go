@@ -12,9 +12,9 @@ type MainCharacter struct {
 	Character
 }
 
-func NewMainCharacter(x, y float32, scale float32, resolver *utils.PathResolver, assetPath string) *MainCharacter {
+func NewMainCharacter(scale float32, resolver *utils.PathResolver, assetPath string) *MainCharacter {
 	mc := &MainCharacter{
-		Character: NewCharacter(x, y, scale, resolver, assetPath),
+		Character: NewCharacter(scale, resolver, assetPath),
 	}
 	mc.loadAnimations()
 	return mc

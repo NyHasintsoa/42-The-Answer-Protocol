@@ -49,17 +49,17 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	}
 	pathResolver := utils.NewPathResolverWithResourceManager("assets", resourceManager)
 	mapManager := service.NewMapManager(pathResolver, "", service.EntityFactory{
-		NewMonster: func(x, y, scale float32, resolver *utils.PathResolver, assetPath, name string) service.Monster {
-			return component.NewMonster(x, y, scale, resolver, assetPath, name)
+		NewMonster: func(scale float32, resolver *utils.PathResolver, assetPath, name string) service.Monster {
+			return component.NewMonster(scale, resolver, assetPath, name)
 		},
-		NewNPC: func(kind, relativeDir string, x, y, scale float32) (service.INpc, error) {
+		NewNPC: func(kind, relativeDir string, scale float32) (service.INpc, error) {
 			switch kind {
 			case "guard":
-				return component.NewGuardCharacter(pathResolver, relativeDir, x, y, scale)
+				return component.NewGuardCharacter(pathResolver, relativeDir, scale)
 			case "seller":
-				return component.NewSellerCharacter(pathResolver, relativeDir, x, y, scale)
+				return component.NewSellerCharacter(pathResolver, relativeDir, scale)
 			default:
-				return component.NewPersonCharacter(pathResolver, relativeDir, x, y, scale)
+				return component.NewPersonCharacter(pathResolver, relativeDir, scale)
 			}
 		},
 	})
@@ -85,7 +85,8 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 
 	startX, startY := mapManager.GetStartPosition()
 
-	mainChar := component.NewMainCharacter(startX, startY, service.CharScale, pathResolver, pathResolver.Resolve("characters", "main_character"))
+	mainChar := component.NewMainCharacter(service.CharScale, pathResolver, pathResolver.Resolve("characters", "main_character"))
+	mainChar.SetPosition(startX, startY)
 	hpBar := component.NewHPBar(30, 15, 180, 20)
 
 	mapViewSize := float32(winWidth) / 3
