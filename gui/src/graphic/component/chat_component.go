@@ -19,7 +19,7 @@ type ChatComponent struct {
 func NewChatComponent(mgr *service.ChatManager) *ChatComponent {
 	return &ChatComponent{
 		Manager:        mgr,
-		InputComp:      ui.NewInputComponent(0, 0, 0, 0, "Type a message...", 140),
+		InputComp:      ui.NewInputComponent(0, 0, 0, 48, "Type a message...", 280),
 		ScrollY:        0,
 		scrollToBottom: true,
 	}
@@ -101,9 +101,30 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		cc.Manager.IsOpen = false
 	}
 
+	// Update Textarea Input Component layout dynamically
+	inputMargin := float32(20)
+	inputW := modalW - (inputMargin * 2)
+	cc.InputComp.Rect.Width = inputW
+
+	submitted := cc.InputComp.Update(dt)
+
+	inputH := cc.InputComp.Rect.Height
+	inputX := modalX + inputMargin
+	inputY := modalY + modalH - inputH - 18
+	cc.InputComp.Rect.X = inputX
+	cc.InputComp.Rect.Y = inputY
+
+	if submitted {
+		text := cc.InputComp.GetAndClearText()
+		if strings.TrimSpace(text) != "" {
+			cc.Manager.SendMessage(text)
+			cc.scrollToBottom = true
+		}
+	}
+
 	messages := cc.Manager.GetCurrentMessages()
 	msgAreaY := modalY + headerH + 15
-	msgAreaH := modalH - headerH - 90
+	msgAreaH := modalH - headerH - inputH - 45
 	msgAreaRect := rl.NewRectangle(modalX, msgAreaY, modalW, msgAreaH)
 
 	fontSize := int32(14)
@@ -119,36 +140,16 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 	layouts := make([]messageLayout, len(messages))
 
 	for i, msg := range messages {
-		textHeight := float32(ui.DrawTextWrapped(msg.Text, 0, 0, maxTextWidth, fontSize, rl.Blank))
-		bH := textHeight + (paddingY * 2)
-
+		lines := ui.WrapTextLines(msg.Text, fontSize, maxTextWidth)
 		var maxLineW float32 = 0
-		for paragraph := range strings.SplitSeq(msg.Text, "\n") {
-			line := ""
-			for word := range strings.FieldsSeq(paragraph) {
-				candidate := word
-				if line != "" {
-					candidate = line + " " + word
-				}
-
-				if line != "" && rl.MeasureText(candidate, fontSize) > maxTextWidth {
-					w := float32(rl.MeasureText(line, fontSize))
-					if w > maxLineW {
-						maxLineW = w
-					}
-					line = word
-					continue
-				}
-				line = candidate
-			}
-			if line != "" {
-				w := float32(rl.MeasureText(line, fontSize))
-				if w > maxLineW {
-					maxLineW = w
-				}
+		for _, l := range lines {
+			w := float32(rl.MeasureText(l, fontSize))
+			if w > maxLineW {
+				maxLineW = w
 			}
 		}
 		bW := maxLineW + (paddingX * 2)
+		bH := float32(len(lines))*float32(fontSize+2) + (paddingY * 2)
 
 		layouts[i] = messageLayout{bubbleW: bW, bubbleH: bH}
 		totalContentH += bH + 20
@@ -258,22 +259,5 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 
 	rl.EndScissorMode()
 
-	inputMargin := float32(20)
-	inputW := modalW - (inputMargin * 2)
-	inputH := float32(48)
-	inputX := modalX + inputMargin
-	inputY := modalY + modalH - inputH - 18
-
-	cc.InputComp.Rect = rl.NewRectangle(inputX, inputY, inputW, inputH)
-
-	submitted := cc.InputComp.Update(dt)
 	cc.InputComp.Render()
-
-	if submitted {
-		text := cc.InputComp.GetAndClearText()
-		if strings.TrimSpace(text) != "" {
-			cc.Manager.SendMessage(text)
-			cc.scrollToBottom = true
-		}
-	}
 }

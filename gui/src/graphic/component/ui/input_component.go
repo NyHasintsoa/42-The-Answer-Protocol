@@ -12,15 +12,46 @@ type InputComponent struct {
 	MaxLength   int
 	cursorTimer float32
 	showCursor  bool
+	MinHeight   float32
+	MaxHeight   float32
 }
 
 func NewInputComponent(x, y, w, h float32, placeholder string, maxLen int) *InputComponent {
+	if h <= 0 {
+		h = 48
+	}
 	return &InputComponent{
 		Rect:        rl.NewRectangle(x, y, w, h),
 		Placeholder: placeholder,
 		MaxLength:   maxLen,
 		showCursor:  true,
+		MinHeight:   h,
+		MaxHeight:   120,
 	}
+}
+
+func (ic *InputComponent) RecalculateHeight() {
+	fontSize := int32(16)
+	paddingX := float32(16)
+	paddingY := float32(12)
+	lineHeight := float32(fontSize + 4)
+
+	textMaxWidth := int32(ic.Rect.Width - (paddingX * 2))
+	if textMaxWidth <= 0 {
+		return
+	}
+
+	lines := WrapTextLines(ic.Text, fontSize, textMaxWidth)
+	calcH := (paddingY * 2) + float32(len(lines))*lineHeight
+
+	if calcH < ic.MinHeight {
+		calcH = ic.MinHeight
+	}
+	if ic.MaxHeight > 0 && calcH > ic.MaxHeight {
+		calcH = ic.MaxHeight
+	}
+
+	ic.Rect.Height = calcH
 }
 
 func (ic *InputComponent) Update(dt float32) bool {
@@ -31,6 +62,7 @@ func (ic *InputComponent) Update(dt float32) bool {
 	}
 
 	if !ic.IsFocused {
+		ic.RecalculateHeight()
 		return false
 	}
 
@@ -52,6 +84,8 @@ func (ic *InputComponent) Update(dt float32) bool {
 		ic.Text = ic.Text[:len(ic.Text)-1]
 	}
 
+	ic.RecalculateHeight()
+
 	if rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter) {
 		return true
 	}
@@ -66,32 +100,57 @@ func (ic *InputComponent) Render() {
 		borderColor = rl.NewColor(0, 180, 255, 255)
 	}
 
-	rl.DrawRectangleRounded(ic.Rect, 0.2, 8, bgColor)
-	rl.DrawRectangleRoundedLinesEx(ic.Rect, 0.2, 8, 2, borderColor)
+	rl.DrawRectangleRounded(ic.Rect, 0.15, 8, bgColor)
+	rl.DrawRectangleRoundedLinesEx(ic.Rect, 0.15, 8, 2, borderColor)
 
+	fontSize := int32(16)
 	paddingX := float32(16)
-	posY := ic.Rect.Y + (ic.Rect.Height-16)/2
+	paddingY := float32(12)
+	lineHeight := float32(fontSize + 4)
+	textMaxWidth := int32(ic.Rect.Width - (paddingX * 2))
 
 	if len(ic.Text) == 0 && !ic.IsFocused {
-		rl.DrawText(ic.Placeholder, int32(ic.Rect.X+paddingX), int32(posY), 16, rl.NewColor(120, 135, 160, 255))
-	} else {
-		rl.DrawText(ic.Text, int32(ic.Rect.X+paddingX), int32(posY), 16, rl.RayWhite)
+		posY := ic.Rect.Y + (ic.Rect.Height-float32(fontSize))/2
+		rl.DrawText(ic.Placeholder, int32(ic.Rect.X+paddingX), int32(posY), fontSize, rl.NewColor(120, 135, 160, 255))
+		return
+	}
 
-		if ic.IsFocused && ic.showCursor {
-			textWidth := float32(rl.MeasureText(ic.Text, 16))
-			cursorX := ic.Rect.X + paddingX + textWidth + 2
-			rl.DrawLineEx(
-				rl.NewVector2(cursorX, posY-2),
-				rl.NewVector2(cursorX, posY+18),
-				2,
-				rl.NewColor(0, 180, 255, 255),
-			)
-		}
+	lines := WrapTextLines(ic.Text, fontSize, textMaxWidth)
+	visibleLines := int((ic.Rect.Height - (paddingY * 2)) / lineHeight)
+	if visibleLines < 1 {
+		visibleLines = 1
+	}
+
+	startIdx := 0
+	if len(lines) > visibleLines {
+		startIdx = len(lines) - visibleLines
+	}
+
+	currY := ic.Rect.Y + paddingY
+	for i := startIdx; i < len(lines); i++ {
+		rl.DrawText(lines[i], int32(ic.Rect.X+paddingX), int32(currY), fontSize, rl.RayWhite)
+		currY += lineHeight
+	}
+
+	if ic.IsFocused && ic.showCursor {
+		lastLine := lines[len(lines)-1]
+		lastLineW := float32(rl.MeasureText(lastLine, fontSize))
+		lastLineIdx := len(lines) - 1 - startIdx
+		cursorY := ic.Rect.Y + paddingY + float32(lastLineIdx)*lineHeight
+		cursorX := ic.Rect.X + paddingX + lastLineW + 2
+
+		rl.DrawLineEx(
+			rl.NewVector2(cursorX, cursorY),
+			rl.NewVector2(cursorX, cursorY+float32(fontSize)),
+			2,
+			rl.NewColor(0, 180, 255, 255),
+		)
 	}
 }
 
 func (ic *InputComponent) GetAndClearText() string {
 	t := ic.Text
 	ic.Text = ""
+	ic.RecalculateHeight()
 	return t
 }
