@@ -184,12 +184,12 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			rl.DrawText(npc.Name, int32(infoX), int32(npcY+42), 14, utils.ThemeText)
 			rl.DrawText(npc.Description, int32(infoX), int32(npcY+62), 10, utils.ThemeTextMuted)
 
-			btnW := float32(90)
+			btnW := float32(75)
 			btnH := float32(26)
 			btnX := infoX
 			btnY := npcY + 82
 
-			actionsButton := ui.NewButton(btnX, btnY, btnW, btnH, "ACTIONS", 12)
+			actionsButton := ui.NewButton(btnX, btnY, btnW, btnH, "ACTIONS", 11)
 			actionsButton.BgColor = rl.NewColor(24, 160, 178, 255)
 			actionsButton.HoverBgColor = rl.NewColor(18, 130, 146, 255)
 			actionsButton.ClickedColor = actionsButton.HoverBgColor
@@ -201,6 +201,22 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			actionsButton.Render()
 			if actionsButton.IsClicked {
 				rdc.Manager.OpenActions(npc)
+			}
+
+			if npc.CanBeAttacked {
+				attackButton := ui.NewButton(btnX+btnW+8, btnY, btnW, btnH, "ATTACK", 11)
+				attackButton.BgColor = rl.NewColor(190, 58, 72, 255)
+				attackButton.HoverBgColor = rl.NewColor(225, 78, 91, 255)
+				attackButton.ClickedColor = attackButton.HoverBgColor
+				attackButton.TextColor = rl.White
+				attackButton.BorderColor = rl.Blank
+				attackButton.ShadowColor = rl.Blank
+				attackButton.BorderWidth = 0
+				attackButton.BorderRadius = 0.2
+				attackButton.Render()
+				if attackButton.IsClicked {
+					rdc.Manager.AttackNPC(npc)
+				}
 			}
 
 			npcY += 120

@@ -88,7 +88,7 @@ func (m *Monster) Render() {
 		return
 	}
 
-	if m.FrameIndex >= len(frames) {
+	if m.FrameIndex < 0 || m.FrameIndex >= len(frames) {
 		m.FrameIndex = 0
 	}
 
@@ -116,6 +116,9 @@ func (m *Monster) AdvanceFrame(dt float32, loop bool) bool {
 		m.FrameTimer = 0
 		m.FrameIndex++
 		frames := m.Animations[m.GetAnimKey()]
+		if len(frames) == 0 {
+			return false
+		}
 		if m.FrameIndex >= len(frames) {
 			if loop {
 				m.FrameIndex = 0

@@ -33,6 +33,8 @@ type InventoryManager struct {
 	ItemsPerPage      int
 	SelectedItemIndex int
 	IsModalOpen       bool
+	InCombatMode      bool
+	OnUseItemInCombat func(item InventoryItem)
 }
 
 func NewInventoryManager() *InventoryManager {
@@ -42,6 +44,7 @@ func NewInventoryManager() *InventoryManager {
 		ItemsPerPage:      9,
 		SelectedItemIndex: -1,
 		IsModalOpen:       false,
+		InCombatMode:      false,
 		Items: []InventoryItem{
 			{ID: "book_dagger", Name: "Dagger Book", Type: enums.ItemBookDagger, Count: 2, Category: CategoryMisc, Color: rl.NewColor(180, 130, 80, 255)},
 			{ID: "book_sword", Name: "Sword Book", Type: enums.ItemBookSword, Count: 1, Category: CategoryMisc, Color: rl.NewColor(200, 210, 225, 255)},
@@ -80,6 +83,7 @@ func (im *InventoryManager) Toggle() {
 	im.IsOpen = !im.IsOpen
 	if !im.IsOpen {
 		im.IsModalOpen = false
+		im.InCombatMode = false
 	}
 }
 
@@ -93,6 +97,28 @@ func (im *InventoryManager) SelectItem(index int) {
 func (im *InventoryManager) CloseModal() {
 	im.IsModalOpen = false
 	im.SelectedItemIndex = -1
+}
+
+func (im *InventoryManager) UseItem(index int) {
+	if index < 0 || index >= len(im.Items) {
+		return
+	}
+
+	item := im.Items[index]
+	if im.OnUseItemInCombat != nil && im.InCombatMode {
+		im.OnUseItemInCombat(item)
+	}
+
+	im.Items[index].Count--
+	if im.Items[index].Count <= 0 {
+		im.Items = append(im.Items[:index], im.Items[index+1:]...)
+	}
+
+	im.CloseModal()
+	if im.InCombatMode {
+		im.IsOpen = false
+		im.InCombatMode = false
+	}
 }
 
 func (im *InventoryManager) TakeItem(index int) {
@@ -151,6 +177,7 @@ func (im *InventoryManager) Update(winWidth, winHeight int32) {
 	closeBtn := rl.NewRectangle(panelX+panelW-42, panelY+12, 30, 30)
 	if mouseClicked && rl.CheckCollisionPointRec(mousePos, closeBtn) {
 		im.IsOpen = false
+		im.InCombatMode = false
 		return
 	}
 

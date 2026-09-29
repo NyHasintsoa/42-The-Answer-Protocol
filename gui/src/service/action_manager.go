@@ -18,7 +18,6 @@ type ActionManager struct {
 	QuestAccepted bool
 	HasQuest      func(NPCConfig) bool
 	OnAcceptQuest func(NPCConfig) bool
-	OnAttackNPC   func(NPCConfig) (NPCConfig, bool)
 }
 
 func NewActionManager() *ActionManager {
@@ -42,7 +41,7 @@ func (dm *ActionManager) OpenAction(npc NPCConfig) {
 }
 
 func (dm *ActionManager) refreshResponses() {
-	dm.Responses = make([]ActionResponse, 0, 4)
+	dm.Responses = make([]ActionResponse, 0, 3)
 	addResponse := func(text, tag string, onSelect func()) {
 		dm.Responses = append(dm.Responses, ActionResponse{
 			Index:     len(dm.Responses) + 1,
@@ -57,9 +56,6 @@ func (dm *ActionManager) refreshResponses() {
 	}
 	if dm.NPC.QuestID != "" && !dm.QuestAccepted {
 		addResponse("Accept this quest", "QUEST", dm.acceptQuest)
-	}
-	if dm.NPC.CanBeAttacked && (dm.NPC.MaxHP == 0 || dm.NPC.HP > 0) {
-		addResponse("Attack "+dm.NPC.Name, "ATTACK", dm.attackNPC)
 	}
 	addResponse("Leave", "CLOSE", dm.Close)
 }
@@ -79,32 +75,6 @@ func (dm *ActionManager) acceptQuest() {
 	} else {
 		dm.CurrentText = "This quest is already in your quest log."
 		dm.QuestAccepted = true
-	}
-	dm.refreshResponses()
-}
-
-func (dm *ActionManager) attackNPC() {
-	if dm.OnAttackNPC == nil {
-		dm.CurrentText = "You cannot attack this NPC right now."
-		dm.refreshResponses()
-		return
-	}
-
-	npc, attacked := dm.OnAttackNPC(dm.NPC)
-	if !attacked {
-		dm.CurrentText = "This NPC can no longer be attacked."
-		dm.NPC = npc
-		dm.refreshResponses()
-		return
-	}
-
-	dm.NPC = npc
-	if !npc.CanBeAttacked {
-		dm.CurrentText = fmt.Sprintf("%s has been defeated.", npc.Name)
-	} else if npc.MaxHP > 0 {
-		dm.CurrentText = fmt.Sprintf("You hit %s. HP remaining: %d/%d.", npc.Name, npc.HP, npc.MaxHP)
-	} else {
-		dm.CurrentText = fmt.Sprintf("You attacked %s.", npc.Name)
 	}
 	dm.refreshResponses()
 }

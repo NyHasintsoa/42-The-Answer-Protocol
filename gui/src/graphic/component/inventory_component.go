@@ -59,19 +59,25 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 			ic.Manager.CloseModal()
 		} else {
 			ic.Manager.IsOpen = false
+			ic.Manager.InCombatMode = false
 		}
 		return
 	}
 
-	rl.DrawRectangle(0, 0, winWidth, winHeight, rl.NewColor(0, 0, 0, 160))
+	rl.DrawRectangle(0, 0, winWidth, winHeight, rl.NewColor(0, 0, 0, 180))
 
 	panelW := float32(500)
 	panelH := float32(520)
+	if ic.Manager.InCombatMode {
+		panelW = 380
+		panelH = 420
+	}
+
 	panelX := (float32(winWidth) - panelW) / 2
 	panelY := (float32(winHeight) - panelH) / 2
 	panelRect := rl.NewRectangle(panelX, panelY, panelW, panelH)
 
-	rl.DrawRectangleRounded(panelRect, 0.08, 12, rl.NewColor(22, 25, 38, 245))
+	rl.DrawRectangleRounded(panelRect, 0.08, 12, rl.NewColor(22, 25, 38, 250))
 	rl.DrawRectangleRoundedLinesEx(panelRect, 0.08, 12, 3, rl.NewColor(0, 180, 255, 255))
 
 	headerRect := rl.NewRectangle(panelX, panelY, panelW, 55)
@@ -79,7 +85,10 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	rl.DrawLineEx(rl.NewVector2(panelX, panelY+55), rl.NewVector2(panelX+panelW, panelY+55), 2, rl.NewColor(0, 180, 255, 255))
 
 	titleText := fmt.Sprintf("INVENTORY (%d / %d)", ic.Manager.CurrentPage+1, ic.Manager.GetTotalPages())
-	rl.DrawText(titleText, int32(panelX+24), int32(panelY+17), 22, rl.Gold)
+	if ic.Manager.InCombatMode {
+		titleText = "COMBAT INVENTORY"
+	}
+	rl.DrawText(titleText, int32(panelX+24), int32(panelY+17), 20, rl.Gold)
 
 	closeButton := ui.NewButton(panelX+panelW-42, panelY+12, 30, 30, "X", 18)
 	closeButton.BgColor = rl.NewColor(180, 50, 50, 255)
@@ -93,12 +102,18 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	closeButton.Render()
 	if closeButton.IsClicked && !ic.Manager.IsModalOpen {
 		ic.Manager.IsOpen = false
+		ic.Manager.InCombatMode = false
 	}
 
 	slotSize := float32(115)
 	spacing := float32(18)
+	if ic.Manager.InCombatMode {
+		slotSize = 90
+		spacing = 12
+	}
+
 	gridStartX := panelX + (panelW-3*slotSize-2*spacing)/2
-	gridStartY := panelY + 80
+	gridStartY := panelY + 75
 
 	startIndex := ic.Manager.CurrentPage * ic.Manager.ItemsPerPage
 	endIndex := startIndex + ic.Manager.ItemsPerPage
@@ -148,32 +163,34 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		}
 	}
 
-	prevButton := ui.NewButton(panelX+14, panelY+panelH/2-25, 36, 50, "<", 28)
-	prevButton.BgColor = rl.NewColor(0, 100, 180, 255)
-	prevButton.HoverBgColor = rl.NewColor(0, 150, 220, 255)
-	prevButton.ClickedColor = prevButton.HoverBgColor
-	prevButton.TextColor = rl.White
-	prevButton.BorderColor = rl.NewColor(0, 200, 255, 255)
-	prevButton.ShadowColor = rl.Blank
-	prevButton.BorderWidth = 2
-	prevButton.BorderRadius = 0.25
-	prevButton.Render()
-	if prevButton.IsClicked && ic.Manager.CurrentPage > 0 && !ic.Manager.IsModalOpen {
-		ic.Manager.PrevPage()
-	}
+	if !ic.Manager.InCombatMode {
+		prevButton := ui.NewButton(panelX+14, panelY+panelH/2-25, 36, 50, "<", 28)
+		prevButton.BgColor = rl.NewColor(0, 100, 180, 255)
+		prevButton.HoverBgColor = rl.NewColor(0, 150, 220, 255)
+		prevButton.ClickedColor = prevButton.HoverBgColor
+		prevButton.TextColor = rl.White
+		prevButton.BorderColor = rl.NewColor(0, 200, 255, 255)
+		prevButton.ShadowColor = rl.Blank
+		prevButton.BorderWidth = 2
+		prevButton.BorderRadius = 0.25
+		prevButton.Render()
+		if prevButton.IsClicked && ic.Manager.CurrentPage > 0 && !ic.Manager.IsModalOpen {
+			ic.Manager.PrevPage()
+		}
 
-	nextButton := ui.NewButton(panelX+panelW-50, panelY+panelH/2-25, 36, 50, ">", 28)
-	nextButton.BgColor = rl.NewColor(0, 100, 180, 255)
-	nextButton.HoverBgColor = rl.NewColor(0, 150, 220, 255)
-	nextButton.ClickedColor = nextButton.HoverBgColor
-	nextButton.TextColor = rl.White
-	nextButton.BorderColor = rl.NewColor(0, 200, 255, 255)
-	nextButton.ShadowColor = rl.Blank
-	nextButton.BorderWidth = 2
-	nextButton.BorderRadius = 0.25
-	nextButton.Render()
-	if nextButton.IsClicked && ic.Manager.CurrentPage < ic.Manager.GetTotalPages()-1 && !ic.Manager.IsModalOpen {
-		ic.Manager.NextPage()
+		nextButton := ui.NewButton(panelX+panelW-50, panelY+panelH/2-25, 36, 50, ">", 28)
+		nextButton.BgColor = rl.NewColor(0, 100, 180, 255)
+		nextButton.HoverBgColor = rl.NewColor(0, 150, 220, 255)
+		nextButton.ClickedColor = nextButton.HoverBgColor
+		nextButton.TextColor = rl.White
+		nextButton.BorderColor = rl.NewColor(0, 200, 255, 255)
+		nextButton.ShadowColor = rl.Blank
+		nextButton.BorderWidth = 2
+		nextButton.BorderRadius = 0.25
+		nextButton.Render()
+		if nextButton.IsClicked && ic.Manager.CurrentPage < ic.Manager.GetTotalPages()-1 && !ic.Manager.IsModalOpen {
+			ic.Manager.NextPage()
+		}
 	}
 
 	if ic.Manager.IsModalOpen && ic.Manager.SelectedItemIndex >= 0 && ic.Manager.SelectedItemIndex < len(ic.Manager.Items) {
@@ -182,14 +199,10 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		rl.DrawRectangle(0, 0, winWidth, winHeight, rl.NewColor(0, 0, 0, 180))
 
 		modalW := float32(320)
-		modalH := float32(340)
+		modalH := float32(320)
 		modalX := (float32(winWidth) - modalW) / 2
 		modalY := (float32(winHeight) - modalH) / 2
 		modalRect := rl.NewRectangle(modalX, modalY, modalW, modalH)
-		if rl.IsKeyPressed(rl.KeyEscape) {
-			ic.Manager.CloseModal()
-			return
-		}
 
 		rl.DrawRectangleRounded(modalRect, 0.12, 12, rl.NewColor(18, 22, 34, 255))
 		rl.DrawRectangleRoundedLinesEx(modalRect, 0.12, 12, 3, rl.Gold)
@@ -209,9 +222,9 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 			return
 		}
 
-		imgSize := float32(140)
+		imgSize := float32(120)
 		imgX := modalX + (modalW-imgSize)/2
-		imgY := modalY + 35
+		imgY := modalY + 30
 		imgRect := rl.NewRectangle(imgX, imgY, imgSize, imgSize)
 
 		rl.DrawRectangleRounded(imgRect, 0.15, 8, rl.NewColor(30, 35, 50, 255))
@@ -223,43 +236,58 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 			rl.DrawTexturePro(tex, srcRec, imgRect, rl.Vector2{X: 0, Y: 0}, 0, rl.White)
 		}
 
-		nameW := float32(rl.MeasureText(selectedItem.Name, 20))
-		rl.DrawText(selectedItem.Name, int32(modalX+(modalW-nameW)/2), int32(imgY+imgSize+15), 20, rl.RayWhite)
+		nameW := float32(rl.MeasureText(selectedItem.Name, 18))
+		rl.DrawText(selectedItem.Name, int32(modalX+(modalW-nameW)/2), int32(imgY+imgSize+12), 18, rl.RayWhite)
 
 		countText := fmt.Sprintf("Quantity: %d", selectedItem.Count)
 		countW := float32(rl.MeasureText(countText, 14))
-		rl.DrawText(countText, int32(modalX+(modalW-countW)/2), int32(imgY+imgSize+42), 14, rl.Gold)
+		rl.DrawText(countText, int32(modalX+(modalW-countW)/2), int32(imgY+imgSize+36), 14, rl.Gold)
 
 		btnW := float32(110)
-		btnH := float32(40)
-		btnY := modalY + modalH - 60
+		btnH := float32(38)
+		btnY := modalY + modalH - 55
 
-		takeButton := ui.NewButton(modalX+30, btnY, btnW, btnH, "TAKE", 16)
-		takeButton.BgColor = rl.NewColor(0, 150, 80, 255)
-		takeButton.HoverBgColor = rl.NewColor(0, 200, 100, 255)
-		takeButton.ClickedColor = takeButton.HoverBgColor
-		takeButton.TextColor = rl.White
-		takeButton.BorderColor = rl.White
-		takeButton.ShadowColor = rl.Blank
-		takeButton.BorderWidth = 2
-		takeButton.BorderRadius = 0.25
-		takeButton.Render()
-		if takeButton.IsClicked {
-			ic.Manager.TakeItem(ic.Manager.SelectedItemIndex)
-		}
+		if ic.Manager.InCombatMode {
+			useButton := ui.NewButton(modalX+(modalW-140)/2, btnY, 140, btnH, "USE ITEM", 16)
+			useButton.BgColor = rl.NewColor(0, 150, 80, 255)
+			useButton.HoverBgColor = rl.NewColor(0, 200, 100, 255)
+			useButton.ClickedColor = useButton.HoverBgColor
+			useButton.TextColor = rl.White
+			useButton.BorderColor = rl.White
+			useButton.BorderWidth = 2
+			useButton.BorderRadius = 0.25
+			useButton.Render()
+			if useButton.IsClicked {
+				ic.Manager.UseItem(ic.Manager.SelectedItemIndex)
+			}
+		} else {
+			takeButton := ui.NewButton(modalX+30, btnY, btnW, btnH, "TAKE", 16)
+			takeButton.BgColor = rl.NewColor(0, 150, 80, 255)
+			takeButton.HoverBgColor = rl.NewColor(0, 200, 100, 255)
+			takeButton.ClickedColor = takeButton.HoverBgColor
+			takeButton.TextColor = rl.White
+			takeButton.BorderColor = rl.White
+			takeButton.ShadowColor = rl.Blank
+			takeButton.BorderWidth = 2
+			takeButton.BorderRadius = 0.25
+			takeButton.Render()
+			if takeButton.IsClicked {
+				ic.Manager.TakeItem(ic.Manager.SelectedItemIndex)
+			}
 
-		dropButton := ui.NewButton(modalX+modalW-30-btnW, btnY, btnW, btnH, "DROP", 16)
-		dropButton.BgColor = rl.NewColor(170, 40, 40, 255)
-		dropButton.HoverBgColor = rl.NewColor(220, 50, 50, 255)
-		dropButton.ClickedColor = dropButton.HoverBgColor
-		dropButton.TextColor = rl.White
-		dropButton.BorderColor = rl.White
-		dropButton.ShadowColor = rl.Blank
-		dropButton.BorderWidth = 2
-		dropButton.BorderRadius = 0.25
-		dropButton.Render()
-		if dropButton.IsClicked {
-			ic.Manager.DropItem(ic.Manager.SelectedItemIndex)
+			dropButton := ui.NewButton(modalX+modalW-30-btnW, btnY, btnW, btnH, "DROP", 16)
+			dropButton.BgColor = rl.NewColor(170, 40, 40, 255)
+			dropButton.HoverBgColor = rl.NewColor(220, 50, 50, 255)
+			dropButton.ClickedColor = dropButton.HoverBgColor
+			dropButton.TextColor = rl.White
+			dropButton.BorderColor = rl.White
+			dropButton.ShadowColor = rl.Blank
+			dropButton.BorderWidth = 2
+			dropButton.BorderRadius = 0.25
+			dropButton.Render()
+			if dropButton.IsClicked {
+				ic.Manager.DropItem(ic.Manager.SelectedItemIndex)
+			}
 		}
 	}
 }

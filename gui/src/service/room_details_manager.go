@@ -14,6 +14,7 @@ type RoomDetailsManager struct {
 	Items         []RoomItemDetail
 	NPCs          []NPCConfig
 	OnOpenActions func(npc NPCConfig)
+	OnAttackNPC   func(npc NPCConfig)
 }
 
 func NewRoomDetailsManager() *RoomDetailsManager {
@@ -43,6 +44,12 @@ func (rm *RoomDetailsManager) TakeItem(itemID string) {
 func (rm *RoomDetailsManager) OpenActions(npc NPCConfig) {
 	if rm.OnOpenActions != nil {
 		rm.OnOpenActions(npc)
+	}
+}
+
+func (rm *RoomDetailsManager) AttackNPC(npc NPCConfig) {
+	if rm.OnAttackNPC != nil {
+		rm.OnAttackNPC(npc)
 	}
 }
 

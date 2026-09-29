@@ -1,6 +1,7 @@
 package page
 
 import (
+	"fmt"
 	"strings"
 
 	"tap-gui/src/graphic/component"
@@ -22,6 +23,7 @@ type GamePage struct {
 	QuestMgr        *service.QuestManager
 	DialogMgr       *service.ActionManager
 	RoomDetailsMgr  *service.RoomDetailsManager
+	AttackMgr       *service.AttackManager
 	RoomViewMgr     *component.RoomViewManager
 	PlayerMgr       *component.PlayerManager
 	MapComp         *component.MapComponent
@@ -32,6 +34,7 @@ type GamePage struct {
 	QuestComp       *component.QuestComponent
 	DialogComp      *component.ActionComponent
 	RoomDetailsComp *component.RoomDetailsComponent
+	AttackComp      *component.AttackComponent
 	RoomViewComp    *component.RoomViewComponent
 	PlayerComp      *component.PlayerComponent
 	ActionBtnsComp  *component.ActionButtonsComponent
@@ -71,6 +74,7 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	chatMgr := service.NewChatManager()
 	dialogMgr := service.NewActionManager()
 	roomDetailsMgr := service.NewRoomDetailsManager()
+	attackMgr := service.NewAttackManager()
 	roomViewMgr := component.NewRoomViewManager()
 	playerMgr := component.NewPlayerManager()
 
@@ -91,6 +95,8 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	mainChar.SetPosition(startX, startY)
 	hpBar := ui.NewHPBar(30, 15, 180, 20)
 
+	attackComp := component.NewAttackComponent(attackMgr, pathResolver)
+
 	mapViewSize := float32(winWidth) / 3
 	if mapViewSize > float32(winHeight)/2 {
 		mapViewSize = float32(winHeight) / 2
@@ -106,6 +112,7 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 		QuestMgr:        questMgr,
 		DialogMgr:       dialogMgr,
 		RoomDetailsMgr:  roomDetailsMgr,
+		AttackMgr:       attackMgr,
 		RoomViewMgr:     roomViewMgr,
 		PlayerMgr:       playerMgr,
 		MapComp:         mapComp,
@@ -116,6 +123,7 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 		QuestComp:       questComp,
 		DialogComp:      dialogComp,
 		RoomDetailsComp: roomDetailsComp,
+		AttackComp:      attackComp,
 		RoomViewComp:    roomViewComp,
 		PlayerComp:      playerComp,
 		ActionBtnsComp:  actionBtnsComp,
@@ -133,14 +141,12 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	gp.RoomDetailsMgr.OnOpenActions = func(npc service.NPCConfig) {
 		gp.DialogMgr.OpenAction(npc)
 	}
-	gp.DialogMgr.HasQuest = func(npc service.NPCConfig) bool {
-		return gp.QuestMgr.HasQuest(npc.QuestID)
+	gp.RoomDetailsMgr.OnAttackNPC = func(npc service.NPCConfig) {
+		gp.AttackMgr.StartCombat(npc)
 	}
-	gp.DialogMgr.OnAcceptQuest = func(npc service.NPCConfig) bool {
-		return gp.QuestMgr.AcceptQuest(npc)
-	}
-	gp.DialogMgr.OnAttackNPC = func(npc service.NPCConfig) (service.NPCConfig, bool) {
-		updatedNPC, attacked := gp.MapManager.DamageNPC(npc.Key, 10)
+
+	gp.AttackMgr.OnMonsterDefeated = func(npc service.NPCConfig) {
+		updatedNPC, attacked := gp.MapManager.DamageNPC(npc.Key, 999)
 		if attacked {
 			for index := range gp.RoomDetailsMgr.NPCs {
 				if gp.RoomDetailsMgr.NPCs[index].Key == npc.Key {
@@ -149,7 +155,52 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 				}
 			}
 		}
-		return updatedNPC, attacked
+		gp.MainChar.SetPosition(gp.MainChar.Position.X, gp.MainChar.Position.Y)
+	}
+
+	gp.AttackMgr.OnPlayerRespawn = func() {
+		defX, defY := gp.MapManager.GetStartPosition()
+		gp.MainChar.IsDead = false
+		gp.MainChar.SetAction(character.ActionIdle)
+		gp.MainChar.SetPosition(defX, defY)
+		gp.Camera.Target = gp.MainChar.Position
+		gp.IsMovingToRoom = false
+		gp.RoomViewMgr.IsMoving = false
+		gp.HPBar.SetHP(50)
+	}
+
+	gp.AttackMgr.OnFlee = func() {
+		defX, defY := gp.MapManager.GetStartPosition()
+		gp.MainChar.SetPosition(defX, defY)
+	}
+
+	gp.AttackMgr.OnOpenInventory = func() {
+		if gp.InventoryMgr != nil {
+			gp.InventoryMgr.InCombatMode = true
+			gp.InventoryMgr.IsOpen = true
+		}
+	}
+
+	gp.InventoryMgr.OnUseItemInCombat = func(item service.InventoryItem) {
+		healAmount := 30
+		itemIDLower := strings.ToLower(item.ID)
+		if strings.Contains(itemIDLower, "gm") {
+			healAmount = 60
+		} else if strings.Contains(itemIDLower, "pm") {
+			healAmount = 30
+		}
+		gp.AttackMgr.PlayerHP += healAmount
+		if gp.AttackMgr.PlayerHP > gp.AttackMgr.PlayerMaxHP {
+			gp.AttackMgr.PlayerHP = gp.AttackMgr.PlayerMaxHP
+		}
+		gp.AttackMgr.AddLog(fmt.Sprintf("Used %s! Recovered %d HP.", item.Name, healAmount))
+	}
+
+	gp.DialogMgr.HasQuest = func(npc service.NPCConfig) bool {
+		return gp.QuestMgr.HasQuest(npc.QuestID)
+	}
+	gp.DialogMgr.OnAcceptQuest = func(npc service.NPCConfig) bool {
+		return gp.QuestMgr.AcceptQuest(npc)
 	}
 
 	gp.syncRoomContext()
@@ -176,6 +227,9 @@ func (gp *GamePage) Unload() {
 	if gp.DialogComp != nil {
 		gp.DialogComp.Unload()
 	}
+	if gp.AttackComp != nil {
+		gp.AttackComp.Unload()
+	}
 	gp.BasePage.Unload()
 }
 
@@ -200,13 +254,22 @@ func (gp *GamePage) hasOpenModal() bool {
 	return (gp.QuestMgr != nil && gp.QuestMgr.IsOpen) ||
 		(gp.InventoryMgr != nil && gp.InventoryMgr.IsOpen) ||
 		(gp.ChatMgr != nil && gp.ChatMgr.IsOpen) ||
-		(gp.DialogMgr != nil && gp.DialogMgr.IsOpen)
+		(gp.DialogMgr != nil && gp.DialogMgr.IsOpen) ||
+		(gp.AttackMgr != nil && gp.AttackMgr.IsOpen)
 }
 
 func (gp *GamePage) Update(dt float32) {
+	if gp.AttackMgr != nil {
+		gp.AttackMgr.Update(dt)
+	}
+
 	if gp.MainChar.IsDead {
 		gp.MainChar.AdvanceFrame(dt, false)
 		return
+	}
+
+	if gp.AttackMgr != nil && gp.AttackMgr.IsOpen {
+		gp.HPBar.SetHP(float32(gp.AttackMgr.PlayerHP))
 	}
 
 	if gp.hasOpenModal() {
@@ -424,9 +487,6 @@ func (gp *GamePage) Render() {
 
 	ui.SetButtonInputEnabled(true)
 
-	if gp.InventoryComp != nil {
-		gp.InventoryComp.Render(gp.WindowWidth, gp.WindowHeight)
-	}
 	if gp.ChatComp != nil {
 		gp.ChatComp.Render(gp.WindowWidth, gp.WindowHeight)
 	}
@@ -435,5 +495,11 @@ func (gp *GamePage) Render() {
 	}
 	if gp.DialogComp != nil {
 		gp.DialogComp.Render(gp.WindowWidth, gp.WindowHeight)
+	}
+	if gp.AttackComp != nil {
+		gp.AttackComp.Render(gp.WindowWidth, gp.WindowHeight)
+	}
+	if gp.InventoryComp != nil {
+		gp.InventoryComp.Render(gp.WindowWidth, gp.WindowHeight)
 	}
 }
