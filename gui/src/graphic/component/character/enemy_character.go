@@ -1,4 +1,4 @@
-package component
+package character
 
 import (
 	"tap-gui/src/utils"
@@ -12,7 +12,6 @@ func NewEnemyCharacter(resolver *utils.PathResolver, relativeDir string, scale f
 	enemy := &EnemyCharacter{
 		NpcCharacter: NewNpcCharacter("Enemy", resolver, relativeDir, scale + 0.06),
 	}
-	enemy.SetPositionOffset(-50, -50)
 	actions := []string{"Front_Idle"}
 	for _, act := range actions {
 		if err := enemy.LoadAnim(act); err != nil {

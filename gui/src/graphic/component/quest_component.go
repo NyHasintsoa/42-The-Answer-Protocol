@@ -2,6 +2,7 @@ package component
 
 import (
 	"fmt"
+	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/service"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -44,7 +45,7 @@ func (qc *QuestComponent) Render(winWidth, winHeight int32) {
 
 	rl.DrawText("NPC QUEST LOG", int32(modalX+24), int32(modalY+16), 20, rl.NewColor(0, 200, 255, 255))
 
-	closeButton := NewButton(modalX+modalW-40, modalY+12, 30, 30, "X", 18)
+	closeButton := ui.NewButton(modalX+modalW-40, modalY+12, 30, 30, "X", 18)
 	closeButton.BgColor = rl.NewColor(180, 50, 50, 255)
 	closeButton.HoverBgColor = rl.Red
 	closeButton.ClickedColor = closeButton.HoverBgColor

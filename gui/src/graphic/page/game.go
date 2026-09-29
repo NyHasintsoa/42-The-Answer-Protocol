@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"tap-gui/src/graphic/component"
+	"tap-gui/src/graphic/component/character"
+	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/model"
 	"tap-gui/src/model/enums"
 	"tap-gui/src/service"
@@ -23,8 +25,8 @@ type GamePage struct {
 	RoomViewMgr     *component.RoomViewManager
 	PlayerMgr       *component.PlayerManager
 	MapComp         *component.MapComponent
-	MainChar        *component.MainCharacter
-	HPBar           *component.HPBar
+	MainChar        *character.MainCharacter
+	HPBar           *ui.HPBar
 	InventoryComp   *component.InventoryComponent
 	ChatComp        *component.ChatComponent
 	QuestComp       *component.QuestComponent
@@ -50,16 +52,16 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	pathResolver := utils.NewPathResolverWithResourceManager("assets", resourceManager)
 	mapManager := service.NewMapManager(pathResolver, "", service.EntityFactory{
 		NewMonster: func(scale float32, resolver *utils.PathResolver, assetPath, name string) service.Monster {
-			return component.NewMonster(scale, resolver, assetPath, name)
+			return character.NewMonster(scale, resolver, assetPath, name)
 		},
 		NewNPC: func(kind, relativeDir string, scale float32) (service.INpc, error) {
 			switch kind {
 			case "guard":
-				return component.NewGuardCharacter(pathResolver, relativeDir, scale)
+				return character.NewGuardCharacter(pathResolver, relativeDir, scale)
 			case "seller":
-				return component.NewSellerCharacter(pathResolver, relativeDir, scale)
+				return character.NewSellerCharacter(pathResolver, relativeDir, scale)
 			default:
-				return component.NewPersonCharacter(pathResolver, relativeDir, scale)
+				return character.NewPersonCharacter(pathResolver, relativeDir, scale)
 			}
 		},
 	})
@@ -85,9 +87,9 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 
 	startX, startY := mapManager.GetStartPosition()
 
-	mainChar := component.NewMainCharacter(service.CharScale, pathResolver, pathResolver.Resolve("characters", "main_character"))
+	mainChar := character.NewMainCharacter(service.CharScale, pathResolver, pathResolver.Resolve("characters", "main_character"))
 	mainChar.SetPosition(startX, startY)
-	hpBar := component.NewHPBar(30, 15, 180, 20)
+	hpBar := ui.NewHPBar(30, 15, 180, 20)
 
 	mapViewSize := float32(winWidth) / 3
 	if mapViewSize > float32(winHeight)/2 {
@@ -208,19 +210,19 @@ func (gp *GamePage) Update(dt float32) {
 	}
 
 	if gp.hasOpenModal() {
-		gp.MainChar.SetAction(component.ActionIdle)
+		gp.MainChar.SetAction(character.ActionIdle)
 		return
 	}
 
-	if gp.MainChar.Action == component.ActionAttacking || gp.MainChar.Action == component.ActionHurt {
+	if gp.MainChar.Action == character.ActionAttacking || gp.MainChar.Action == character.ActionHurt {
 		if gp.MainChar.AdvanceFrame(dt, false) {
-			gp.MainChar.SetAction(component.ActionIdle)
+			gp.MainChar.SetAction(character.ActionIdle)
 		}
 		return
 	}
 
 	if rl.IsKeyPressed(rl.KeySpace) {
-		gp.MainChar.SetAction(component.ActionAttacking)
+		gp.MainChar.SetAction(character.ActionAttacking)
 		return
 	}
 
@@ -232,25 +234,25 @@ func (gp *GamePage) Update(dt float32) {
 			gp.MainChar.Position = gp.RoomTarget
 			gp.IsMovingToRoom = false
 			gp.RoomViewMgr.IsMoving = false
-			gp.MainChar.SetAction(component.ActionIdle)
+			gp.MainChar.SetAction(character.ActionIdle)
 		} else {
 			moveX := delta.X / distance
 			moveY := delta.Y / distance
 			gp.MainChar.Position.X += moveX * step
 			gp.MainChar.Position.Y += moveY * step
 			if moveX < 0 {
-				gp.MainChar.Direction = component.DirLeft
+				gp.MainChar.Direction = character.DirLeft
 			} else if moveX > 0 {
-				gp.MainChar.Direction = component.DirRight
+				gp.MainChar.Direction = character.DirRight
 			} else if moveY < 0 {
-				gp.MainChar.Direction = component.DirBack
+				gp.MainChar.Direction = character.DirBack
 			} else {
-				gp.MainChar.Direction = component.DirFront
+				gp.MainChar.Direction = character.DirFront
 			}
-			gp.MainChar.SetAction(component.ActionWalking)
+			gp.MainChar.SetAction(character.ActionWalking)
 		}
 	} else {
-		gp.MainChar.SetAction(component.ActionIdle)
+		gp.MainChar.SetAction(character.ActionIdle)
 	}
 
 	previousRoom := gp.MapManager.ActiveRoom
@@ -282,17 +284,17 @@ func (gp *GamePage) moveToRoom(direction component.ExitDirection) {
 	)
 	switch direction {
 	case component.DirNorth:
-		gp.MainChar.Direction = component.DirBack
+		gp.MainChar.Direction = character.DirBack
 	case component.DirSouth:
-		gp.MainChar.Direction = component.DirFront
+		gp.MainChar.Direction = character.DirFront
 	case component.DirEast:
-		gp.MainChar.Direction = component.DirRight
+		gp.MainChar.Direction = character.DirRight
 	case component.DirWest:
-		gp.MainChar.Direction = component.DirLeft
+		gp.MainChar.Direction = character.DirLeft
 	}
 	gp.IsMovingToRoom = true
 	gp.RoomViewMgr.IsMoving = true
-	gp.MainChar.SetAction(component.ActionWalking)
+	gp.MainChar.SetAction(character.ActionWalking)
 	gp.MainChar.FrameIndex = 0
 	gp.MainChar.FrameTimer = 0
 }
@@ -352,7 +354,7 @@ func (gp *GamePage) Render() {
 	dt := rl.GetFrameTime()
 	gp.Update(dt)
 	modalOpen := gp.hasOpenModal()
-	component.SetButtonInputEnabled(!modalOpen)
+	ui.SetButtonInputEnabled(!modalOpen)
 
 	rl.ClearBackground(utils.ThemeBackground)
 
@@ -420,7 +422,7 @@ func (gp *GamePage) Render() {
 		gp.LogViewComp.Render(logRect)
 	}
 
-	component.SetButtonInputEnabled(true)
+	ui.SetButtonInputEnabled(true)
 
 	if gp.InventoryComp != nil {
 		gp.InventoryComp.Render(gp.WindowWidth, gp.WindowHeight)

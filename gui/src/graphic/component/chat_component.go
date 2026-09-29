@@ -3,6 +3,7 @@ package component
 import (
 	"strings"
 
+	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/service"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -10,7 +11,7 @@ import (
 
 type ChatComponent struct {
 	Manager        *service.ChatManager
-	InputComp      *InputComponent
+	InputComp      *ui.InputComponent
 	ScrollY        float32
 	scrollToBottom bool
 }
@@ -18,32 +19,10 @@ type ChatComponent struct {
 func NewChatComponent(mgr *service.ChatManager) *ChatComponent {
 	return &ChatComponent{
 		Manager:        mgr,
-		InputComp:      NewInputComponent(0, 0, 0, 0, "Type a message...", 140),
+		InputComp:      ui.NewInputComponent(0, 0, 0, 0, "Type a message...", 140),
 		ScrollY:        0,
 		scrollToBottom: true,
 	}
-}
-
-func wrapText(text string, fontSize int32, maxWidth float32) []string {
-	words := strings.Fields(text)
-	if len(words) == 0 {
-		return []string{""}
-	}
-
-	var lines []string
-	currentLine := words[0]
-
-	for _, word := range words[1:] {
-		testLine := currentLine + " " + word
-		if float32(rl.MeasureText(testLine, fontSize)) <= maxWidth {
-			currentLine = testLine
-		} else {
-			lines = append(lines, currentLine)
-			currentLine = word
-		}
-	}
-	lines = append(lines, currentLine)
-	return lines
 }
 
 func (cc *ChatComponent) Render(winWidth, winHeight int32) {
@@ -83,7 +62,7 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		tabW := float32(rl.MeasureText(tabText, 16) + 30)
 
 		isActive := cc.Manager.ActiveTab == tab
-		tabButton := NewButton(tabStartX, tabY, tabW, 32, tabText, 16)
+		tabButton := ui.NewButton(tabStartX, tabY, tabW, 32, tabText, 16)
 		tabButton.BgColor = rl.NewColor(30, 38, 55, 255)
 		tabButton.HoverBgColor = rl.NewColor(45, 58, 85, 255)
 		tabButton.ClickedColor = tabButton.HoverBgColor
@@ -108,7 +87,7 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		tabStartX += tabW + 12
 	}
 
-	closeButton := NewButton(modalX+modalW-42, modalY+14, 30, 30, "X", 18)
+	closeButton := ui.NewButton(modalX+modalW-42, modalY+14, 30, 30, "X", 18)
 	closeButton.BgColor = rl.NewColor(180, 50, 50, 255)
 	closeButton.HoverBgColor = rl.Red
 	closeButton.ClickedColor = closeButton.HoverBgColor
@@ -130,30 +109,48 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 	fontSize := int32(14)
 	paddingX := float32(18)
 	paddingY := float32(12)
-	lineHeight := float32(18)
-	maxTextWidth := modalW - 280
+	maxTextWidth := int32(modalW - 280)
 
 	var totalContentH float32 = 20
 	type messageLayout struct {
-		lines   []string
 		bubbleW float32
 		bubbleH float32
 	}
 	layouts := make([]messageLayout, len(messages))
 
 	for i, msg := range messages {
-		lines := wrapText(msg.Text, fontSize, maxTextWidth)
+		textHeight := float32(ui.DrawTextWrapped(msg.Text, 0, 0, maxTextWidth, fontSize, rl.Blank))
+		bH := textHeight + (paddingY * 2)
+
 		var maxLineW float32 = 0
-		for _, l := range lines {
-			w := float32(rl.MeasureText(l, fontSize))
-			if w > maxLineW {
-				maxLineW = w
+		for paragraph := range strings.SplitSeq(msg.Text, "\n") {
+			line := ""
+			for word := range strings.FieldsSeq(paragraph) {
+				candidate := word
+				if line != "" {
+					candidate = line + " " + word
+				}
+
+				if line != "" && rl.MeasureText(candidate, fontSize) > maxTextWidth {
+					w := float32(rl.MeasureText(line, fontSize))
+					if w > maxLineW {
+						maxLineW = w
+					}
+					line = word
+					continue
+				}
+				line = candidate
+			}
+			if line != "" {
+				w := float32(rl.MeasureText(line, fontSize))
+				if w > maxLineW {
+					maxLineW = w
+				}
 			}
 		}
 		bW := maxLineW + (paddingX * 2)
-		bH := float32(len(lines))*lineHeight + (paddingY * 2)
 
-		layouts[i] = messageLayout{lines: lines, bubbleW: bW, bubbleH: bH}
+		layouts[i] = messageLayout{bubbleW: bW, bubbleH: bH}
 		totalContentH += bH + 20
 	}
 
@@ -190,7 +187,6 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		layout := layouts[i]
 		bubbleW := layout.bubbleW
 		bubbleH := layout.bubbleH
-		lines := layout.lines
 
 		if msg.IsSelf {
 			avatarX := modalX + modalW - 40
@@ -212,10 +208,7 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 				rl.NewColor(0, 110, 200, 255),
 			)
 
-			for idx, line := range lines {
-				lineY := bubbleY + paddingY + float32(idx)*lineHeight
-				rl.DrawText(line, int32(bubbleX+paddingX), int32(lineY), fontSize, rl.White)
-			}
+			ui.DrawTextWrapped(msg.Text, int32(bubbleX+paddingX), int32(bubbleY+paddingY), maxTextWidth, fontSize, rl.White)
 
 			statusW := float32(rl.MeasureText(msg.Status, 11))
 			rl.DrawText(msg.Status, int32(bubbleX-statusW-12), int32(bubbleY+paddingY), 11, rl.NewColor(130, 150, 180, 255))
@@ -244,10 +237,7 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 				rl.NewColor(32, 42, 62, 255),
 			)
 
-			for idx, line := range lines {
-				lineY := bubbleY + paddingY + float32(idx)*lineHeight
-				rl.DrawText(line, int32(bubbleX+paddingX), int32(lineY), fontSize, rl.RayWhite)
-			}
+			ui.DrawTextWrapped(msg.Text, int32(bubbleX+paddingX), int32(bubbleY+paddingY), maxTextWidth, fontSize, rl.RayWhite)
 
 			rl.DrawText(msg.Status, int32(bubbleX+bubbleW+12), int32(bubbleY+paddingY), 11, rl.NewColor(130, 150, 180, 255))
 		}

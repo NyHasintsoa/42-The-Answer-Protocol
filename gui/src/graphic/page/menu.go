@@ -1,7 +1,7 @@
 package page
 
 import (
-	"tap-gui/src/graphic/component"
+	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/model/enums"
 	"tap-gui/src/utils"
 
@@ -11,7 +11,7 @@ import (
 type MenuPage struct {
 	BasePage
 	SelectedIndex int
-	Buttons       []*component.Button
+	Buttons       []*ui.Button
 	WindowWidth   int32
 	WindowHeight  int32
 }
@@ -28,11 +28,11 @@ func NewMenuPage(winWidth, winHeight int32) *MenuPage {
 	btnHeight := float32(50)
 	btnX := float32(winWidth-int32(btnWidth)) / 2
 
-	mp.Buttons = []*component.Button{
-		component.NewButton(btnX, 500, btnWidth, btnHeight, "Play Game", 24),
-		component.NewButton(btnX, 570, btnWidth, btnHeight, "How To Play", 24),
-		component.NewButton(btnX, 640, btnWidth, btnHeight, "High Scores", 24),
-		component.NewButton(btnX, 710, btnWidth, btnHeight, "Quit Game", 24),
+	mp.Buttons = []*ui.Button{
+		ui.NewButton(btnX, 500, btnWidth, btnHeight, "Play Game", 24),
+		ui.NewButton(btnX, 570, btnWidth, btnHeight, "How To Play", 24),
+		ui.NewButton(btnX, 640, btnWidth, btnHeight, "High Scores", 24),
+		ui.NewButton(btnX, 710, btnWidth, btnHeight, "Quit Game", 24),
 	}
 
 	return mp

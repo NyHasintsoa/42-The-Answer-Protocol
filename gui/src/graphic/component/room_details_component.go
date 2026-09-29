@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"tap-gui/src/graphic/component/character"
+	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/service"
 	"tap-gui/src/utils"
 
@@ -14,7 +16,7 @@ type RoomDetailsComponent struct {
 	Manager      *service.RoomDetailsManager
 	PathResolver *utils.PathResolver
 	ItemComp     *ItemComponent
-	NPCPreviews  map[string]INpc
+	NPCPreviews  map[string]character.INpc
 }
 
 func NewRoomDetailsComponent(mgr *service.RoomDetailsManager, pathResolver *utils.PathResolver) *RoomDetailsComponent {
@@ -22,7 +24,7 @@ func NewRoomDetailsComponent(mgr *service.RoomDetailsManager, pathResolver *util
 		Manager:      mgr,
 		PathResolver: pathResolver,
 		ItemComp:     NewItemComponent(pathResolver),
-		NPCPreviews:  make(map[string]INpc),
+		NPCPreviews:  make(map[string]character.INpc),
 	}
 }
 
@@ -37,12 +39,12 @@ func (rdc *RoomDetailsComponent) Unload() {
 	}
 }
 
-func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc service.NPCConfig, x float32, y float32) INpc {
+func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc service.NPCConfig) character.INpc {
 	if preview, exists := rdc.NPCPreviews[npc.Key]; exists {
 		return preview
 	}
 
-	var npcComp INpc
+	var npcComp character.INpc
 	var err error
 	scale := float32(0.15)
 
@@ -53,19 +55,24 @@ func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc service.NPCConfig, x 
 
 	switch imageType {
 	case "boss":
-		npcComp, err = NewEnemyCharacter(rdc.PathResolver, "characters/boss", scale)
+		npcComp, err = character.NewEnemyCharacter(rdc.PathResolver, "characters/boss", scale)
+		npcComp.SetPositionOffset(-50, -50)
 	case "gobelin", "goblin":
-		npcComp, err = NewEnemyCharacter(rdc.PathResolver, "characters/gobelin", scale)
+		npcComp, err = character.NewEnemyCharacter(rdc.PathResolver, "characters/gobelin", scale)
+		npcComp.SetPositionOffset(-50, -50)
 	case "guard":
-		npcComp, err = NewGuardCharacter(rdc.PathResolver, "npc/guard", scale)
+		npcComp, err = character.NewGuardCharacter(rdc.PathResolver, "npc/guard", scale)
+		npcComp.SetPositionOffset(-40, -50)
 	case "merchant", "seller":
-		npcComp, err = NewSellerCharacter(rdc.PathResolver, "npc/merchant", scale)
+		npcComp, err = character.NewSellerCharacter(rdc.PathResolver, "npc/merchant", scale)
+		npcComp.SetPositionOffset(-10, -20)
 	default:
 		relDir := "npc/" + imageType
-		npcComp, err = NewPersonCharacter(rdc.PathResolver, relDir, scale)
+		npcComp, err = character.NewPersonCharacter(rdc.PathResolver, relDir, scale)
 		if err != nil {
-			npcComp, err = NewPersonCharacter(rdc.PathResolver, "npc/person", scale)
+			npcComp, err = character.NewPersonCharacter(rdc.PathResolver, "npc/person", scale)
 		}
+		npcComp.SetPositionOffset(-10, -30)
 	}
 
 	if err != nil {
@@ -129,7 +136,7 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			btnX := leftColX + (colW-btnW)/2
 			btnY := itemY + 40
 
-			takeButton := NewButton(btnX, btnY, btnW, btnH, "TAKE", 12)
+			takeButton := ui.NewButton(btnX, btnY, btnW, btnH, "TAKE", 12)
 			takeButton.BgColor = rl.NewColor(24, 160, 178, 255)
 			takeButton.HoverBgColor = rl.NewColor(18, 130, 146, 255)
 			takeButton.ClickedColor = takeButton.HoverBgColor
@@ -163,7 +170,7 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 	} else {
 		npcY := colY + 45
 		for _, npc := range rdc.Manager.NPCs {
-			npcComp := rdc.getOrCreateNPCPreview(npc, rightColX, npcY)
+			npcComp := rdc.getOrCreateNPCPreview(npc)
 			previewX := rightColX + 12
 			previewY := npcY + 42
 			infoX := rightColX + 100
@@ -182,7 +189,7 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			btnX := infoX
 			btnY := npcY + 82
 
-			actionsButton := NewButton(btnX, btnY, btnW, btnH, "ACTIONS", 12)
+			actionsButton := ui.NewButton(btnX, btnY, btnW, btnH, "ACTIONS", 12)
 			actionsButton.BgColor = rl.NewColor(24, 160, 178, 255)
 			actionsButton.HoverBgColor = rl.NewColor(18, 130, 146, 255)
 			actionsButton.ClickedColor = actionsButton.HoverBgColor

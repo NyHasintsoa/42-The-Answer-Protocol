@@ -2,6 +2,7 @@ package component
 
 import (
 	"fmt"
+	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/service"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -11,7 +12,7 @@ type ActionButtonsComponent struct {
 	InventoryMgr *service.InventoryManager
 	ChatMgr      *service.ChatManager
 	QuestMgr     *service.QuestManager
-	CommandInput *InputComponent
+	CommandInput *ui.InputComponent
 }
 
 func NewActionButtonsComponent(inv *service.InventoryManager, chat *service.ChatManager, quest *service.QuestManager) *ActionButtonsComponent {
@@ -19,7 +20,7 @@ func NewActionButtonsComponent(inv *service.InventoryManager, chat *service.Chat
 		InventoryMgr: inv,
 		ChatMgr:      chat,
 		QuestMgr:     quest,
-		CommandInput: NewInputComponent(0, 0, 100, 32, "Command Here ...", 100),
+		CommandInput: ui.NewInputComponent(0, 0, 100, 32, "Command Here ...", 100),
 	}
 }
 
@@ -52,7 +53,7 @@ func (abc *ActionButtonsComponent) Render(rect rl.Rectangle) {
 		for c, btn := range row {
 			bx := rect.X + float32(c)*(colWidth+6)
 			by := rect.Y + float32(r)*(rowHeight+6)
-			button := NewButton(bx, by, colWidth, rowHeight, btn.Label, 11)
+			button := ui.NewButton(bx, by, colWidth, rowHeight, btn.Label, 11)
 			button.BorderWidth = 2
 			button.BorderRadius = 0.15
 			button.TextColor = rl.White

@@ -18,15 +18,9 @@ func printCliError(category string, details interface{}, color string) {
 	fmt.Fprintf(os.Stderr, "%s[%s]%s %v\n", color, category, ColorReset, details)
 }
 
-func run(args []string) error {
-	configFile := "config.json"
-	if len(args) > 0 {
-		configFile = args[0]
-	}
-	_ = configFile
-
+func run() error {
 	config := model.GameConfig{}
-	window := graphic.NewMainWindow(1500, 1000, config, "Pac-Man")
+	window := graphic.NewMainWindow(1500, 1000, config, "The Answer Protocol - 42")
 	defer window.Close()
 
 	window.AddEvent()
@@ -36,7 +30,7 @@ func run(args []string) error {
 }
 
 func main() {
-	if err := run(os.Args[1:]); err != nil {
+	if err := run(); err != nil {
 		printCliError("Unexpected Fatal Exception", err, ColorRed)
 		os.Exit(1)
 	}

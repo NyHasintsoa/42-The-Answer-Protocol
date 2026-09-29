@@ -1,4 +1,4 @@
-package component
+package ui
 
 import (
 	"tap-gui/src/utils"

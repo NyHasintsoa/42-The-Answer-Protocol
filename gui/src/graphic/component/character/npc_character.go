@@ -1,4 +1,4 @@
-package component
+package character
 
 import (
 	"fmt"
@@ -18,6 +18,7 @@ type INpc interface {
 	UnloadAnimations()
 	SetAction(action string)
 	SetPosition(x, y float32)
+	SetPositionOffset(x, y float32)
 }
 
 type NpcCharacter struct {

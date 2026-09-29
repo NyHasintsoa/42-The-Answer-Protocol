@@ -1,6 +1,7 @@
 package component
 
 import (
+	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -38,7 +39,7 @@ func (lvc *LogViewComponent) Render(rect rl.Rectangle) {
 		if logY > rect.Y+rect.Height-25 {
 			break
 		}
-		drawTextWrapped(
+		ui.DrawTextWrapped(
 			logMsg,
 			int32(rect.X+14),
 			int32(logY),

@@ -1,4 +1,4 @@
-package component
+package character
 
 import (
 	"tap-gui/src/utils"

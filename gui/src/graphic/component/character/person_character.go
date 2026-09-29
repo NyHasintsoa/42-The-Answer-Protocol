@@ -1,4 +1,4 @@
-package component
+package character
 
 import (
 	"tap-gui/src/utils"
@@ -12,7 +12,6 @@ func NewPersonCharacter(resolver *utils.PathResolver, relativeDir string, scale 
 	person := &PersonCharacter{
 		NpcCharacter: NewNpcCharacter("Person", resolver, relativeDir, scale),
 	}
-	person.SetPositionOffset(-10, -30)
 	actions := []string{"Communication", "Idle", "Greeting", "Idle_Blinking"}
 	for _, act := range actions {
 		if err := person.LoadAnim(act); err != nil {

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"tap-gui/src/graphic/component/character"
+	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/service"
 	"tap-gui/src/utils"
 
@@ -13,7 +15,7 @@ import (
 type ActionComponent struct {
 	Manager      *service.ActionManager
 	PathResolver *utils.PathResolver
-	NPCPreviews  map[string]INpc
+	NPCPreviews  map[string]character.INpc
 	LawnTexture  rl.Texture2D
 }
 
@@ -21,7 +23,7 @@ func NewActionComponent(mgr *service.ActionManager, pathResolver *utils.PathReso
 	component := &ActionComponent{
 		Manager:      mgr,
 		PathResolver: pathResolver,
-		NPCPreviews:  make(map[string]INpc),
+		NPCPreviews:  make(map[string]character.INpc),
 	}
 	if pathResolver != nil && pathResolver.ResourceManager != nil {
 		component.LawnTexture = pathResolver.ResourceManager.Load(pathResolver.Resolve("ground", "lawn.png"))
@@ -37,12 +39,12 @@ func (dc *ActionComponent) Unload() {
 	}
 }
 
-func (dc *ActionComponent) getOrCreateNPCPreview(npc service.NPCConfig) INpc {
+func (dc *ActionComponent) getOrCreateNPCPreview(npc service.NPCConfig) character.INpc {
 	if preview, exists := dc.NPCPreviews[npc.Key]; exists {
 		return preview
 	}
 
-	var npcComp INpc
+	var npcComp character.INpc
 	var err error
 	scale := float32(0.25)
 
@@ -53,19 +55,24 @@ func (dc *ActionComponent) getOrCreateNPCPreview(npc service.NPCConfig) INpc {
 
 	switch imageType {
 	case "boss":
-		npcComp, err = NewEnemyCharacter(dc.PathResolver, "characters/boss", scale)
+		npcComp, err = character.NewEnemyCharacter(dc.PathResolver, "characters/boss", scale)
+		npcComp.SetPositionOffset(-35, 40)
 	case "gobelin", "goblin":
-		npcComp, err = NewEnemyCharacter(dc.PathResolver, "characters/gobelin", scale)
+		npcComp, err = character.NewEnemyCharacter(dc.PathResolver, "characters/gobelin", scale)
+		npcComp.SetPositionOffset(-35, 40)
 	case "guard":
-		npcComp, err = NewGuardCharacter(dc.PathResolver, "npc/guard", scale)
+		npcComp, err = character.NewGuardCharacter(dc.PathResolver, "npc/guard", scale)
+		npcComp.SetPositionOffset(-45, -10)
 	case "merchant", "seller":
-		npcComp, err = NewSellerCharacter(dc.PathResolver, "npc/merchant", scale)
+		npcComp, err = character.NewSellerCharacter(dc.PathResolver, "npc/merchant", scale)
+		npcComp.SetPositionOffset(10, 40)
 	default:
 		relDir := "npc/" + imageType
-		npcComp, err = NewPersonCharacter(dc.PathResolver, relDir, scale)
+		npcComp, err = character.NewPersonCharacter(dc.PathResolver, relDir, scale)
 		if err != nil {
-			npcComp, err = NewPersonCharacter(dc.PathResolver, "npc/person", scale)
+			npcComp, err = character.NewPersonCharacter(dc.PathResolver, "npc/person", scale)
 		}
+		npcComp.SetPositionOffset(10, 40)
 	}
 
 	if err != nil {
@@ -115,7 +122,7 @@ func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 	closeBtnX := modalX + modalWidth - closeBtnW - padding
 	closeBtnY := modalY + 10
 
-	closeBtn := NewButton(closeBtnX, closeBtnY, closeBtnW, closeBtnH, " X ", 12)
+	closeBtn := ui.NewButton(closeBtnX, closeBtnY, closeBtnW, closeBtnH, " X ", 12)
 	closeBtn.BgColor = rl.NewColor(160, 20, 20, 255)
 	closeBtn.HoverBgColor = rl.NewColor(200, 30, 30, 255)
 	closeBtn.TextColor = rl.White
@@ -144,17 +151,13 @@ func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 	portraitY := contentY + (padding * 0.8)
 
 	portraitRect := rl.NewRectangle(portraitX, portraitY, portraitW, portraitH)
-	if dc.LawnTexture.ID > 0 {
-		srcRect := rl.NewRectangle(0, 0, float32(dc.LawnTexture.Width), float32(dc.LawnTexture.Height))
-		rl.DrawTexturePro(dc.LawnTexture, srcRect, portraitRect, rl.Vector2Zero(), 0, rl.White)
-	} else {
-		rl.DrawRectangleRounded(portraitRect, 0.03, 6, boxBg)
-	}
+	srcRect := rl.NewRectangle(0, 0, float32(dc.LawnTexture.Width), float32(dc.LawnTexture.Height))
+	rl.DrawTexturePro(dc.LawnTexture, srcRect, portraitRect, rl.Vector2Zero(), 0, rl.White)
 	rl.DrawRectangleRoundedLinesEx(portraitRect, 0.03, 6, 1, cyanBorder)
 
 	previewChar := dc.getOrCreateNPCPreview(dc.Manager.NPC)
 	if previewChar != nil {
-		previewChar.SetPosition(portraitX+portraitW/2, portraitY+portraitH-30)
+		previewChar.SetPosition(portraitX, portraitY)
 		previewChar.SetAction("Communication")
 		previewChar.Update(dt)
 		previewChar.Render()
@@ -172,10 +175,7 @@ func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 	rl.DrawRectangleRounded(actionRect, 0.03, 6, boxBg)
 	rl.DrawRectangleRoundedLinesEx(actionRect, 0.03, 6, 1, cyanBorder)
 
-	rl.DrawText(strings.ToUpper(dc.Manager.NPC.Name), int32(actionX+14), int32(actionY+14), 14, cyanBorder)
-	rl.DrawLineEx(rl.NewVector2(actionX+14, actionY+32), rl.NewVector2(actionX+actionW-14, actionY+32), 1, rl.NewColor(0, 100, 120, 255))
-
-	drawWrappedText(dc.Manager.CurrentText, int32(actionX+14), int32(actionY+45), int32(actionW-28), 13, utils.ThemeText)
+	ui.DrawTextWrapped(dc.Manager.CurrentText, int32(actionX+15), int32(actionY+15), int32(actionW-28), 13, utils.ThemeText)
 
 	respHeaderY := contentY + contentH + (padding * 0.8)
 	rl.DrawText("YOUR RESPONSES / ACTIONS:", int32(modalX+padding), int32(respHeaderY), 14, cyanBorder)
@@ -223,7 +223,6 @@ func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 
 		numStr := fmt.Sprintf("%d", resp.Index)
 		rl.DrawText(numStr, int32(numBoxRect.X+(numBoxW-float32(rl.MeasureText(numStr, 14)))/2), int32(numBoxRect.Y+(numBoxH-14)/2), 14, cyanBorder)
-
 		rl.DrawText(resp.Text, int32(modalX+padding+numBoxW+16), int32(itemY+(respH-13)/2), 13, utils.ThemeText)
 
 		if resp.ActionTag != "" {
@@ -243,31 +242,5 @@ func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 				fmt.Printf("[DIALOGUE] Selected option %d: %s\n", resp.Index, resp.Text)
 			}
 		}
-	}
-}
-
-func drawWrappedText(text string, x, y, maxWidth, fontSize int32, color rl.Color) {
-	words := strings.Fields(text)
-	var currentLine string
-	lineY := y
-
-	for _, word := range words {
-		testLine := currentLine
-		if testLine != "" {
-			testLine += " "
-		}
-		testLine += word
-
-		if rl.MeasureText(testLine, fontSize) > maxWidth {
-			rl.DrawText(currentLine, x, lineY, fontSize, color)
-			currentLine = word
-			lineY += fontSize + 6
-		} else {
-			currentLine = testLine
-		}
-	}
-
-	if currentLine != "" {
-		rl.DrawText(currentLine, x, lineY, fontSize, color)
 	}
 }

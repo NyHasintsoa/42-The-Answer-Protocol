@@ -22,7 +22,7 @@ const (
 	ItemMedals         InventoryItemType = "medals"
 	ItemPotionAttackGM InventoryItemType = "potion_attack_GM"
 	ItemPotionAttackPM InventoryItemType = "potion_attack_PM"
-	ItemPotionHealthGM InventoryItemType = "potion_healt_GM"
+	ItemPotionHealthGM InventoryItemType = "potion_health_GM"
 	ItemPotionHealthPM InventoryItemType = "potion_health_PM"
 	ItemSword          InventoryItemType = "sword"
 )
@@ -44,7 +44,7 @@ func (e InventoryItemType) Filename() string {
 	case ItemPotionAttackPM:
 		return "potion_attack_PM.png"
 	case ItemPotionHealthGM:
-		return "potion_healt_GM.png"
+		return "potion_health_GM.png"
 	case ItemPotionHealthPM:
 		return "potion_health_PM.png"
 	case ItemSword:

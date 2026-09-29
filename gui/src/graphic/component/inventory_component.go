@@ -3,6 +3,7 @@ package component
 import (
 	"fmt"
 
+	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/model/enums"
 	"tap-gui/src/service"
 	"tap-gui/src/utils"
@@ -80,7 +81,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	titleText := fmt.Sprintf("INVENTORY (%d / %d)", ic.Manager.CurrentPage+1, ic.Manager.GetTotalPages())
 	rl.DrawText(titleText, int32(panelX+24), int32(panelY+17), 22, rl.Gold)
 
-	closeButton := NewButton(panelX+panelW-42, panelY+12, 30, 30, "X", 18)
+	closeButton := ui.NewButton(panelX+panelW-42, panelY+12, 30, 30, "X", 18)
 	closeButton.BgColor = rl.NewColor(180, 50, 50, 255)
 	closeButton.HoverBgColor = rl.Red
 	closeButton.ClickedColor = closeButton.HoverBgColor
@@ -147,7 +148,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		}
 	}
 
-	prevButton := NewButton(panelX+14, panelY+panelH/2-25, 36, 50, "<", 28)
+	prevButton := ui.NewButton(panelX+14, panelY+panelH/2-25, 36, 50, "<", 28)
 	prevButton.BgColor = rl.NewColor(0, 100, 180, 255)
 	prevButton.HoverBgColor = rl.NewColor(0, 150, 220, 255)
 	prevButton.ClickedColor = prevButton.HoverBgColor
@@ -161,7 +162,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		ic.Manager.PrevPage()
 	}
 
-	nextButton := NewButton(panelX+panelW-50, panelY+panelH/2-25, 36, 50, ">", 28)
+	nextButton := ui.NewButton(panelX+panelW-50, panelY+panelH/2-25, 36, 50, ">", 28)
 	nextButton.BgColor = rl.NewColor(0, 100, 180, 255)
 	nextButton.HoverBgColor = rl.NewColor(0, 150, 220, 255)
 	nextButton.ClickedColor = nextButton.HoverBgColor
@@ -193,7 +194,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		rl.DrawRectangleRounded(modalRect, 0.12, 12, rl.NewColor(18, 22, 34, 255))
 		rl.DrawRectangleRoundedLinesEx(modalRect, 0.12, 12, 3, rl.Gold)
 
-		modalCloseButton := NewButton(modalX+modalW-44, modalY+8, 34, 34, "X", 14)
+		modalCloseButton := ui.NewButton(modalX+modalW-44, modalY+8, 34, 34, "X", 14)
 		modalCloseButton.BgColor = rl.NewColor(180, 50, 50, 255)
 		modalCloseButton.HoverBgColor = rl.Red
 		modalCloseButton.ClickedColor = modalCloseButton.HoverBgColor
@@ -233,7 +234,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		btnH := float32(40)
 		btnY := modalY + modalH - 60
 
-		takeButton := NewButton(modalX+30, btnY, btnW, btnH, "TAKE", 16)
+		takeButton := ui.NewButton(modalX+30, btnY, btnW, btnH, "TAKE", 16)
 		takeButton.BgColor = rl.NewColor(0, 150, 80, 255)
 		takeButton.HoverBgColor = rl.NewColor(0, 200, 100, 255)
 		takeButton.ClickedColor = takeButton.HoverBgColor
@@ -247,7 +248,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 			ic.Manager.TakeItem(ic.Manager.SelectedItemIndex)
 		}
 
-		dropButton := NewButton(modalX+modalW-30-btnW, btnY, btnW, btnH, "DROP", 16)
+		dropButton := ui.NewButton(modalX+modalW-30-btnW, btnY, btnW, btnH, "DROP", 16)
 		dropButton.BgColor = rl.NewColor(170, 40, 40, 255)
 		dropButton.HoverBgColor = rl.NewColor(220, 50, 50, 255)
 		dropButton.ClickedColor = dropButton.HoverBgColor

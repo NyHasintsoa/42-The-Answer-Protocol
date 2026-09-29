@@ -1,6 +1,7 @@
 package component
 
 import (
+	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -72,7 +73,7 @@ func (rvc *RoomViewComponent) Render(rect rl.Rectangle) {
 	rl.DrawLineEx(rl.NewVector2(rect.X+10, rect.Y+30), rl.NewVector2(rect.X+rect.Width-10, rect.Y+30), 1, utils.ThemeBorder)
 
 	if rvc.Manager != nil && rvc.Manager.CurrentRoom.Description != "" {
-		drawTextWrapped(
+		ui.DrawTextWrapped(
 			rvc.Manager.CurrentRoom.Description,
 			int32(rect.X+12),
 			int32(rect.Y+36),
@@ -101,7 +102,7 @@ func (rvc *RoomViewComponent) Render(rect rl.Rectangle) {
 
 	for i, d := range directions {
 		btnX := rect.X + btnMargin + float32(i)*(btnW+btnMargin)
-		button := NewButton(btnX, btnY, btnW, btnH, d.Label, 10)
+		button := ui.NewButton(btnX, btnY, btnW, btnH, d.Label, 10)
 		button.BgColor = rl.NewColor(24, 160, 178, 255)
 		button.HoverBgColor = rl.NewColor(18, 130, 146, 255)
 		button.ClickedColor = button.HoverBgColor
