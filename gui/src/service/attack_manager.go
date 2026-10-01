@@ -43,7 +43,7 @@ func (am *AttackManager) StartCombat(npc NPCConfig) {
 		switch npc.ImageType {
 		case "boss":
 			maxHp = 120
-		case "gobelin", "goblin":
+		case "gobelin":
 			maxHp = 40
 		case "guard":
 			maxHp = 80

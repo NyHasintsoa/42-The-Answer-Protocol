@@ -308,7 +308,7 @@ func (mm *MapManager) spawnEntities() {
 				npcKeyLower := strings.ToLower(npcKey)
 				if strings.Contains(npcKeyLower, "boss") {
 					imageType = "boss"
-				} else if strings.Contains(npcKeyLower, "goblin") || strings.Contains(npcKeyLower, "gobelin") {
+				} else if strings.Contains(npcKeyLower, "gobelin") {
 					imageType = "gobelin"
 				} else if strings.Contains(npcKeyLower, "guard") {
 					imageType = "guard"
@@ -319,11 +319,8 @@ func (mm *MapManager) spawnEntities() {
 				}
 			}
 
-			if imageType == "boss" || imageType == "gobelin" || imageType == "goblin" || npcType == "boss" || npcType == "gobelin" {
+			if imageType == "boss" || imageType == "gobelin" || npcType == "boss" || npcType == "gobelin" {
 				charFolder := imageType
-				if charFolder == "goblin" {
-					charFolder = "gobelin"
-				}
 				if mm.entityFactory.NewMonster != nil {
 					assetPath := mm.PathResolver.Resolve("characters", charFolder)
 					e := mm.entityFactory.NewMonster(CharScale, mm.PathResolver, assetPath, npcName)
@@ -556,8 +553,6 @@ func (mm *MapManager) loadEnvironmentObjects() {
 		{"Rock-03.png", 0.3},
 		{"Rock-04.png", 0.3},
 		{"Rock-05.png", 0.3},
-		{"Tree-Stump-Short.png", 0.3},
-		{"Tree-Stump-Tall.png", 0.35},
 	}
 
 	mm.SceneryObjects = make([]EnvObjectInfo, len(forestFiles))
@@ -643,7 +638,7 @@ const defaultMapConfigJSON = `{
                     "east": "deep_forest"
                 },
                 "items": [],
-                "npcs": ["goblin"]
+                "npcs": ["gobelin"]
             },
             "hidden_grove": {
                 "name": "Hidden Grove",
@@ -663,7 +658,7 @@ const defaultMapConfigJSON = `{
                     "south": "cave_entrance"
                 },
                 "items": [],
-                "npcs": ["goblin_chief"]
+                "npcs": ["gobelin_chief"]
             },
             "cave_entrance": {
                 "name": "Cave Entrance",
@@ -768,7 +763,7 @@ const defaultMapConfigJSON = `{
             "can_be_attacked": false,
             "dialogue": [
                 "*Hic* I drank an Attack Potion (PM) thinking it was apple juice, and now I punched a wooden fence down!",
-                "Did you know if you chug a Grand Health Potion (GM), you feel like you could wrestle a goblin with one hand?"
+                "Did you know if you chug a Grand Health Potion (GM), you feel like you could wrestle a gobelin with one hand?"
             ]
         },
         "hermit": {
@@ -781,8 +776,8 @@ const defaultMapConfigJSON = `{
                 "The herbs here make the finest Health Potions in the realm. The guard loves them for his sore joints!"
             ]
         },
-        "goblin": {
-            "name": "Nasty Goblin",
+        "gobelin": {
+            "name": "Nasty Gobelin",
             "description": "A twitchy green creature clutching a rusty dagger.",
             "type": "gobelin",
             "image_type": "gobelin",
@@ -792,13 +787,13 @@ const defaultMapConfigJSON = `{
             "attack_damage": 5,
             "dialogue": [
                 "Grah! Give me your shiny potions or I will bite your ankles!",
-                "You think you tough because you tall? Short goblins strike knee level first!",
+                "You think you tough because you tall? Short gobelins strike knee level first!",
                 "Hey! That's my shiny dagger! Drop it or face my pointy stick!"
             ]
         },
-        "goblin_chief": {
-            "name": "Goblin Chief",
-            "description": "A bulkier goblin wearing a helmet made from an old cooking pot.",
+        "gobelin_chief": {
+            "name": "Gobelin Chief",
+            "description": "A bulkier gobelin wearing a helmet made from an old cooking pot.",
             "type": "gobelin",
             "image_type": "gobelin",
             "can_be_attacked": true,

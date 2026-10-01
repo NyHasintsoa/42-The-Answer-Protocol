@@ -58,9 +58,6 @@ func (ac *AttackComponent) getOrCreateMonsterPreview(npc service.NPCConfig) *cha
 	if imageType == "" {
 		imageType = "gobelin"
 	}
-	if imageType == "goblin" {
-		imageType = "gobelin"
-	}
 
 	assetPath := ac.PathResolver.Resolve("characters", imageType)
 	monster := character.NewMonster(scale, ac.PathResolver, assetPath, npc.Name)

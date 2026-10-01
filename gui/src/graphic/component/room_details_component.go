@@ -57,7 +57,7 @@ func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc service.NPCConfig) ch
 	case "boss":
 		npcComp, err = character.NewEnemyCharacter(rdc.PathResolver, "characters/boss", scale)
 		npcComp.SetPositionOffset(-50, -50)
-	case "gobelin", "goblin":
+	case "gobelin":
 		npcComp, err = character.NewEnemyCharacter(rdc.PathResolver, "characters/gobelin", scale)
 		npcComp.SetPositionOffset(-50, -50)
 	case "guard":

@@ -57,7 +57,7 @@ func (dc *ActionComponent) getOrCreateNPCPreview(npc service.NPCConfig) characte
 	case "boss":
 		npcComp, err = character.NewEnemyCharacter(dc.PathResolver, "characters/boss", scale)
 		npcComp.SetPositionOffset(-35, 40)
-	case "gobelin", "goblin":
+	case "gobelin":
 		npcComp, err = character.NewEnemyCharacter(dc.PathResolver, "characters/gobelin", scale)
 		npcComp.SetPositionOffset(-35, 40)
 	case "guard":
@@ -117,17 +117,19 @@ func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 	titleText := fmt.Sprintf("ACTIONS: %s", strings.ToUpper(dc.Manager.NPC.Name))
 	rl.DrawText(titleText, int32(modalX+padding), int32(modalY+12), 18, cyanBorder)
 
-	closeBtnW := float32(36)
-	closeBtnH := float32(24)
-	closeBtnX := modalX + modalWidth - closeBtnW - padding
+	closeBtnSize := float32(30)
+	closeBtnX := modalX + modalWidth - closeBtnSize - padding
 	closeBtnY := modalY + 10
 
-	closeBtn := ui.NewButton(closeBtnX, closeBtnY, closeBtnW, closeBtnH, " X ", 12)
-	closeBtn.BgColor = rl.NewColor(160, 20, 20, 255)
-	closeBtn.HoverBgColor = rl.NewColor(200, 30, 30, 255)
+	closeBtn := ui.NewButton(closeBtnX, closeBtnY, closeBtnSize, closeBtnSize, "X", 18)
+	closeBtn.BgColor = rl.NewColor(180, 50, 50, 255)
+	closeBtn.HoverBgColor = rl.Red
+	closeBtn.ClickedColor = closeBtn.HoverBgColor
 	closeBtn.TextColor = rl.White
 	closeBtn.BorderColor = rl.White
+	closeBtn.ShadowColor = rl.Blank
 	closeBtn.BorderWidth = 1
+	closeBtn.BorderRadius = 0.3
 	closeBtn.Render()
 
 	if closeBtn.IsClicked || rl.IsKeyPressed(rl.KeyEscape) {

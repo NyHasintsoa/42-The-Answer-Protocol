@@ -91,8 +91,4 @@ func (mc *MapComponent) Render() {
 		rl.DrawRectangle(labelX-4, labelY-2, int32(nameSize+8), 18, rl.NewColor(0, 0, 0, 180))
 		rl.DrawText(room.Name, labelX, labelY, 14, rl.RayWhite)
 	}
-
-	for _, e := range mm.Enemies {
-		e.Render()
-	}
 }

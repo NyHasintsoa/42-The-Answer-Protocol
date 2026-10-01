@@ -27,10 +27,10 @@ RED = /bin/echo -e "\x1b[31m\#\# $1\x1b[0m"
 .DEFAULT_GOAL := help
 
 ##-----------------------------------
-## Go Commands
+## Main Commands
 ##-----------------------------------
 .PHONY: install
-install:
+install: ## Install all Go dependencies
 	$(call GREEN,"Installing Go dependencies...")
 	$(GO) mod download
 	$(GO) mod tidy
@@ -76,9 +76,8 @@ docker-compile: ## Compile the Go binary inside a Docker container
 
 ##
 ##-----------------------------------
-## Help
+## Other Commands
 ##-----------------------------------
-
 .PHONY: help
 help: ## List available commands
 	grep -E '(^[a-zA-Z0-9_-]+:.*?##.*$$)|(^##)' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}{printf "\033[32m%-30s\033[0m %s\n", $$1, $$2}' | sed -e 's/\[32m##/[33m/'

@@ -20,7 +20,7 @@ func NewActionButtonsComponent(inv *service.InventoryManager, chat *service.Chat
 		InventoryMgr: inv,
 		ChatMgr:      chat,
 		QuestMgr:     quest,
-		CommandInput: ui.NewInputComponent(0, 0, 100, 32, "Command Here ...", 100),
+		CommandInput: ui.NewInputComponent(0, 0, 100, 20, "Command Here ...", 100),
 	}
 }
 
