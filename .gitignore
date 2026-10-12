@@ -4,6 +4,7 @@
 ### Main ###
 **/gen
 **/*.txt
+.cache
 
 ### C ###
 # Prerequisites

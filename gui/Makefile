@@ -1,9 +1,18 @@
 .SILENT:
 
+#---------------------------------------------------------------
+# GUI Project Variables
+#---------------------------------------------------------------
+GO_PACKAGE_NAME := go1.26.5.linux-amd64.tar.gz
+GO_DOWNLOAD_URL := https://go.dev/dl/$(GO_PACKAGE_NAME)
+
+FT_CACHE_DIR := $(shell dirname $(PWD))/.cache
+GO_BIN_PATH := $(FT_CACHE_DIR)/go/bin
+
 IS_DOCKER := $(shell docker info >/dev/null 2>&1 && echo 1)
 
 #---------------------------------------------------------------
-# Docker Configuration
+# Docker Configuration Variables
 #---------------------------------------------------------------
 GO_SERVICE_NAME := tap-gui
 USER_ID := $(shell id -u)
@@ -14,7 +23,8 @@ DOCKER := docker
 
 BINARY_NAME = tap-gui
 
-GO := go
+GO := $(GO_BIN_PATH)/go
+GO_FMT = $(GO_BIN_PATH)/gofmt
 GO_BUILD = $(GO) build
 GO_RUN = $(GO) run
 GO_CLEAN = $(GO) clean
@@ -22,7 +32,6 @@ GO_CLEAN = $(GO) clean
 RM = rm -f
 
 GREEN = /bin/echo -e "\x1b[32m\#\# $1\x1b[0m"
-RED = /bin/echo -e "\x1b[31m\#\# $1\x1b[0m"
 
 .DEFAULT_GOAL := help
 
@@ -32,18 +41,14 @@ RED = /bin/echo -e "\x1b[31m\#\# $1\x1b[0m"
 .PHONY: install
 install: ## Install all Go dependencies
 	$(call GREEN,"Installing Go dependencies...")
+	$(MAKE) go-download
 	$(GO) mod download
 	$(GO) mod tidy
 
 .PHONY: build
 build: ## Build the Go binary executable
 	$(call GREEN,"Building $(BINARY_NAME)...")
-	@if [ "$(IS_DOCKER)" = "1" ]; then \
-		$(MAKE) docker-build; \
-		$(MAKE) docker-compile; \
-	else \
-		$(GO_BUILD) -o $(BINARY_NAME) .; \
-	fi
+	$(GO_BUILD) -o $(BINARY_NAME)
 
 .PHONY: run
 run: ## Run the Go project
@@ -62,6 +67,14 @@ fclean: clean ## Remove build cache and binary executable
 .PHONY: re
 re: fclean build ## Rebuild project from scratch
 
+.PHONY: go-download
+go-download: ## Download go packages executable
+	$(call GREEN,"Downloading Go packages...")
+	mkdir -p $(FT_CACHE_DIR)
+	curl -L -o $(FT_CACHE_DIR)/$(GO_PACKAGE_NAME) $(GO_DOWNLOAD_URL)
+	tar -C $(FT_CACHE_DIR) -xzf $(FT_CACHE_DIR)/$(GO_PACKAGE_NAME)
+	rm $(FT_CACHE_DIR)/$(GO_PACKAGE_NAME)
+
 ##
 ##-----------------------------------
 ## Docker Commands
@@ -73,6 +86,11 @@ docker-build: ## Build the Docker image
 docker-compile: ## Compile the Go binary inside a Docker container
 	$(call GREEN,"Running Docker container...")
 	$(DOCKER) run --rm -v $(PWD):/output $(GO_SERVICE_NAME) cp /app/$(BINARY_NAME) /output/
+
+docker-remove: ## Remove the Docker image
+	$(call GREEN,"Removing Docker image...")
+	$(DOCKER) rmi $(GO_SERVICE_NAME)
+	$(DOCKER) volume prune
 
 ##
 ##-----------------------------------

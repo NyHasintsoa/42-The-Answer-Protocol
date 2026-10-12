@@ -20,7 +20,7 @@ func printCliError(category string, details interface{}, color string) {
 
 func run() error {
 	config := model.GameConfig{}
-	window := graphic.NewMainWindow(1500, 1000, config, "The Answer Protocol - 42")
+	window := graphic.NewMainWindow(1500, 920, config, "The Answer Protocol - 42")
 	defer window.Close()
 
 	window.AddEvent()
