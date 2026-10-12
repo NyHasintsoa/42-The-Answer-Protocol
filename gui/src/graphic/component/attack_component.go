@@ -5,6 +5,7 @@ import (
 
 	"tap-gui/src/graphic/component/character"
 	"tap-gui/src/graphic/component/ui"
+	"tap-gui/src/model/npc"
 	"tap-gui/src/service"
 	"tap-gui/src/utils"
 
@@ -45,7 +46,7 @@ func (ac *AttackComponent) Unload() {
 	}
 }
 
-func (ac *AttackComponent) getOrCreateMonsterPreview(npc service.NPCConfig) *character.Monster {
+func (ac *AttackComponent) getOrCreateMonsterPreview(npc npc.NPCConfig) *character.Monster {
 	if monster, exists := ac.MonsterPreviews[npc.Key]; exists {
 		return monster
 	}

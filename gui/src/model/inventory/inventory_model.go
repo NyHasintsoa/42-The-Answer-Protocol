@@ -1,15 +1,10 @@
-package enums
+package inventory
 
-type PageState int
+type InventoryCategory string
 
 const (
-	LoadingPage PageState = iota
-	MainMenu
-	HelpMenu
-	GamePage
-	PlayerNamePage
-	HighScoresPage
-	QuitPage
+	Attack  InventoryCategory = "attack"
+	Heal    InventoryCategory = "heal"
 )
 
 type InventoryItemType string
@@ -52,4 +47,13 @@ func (e InventoryItemType) Filename() string {
 	default:
 		return string(e) + ".png"
 	}
+}
+
+type InventoryItem struct {
+	ID       string
+	Name     string
+	Type     InventoryItemType
+	Category InventoryCategory
+	Cost	 int
+	Count    int
 }

@@ -2,23 +2,23 @@ package page
 
 import (
 	"tap-gui/src/model"
-	"tap-gui/src/model/enums"
+	pagemodel "tap-gui/src/model/page"
 )
 
 type Page interface {
 	Init(ctx *model.GameContext)
 	Unload()
 	Render()
-	GetState() enums.PageState
-	GetNextState() enums.PageState
-	SetNextState(state enums.PageState)
+	GetState() pagemodel.PageState
+	GetNextState() pagemodel.PageState
+	SetNextState(state pagemodel.PageState)
 	GetContext() *model.GameContext
 }
 
 type BasePage struct {
 	Context    *model.GameContext
-	State      enums.PageState
-	NextState  enums.PageState
+	State      pagemodel.PageState
+	NextState  pagemodel.PageState
 	IsUnloaded bool
 }
 
@@ -34,15 +34,15 @@ func (p *BasePage) Unload() {
 	p.IsUnloaded = true
 }
 
-func (p *BasePage) GetState() enums.PageState {
+func (p *BasePage) GetState() pagemodel.PageState {
 	return p.State
 }
 
-func (p *BasePage) GetNextState() enums.PageState {
+func (p *BasePage) GetNextState() pagemodel.PageState {
 	return p.NextState
 }
 
-func (p *BasePage) SetNextState(state enums.PageState) {
+func (p *BasePage) SetNextState(state pagemodel.PageState) {
 	p.NextState = state
 }
 

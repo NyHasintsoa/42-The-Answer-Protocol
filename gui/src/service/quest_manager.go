@@ -1,6 +1,9 @@
 package service
 
-import "fmt"
+import (
+	"fmt"
+	"tap-gui/src/model/npc"
+)
 
 type Quest struct {
 	ID              string
@@ -31,7 +34,7 @@ func NewQuestManager() *QuestManager {
 func (qm *QuestManager) initDefaultQuests() {
 	qm.Quests = []*Quest{
 		{ID: "npc_1", Title: "Talk to Guard Captain", NPCName: "Guard", CurrentProgress: 1, TargetProgress: 1},
-		{ID: "npc_2", Title: "Gather 5 Herbs for Seller", NPCName: "Seller", CurrentProgress: 2, TargetProgress: 5},
+		{ID: "npc_2", Title: "Gather 5 Herbs for Merchant", NPCName: "Merchant", CurrentProgress: 2, TargetProgress: 5},
 		{ID: "npc_3", Title: "Clear 3 Slimes near Gate", NPCName: "Guard", CurrentProgress: 1, TargetProgress: 3},
 		{ID: "npc_4", Title: "Deliver Package to Villager", NPCName: "Villager", CurrentProgress: 0, TargetProgress: 1},
 		{ID: "npc_5", Title: "Investigate Strange Noises", NPCName: "Elder", CurrentProgress: 0, TargetProgress: 1},
@@ -52,7 +55,7 @@ func (qm *QuestManager) AddQuest(quest *Quest) {
 	qm.Quests = append(qm.Quests, quest)
 }
 
-func (qm *QuestManager) AcceptQuest(npc NPCConfig) bool {
+func (qm *QuestManager) AcceptQuest(npc npc.NPCConfig) bool {
 	if npc.QuestID == "" {
 		return false
 	}

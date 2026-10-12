@@ -2,39 +2,20 @@ package service
 
 import (
 	"fmt"
-	"tap-gui/src/model/enums"
+	"tap-gui/src/model/inventory"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-type ItemCategory string
-
-const (
-	CategoryWeapon ItemCategory = "Weapon"
-	CategoryArmor  ItemCategory = "Armor"
-	CategoryPotion ItemCategory = "Potion"
-	CategoryKey    ItemCategory = "Key"
-	CategoryMisc   ItemCategory = "Misc"
-)
-
-type InventoryItem struct {
-	ID       string
-	Name     string
-	Type     enums.InventoryItemType
-	Count    int
-	Category ItemCategory
-	Color    rl.Color
-}
-
 type InventoryManager struct {
-	Items             []InventoryItem
+	Items             []inventory.InventoryItem
 	IsOpen            bool
 	CurrentPage       int
 	ItemsPerPage      int
 	SelectedItemIndex int
 	IsModalOpen       bool
 	InCombatMode      bool
-	OnUseItemInCombat func(item InventoryItem)
+	OnUseItemInCombat func(item inventory.InventoryItem)
 }
 
 func NewInventoryManager() *InventoryManager {
@@ -45,17 +26,17 @@ func NewInventoryManager() *InventoryManager {
 		SelectedItemIndex: -1,
 		IsModalOpen:       false,
 		InCombatMode:      false,
-		Items: []InventoryItem{
-			{ID: "book_dagger", Name: "Dagger Book", Type: enums.ItemBookDagger, Count: 2, Category: CategoryMisc, Color: rl.NewColor(180, 130, 80, 255)},
-			{ID: "book_sword", Name: "Sword Book", Type: enums.ItemBookSword, Count: 1, Category: CategoryMisc, Color: rl.NewColor(200, 210, 225, 255)},
-			{ID: "boss_horn", Name: "Boss Horn", Type: enums.ItemBossHorn, Count: 3, Category: CategoryMisc, Color: rl.NewColor(255, 165, 0, 255)},
-			{ID: "dagger", Name: "Dagger", Type: enums.ItemDagger, Count: 5, Category: CategoryWeapon, Color: rl.NewColor(180, 180, 180, 255)},
-			{ID: "medals", Name: "Medals", Type: enums.ItemMedals, Count: 10, Category: CategoryMisc, Color: rl.NewColor(245, 200, 50, 255)},
-			{ID: "potion_attack_GM", Name: "Attack Potion GM", Type: enums.ItemPotionAttackGM, Count: 4, Category: CategoryPotion, Color: rl.NewColor(230, 70, 50, 255)},
-			{ID: "potion_attack_PM", Name: "Attack Potion PM", Type: enums.ItemPotionAttackPM, Count: 8, Category: CategoryPotion, Color: rl.NewColor(240, 120, 90, 255)},
-			{ID: "potion_health_GM", Name: "Health Potion GM", Type: enums.ItemPotionHealthGM, Count: 6, Category: CategoryPotion, Color: rl.NewColor(50, 205, 80, 255)},
-			{ID: "potion_health_PM", Name: "Health Potion PM", Type: enums.ItemPotionHealthPM, Count: 12, Category: CategoryPotion, Color: rl.NewColor(100, 220, 120, 255)},
-			{ID: "sword", Name: "Sword", Type: enums.ItemSword, Count: 1, Category: CategoryWeapon, Color: rl.NewColor(130, 140, 155, 255)},
+		Items: []inventory.InventoryItem{
+			{ID: "book_dagger", Name: "Dagger Book", Type: inventory.ItemBookDagger, Count: 2, Cost: 25, Category: inventory.Attack},
+			{ID: "book_sword", Name: "Sword Book", Type: inventory.ItemBookSword, Count: 1, Cost: 25, Category: inventory.Attack},
+			{ID: "boss_horn", Name: "Boss Horn", Type: inventory.ItemBossHorn, Count: 3, Cost: 25, Category: inventory.Attack},
+			{ID: "dagger", Name: "Dagger", Type: inventory.ItemDagger, Count: 5, Cost: 25, Category: inventory.Attack},
+			{ID: "medals", Name: "Medals", Type: inventory.ItemMedals, Count: 10, Cost: 25, Category: inventory.Attack},
+			{ID: "sword", Name: "Sword", Type: inventory.ItemSword, Count: 1, Cost: 25, Category: inventory.Attack},
+			{ID: "potion_attack_GM", Name: "Attack Potion GM", Type: inventory.ItemPotionAttackGM, Count: 4, Cost: 25, Category: inventory.Heal},
+			{ID: "potion_attack_PM", Name: "Attack Potion PM", Type: inventory.ItemPotionAttackPM, Count: 8, Cost: 25, Category: inventory.Heal},
+			{ID: "potion_health_GM", Name: "Health Potion GM", Type: inventory.ItemPotionHealthGM, Count: 6, Cost: 25, Category: inventory.Heal},
+			{ID: "potion_health_PM", Name: "Health Potion PM", Type: inventory.ItemPotionHealthPM, Count: 12, Cost: 25, Category: inventory.Heal},
 		},
 	}
 }

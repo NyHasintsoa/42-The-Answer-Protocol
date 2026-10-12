@@ -4,19 +4,19 @@ import (
 	"tap-gui/src/utils"
 )
 
-type SellerCharacter struct {
+type MerchantCharacter struct {
 	NpcCharacter
 }
 
-func NewSellerCharacter(resolver *utils.PathResolver, relativeDir string, scale float32) (*SellerCharacter, error) {
-	seller := &SellerCharacter{
-		NpcCharacter: NewNpcCharacter("Seller", resolver, relativeDir, scale),
+func NewMerchantCharacter(resolver *utils.PathResolver, relativeDir string, scale float32) (*MerchantCharacter, error) {
+	merchant := &MerchantCharacter{
+		NpcCharacter: NewNpcCharacter("Merchant", resolver, relativeDir, scale),
 	}
 	actions := []string{"Chagrin", "Communication", "Greeting", "Idle", "Idle_Blinking", "Joy"}
 	for _, act := range actions {
-		if err := seller.LoadAnim(act); err != nil {
+		if err := merchant.LoadAnim(act); err != nil {
 			return nil, err
 		}
 	}
-	return seller, nil
+	return merchant, nil
 }

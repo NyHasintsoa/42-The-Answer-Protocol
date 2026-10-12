@@ -3,7 +3,7 @@ package graphic
 import (
 	"tap-gui/src/graphic/page"
 	"tap-gui/src/model"
-	"tap-gui/src/model/enums"
+	pagemodel "tap-gui/src/model/page"
 	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -13,9 +13,9 @@ type MainWindow struct {
 	Width        int32
 	Height       int32
 	Title        string
-	CurrentState enums.PageState
+	CurrentState pagemodel.PageState
 	CurrentPage  page.Page
-	Windows      map[enums.PageState]page.Page
+	Windows      map[pagemodel.PageState]page.Page
 	Closed       bool
 	Context      *model.GameContext
 	pagesLoaded  bool
@@ -31,7 +31,7 @@ func NewMainWindow(width, height int32, config model.GameConfig, title string) *
 			Config:          config,
 			ResourceManager: utils.NewResourceManager(),
 		},
-		Windows: make(map[enums.PageState]page.Page),
+		Windows: make(map[pagemodel.PageState]page.Page),
 	}
 	rl.SetTraceLogLevel(rl.LogNone)
 	rl.InitWindow(mw.Width, mw.Height, mw.Title)
@@ -61,11 +61,11 @@ func (mw *MainWindow) Close() {
 }
 
 func (mw *MainWindow) LoadPage() {
-	mw.Windows = map[enums.PageState]page.Page{
-		enums.LoadingPage: page.NewLoadingPage(mw.Context),
+	mw.Windows = map[pagemodel.PageState]page.Page{
+		pagemodel.LoadingPage: page.NewLoadingPage(mw.Context),
 	}
 	mw.pagesLoaded = false
-	mw.CurrentState = enums.LoadingPage
+	mw.CurrentState = pagemodel.LoadingPage
 	mw.CurrentPage = mw.Windows[mw.CurrentState]
 	if mw.CurrentPage != nil {
 		mw.CurrentPage.Init(mw.Context)
@@ -73,8 +73,8 @@ func (mw *MainWindow) LoadPage() {
 }
 
 func (mw *MainWindow) loadPages() {
-	mw.Windows[enums.MainMenu] = page.NewMenuPage(mw.Width, mw.Height)
-	mw.Windows[enums.GamePage] = page.NewGamePage(mw.Width, mw.Height, mw.Context)
+	mw.Windows[pagemodel.MainMenu] = page.NewMenuPage(mw.Width, mw.Height)
+	mw.Windows[pagemodel.GamePage] = page.NewGamePage(mw.Width, mw.Height, mw.Context)
 }
 
 func (mw *MainWindow) Render() {
@@ -89,7 +89,7 @@ func (mw *MainWindow) Render() {
 
 		mw.CurrentPage.Render()
 
-		if mw.CurrentPage.GetNextState() == enums.QuitPage {
+		if mw.CurrentPage.GetNextState() == pagemodel.QuitPage {
 			rl.EndDrawing()
 			break
 		}
@@ -116,7 +116,7 @@ func (mw *MainWindow) Render() {
 				} else if done {
 					mw.loadPages()
 					mw.pagesLoaded = true
-					loadingPage.SetNextState(enums.MainMenu)
+					loadingPage.SetNextState(pagemodel.MainMenu)
 				}
 			}
 		}

@@ -2,7 +2,7 @@ package page
 
 import (
 	"tap-gui/src/graphic/component/ui"
-	"tap-gui/src/model/enums"
+	pagemodel "tap-gui/src/model/page"
 	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -22,7 +22,7 @@ func NewMenuPage(winWidth, winHeight int32) *MenuPage {
 		WindowWidth:   winWidth,
 		WindowHeight:  winHeight,
 	}
-	mp.State = enums.MainMenu
+	mp.State = pagemodel.MainMenu
 
 	btnWidth := float32(400)
 	btnHeight := float32(50)
@@ -50,13 +50,13 @@ func (p *MenuPage) EventListener() bool {
 	enterPressed := rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter)
 
 	if p.Buttons[0].IsClicked || (p.SelectedIndex == 0 && enterPressed) {
-		p.NextState = enums.GamePage
+		p.NextState = pagemodel.GamePage
 	} else if p.Buttons[1].IsClicked || (p.SelectedIndex == 1 && enterPressed) {
-		p.NextState = enums.HelpMenu
+		p.NextState = pagemodel.HelpMenu
 	} else if p.Buttons[2].IsClicked || (p.SelectedIndex == 2 && enterPressed) {
-		p.NextState = enums.HighScoresPage
+		p.NextState = pagemodel.HighScoresPage
 	} else if p.Buttons[3].IsClicked || (p.SelectedIndex == 3 && enterPressed) {
-		p.NextState = enums.QuitPage
+		p.NextState = pagemodel.QuitPage
 	}
 
 	return false
@@ -64,7 +64,7 @@ func (p *MenuPage) EventListener() bool {
 
 func (p *MenuPage) Render() {
 	p.EventListener()
-	if p.NextState == enums.QuitPage {
+	if p.NextState == pagemodel.QuitPage {
 		return
 	}
 

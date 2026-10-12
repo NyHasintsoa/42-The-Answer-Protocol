@@ -3,7 +3,7 @@ package component
 import (
 	"strings"
 
-	"tap-gui/src/model/enums"
+	"tap-gui/src/model/inventory"
 	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -21,7 +21,7 @@ func NewItemComponent(resolver *utils.PathResolver) *ItemComponent {
 	}
 }
 
-func (ic *ItemComponent) GetTextureByItemType(itemType enums.InventoryItemType) rl.Texture2D {
+func (ic *ItemComponent) GetTextureByItemType(itemType inventory.InventoryItemType) rl.Texture2D {
 	return ic.GetTextureByName(itemType.Filename())
 }
 

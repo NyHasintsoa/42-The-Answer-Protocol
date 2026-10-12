@@ -254,7 +254,7 @@
         <mxCell id="-4KEvePLhdYIxiDHQB3r-151" parent="-4KEvePLhdYIxiDHQB3r-150" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;span style=&quot;font-size: 14px; text-align: left;&quot;&gt;Cras mattis consectetur purus sit amet fermentum. Cras justo odio&lt;/span&gt;" vertex="1">
           <mxGeometry height="49.0738328313253" width="336.1205661053385" y="35.12801204819277" as="geometry" />
         </mxCell>
-        <mxCell id="-4KEvePLhdYIxiDHQB3r-152" parent="-4KEvePLhdYIxiDHQB3r-150" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontStyle=1;fontSize=16;" value="&lt;span style=&quot;text-align: left;&quot;&gt;Seller&lt;/span&gt;" vertex="1">
+        <mxCell id="-4KEvePLhdYIxiDHQB3r-152" parent="-4KEvePLhdYIxiDHQB3r-150" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontStyle=1;fontSize=16;" value="&lt;span style=&quot;text-align: left;&quot;&gt;Merchant&lt;/span&gt;" vertex="1">
           <mxGeometry height="38.254405120481934" width="336.1205661053385" as="geometry" />
         </mxCell>
         <mxCell id="-4KEvePLhdYIxiDHQB3r-153" parent="-4KEvePLhdYIxiDHQB3r-129" style="html=1;shadow=0;dashed=0;shape=mxgraph.bootstrap.rrect;rSize=5;strokeColor=none;strokeWidth=1;fillColor=#1CA5B8;fontColor=#FFFFFF;whiteSpace=wrap;align=center;verticalAlign=middle;spacingLeft=0;fontStyle=0;fontSize=22;spacing=5;" value="TALK" vertex="1">

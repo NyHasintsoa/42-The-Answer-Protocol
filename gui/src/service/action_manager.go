@@ -1,6 +1,9 @@
 package service
 
-import "fmt"
+import (
+	"fmt"
+	"tap-gui/src/model/npc"
+)
 
 type ActionResponse struct {
 	Index     int
@@ -11,13 +14,13 @@ type ActionResponse struct {
 
 type ActionManager struct {
 	IsOpen        bool
-	NPC           NPCConfig
+	NPC           npc.NPCConfig
 	Responses     []ActionResponse
 	CurrentText   string
 	DialogueIndex int
 	QuestAccepted bool
-	HasQuest      func(NPCConfig) bool
-	OnAcceptQuest func(NPCConfig) bool
+	HasQuest      func(npc.NPCConfig) bool
+	OnAcceptQuest func(npc.NPCConfig) bool
 }
 
 func NewActionManager() *ActionManager {
@@ -27,7 +30,7 @@ func NewActionManager() *ActionManager {
 	}
 }
 
-func (dm *ActionManager) OpenAction(npc NPCConfig) {
+func (dm *ActionManager) OpenAction(npc npc.NPCConfig) {
 	dm.NPC = npc
 	dm.IsOpen = true
 	dm.DialogueIndex = 0

@@ -1,6 +1,9 @@
 package service
 
-import "fmt"
+import (
+	"fmt"
+	"tap-gui/src/model/npc"
+)
 
 type RoomItemDetail struct {
 	ID          string
@@ -12,20 +15,20 @@ type RoomDetailsManager struct {
 	IsOpen        bool
 	RoomName      string
 	Items         []RoomItemDetail
-	NPCs          []NPCConfig
-	OnOpenActions func(npc NPCConfig)
-	OnAttackNPC   func(npc NPCConfig)
+	NPCs          []npc.NPCConfig
+	OnOpenActions func(npc npc.NPCConfig)
+	OnAttackNPC   func(npc npc.NPCConfig)
 }
 
 func NewRoomDetailsManager() *RoomDetailsManager {
 	return &RoomDetailsManager{
 		IsOpen: true,
 		Items:  []RoomItemDetail{},
-		NPCs:   []NPCConfig{},
+		NPCs:   []npc.NPCConfig{},
 	}
 }
 
-func (rm *RoomDetailsManager) SetRoomDetails(roomName string, items []RoomItemDetail, npcs []NPCConfig) {
+func (rm *RoomDetailsManager) SetRoomDetails(roomName string, items []RoomItemDetail, npcs []npc.NPCConfig) {
 	rm.RoomName = roomName
 	rm.Items = items
 	rm.NPCs = npcs
@@ -41,13 +44,13 @@ func (rm *RoomDetailsManager) TakeItem(itemID string) {
 	}
 }
 
-func (rm *RoomDetailsManager) OpenActions(npc NPCConfig) {
+func (rm *RoomDetailsManager) OpenActions(npc npc.NPCConfig) {
 	if rm.OnOpenActions != nil {
 		rm.OnOpenActions(npc)
 	}
 }
 
-func (rm *RoomDetailsManager) AttackNPC(npc NPCConfig) {
+func (rm *RoomDetailsManager) AttackNPC(npc npc.NPCConfig) {
 	if rm.OnAttackNPC != nil {
 		rm.OnAttackNPC(npc)
 	}

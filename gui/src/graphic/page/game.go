@@ -8,7 +8,9 @@ import (
 	"tap-gui/src/graphic/component/character"
 	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/model"
-	"tap-gui/src/model/enums"
+	"tap-gui/src/model/inventory"
+	"tap-gui/src/model/npc"
+	pagemodel "tap-gui/src/model/page"
 	"tap-gui/src/service"
 	"tap-gui/src/utils"
 
@@ -53,16 +55,16 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 		resourceManager = ctx.ResourceManager
 	}
 	pathResolver := utils.NewPathResolverWithResourceManager("assets", resourceManager)
-	mapManager := service.NewMapManager(pathResolver, "", service.EntityFactory{
-		NewMonster: func(scale float32, resolver *utils.PathResolver, assetPath, name string) service.Monster {
+	mapManager := service.NewMapManager(pathResolver, "", npc.EntityFactory{
+		NewMonster: func(scale float32, resolver *utils.PathResolver, assetPath, name string) npc.Monster {
 			return character.NewMonster(scale, resolver, assetPath, name)
 		},
-		NewNPC: func(kind, relativeDir string, scale float32) (service.INpc, error) {
+		NewNPC: func(kind, relativeDir string, scale float32) (npc.INpc, error) {
 			switch kind {
 			case "guard":
 				return character.NewGuardCharacter(pathResolver, relativeDir, scale)
-			case "seller":
-				return character.NewSellerCharacter(pathResolver, relativeDir, scale)
+			case "merchant":
+				return character.NewMerchantCharacter(pathResolver, relativeDir, scale)
 			default:
 				return character.NewPersonCharacter(pathResolver, relativeDir, scale)
 			}
@@ -135,17 +137,17 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 			Zoom:     1.0,
 		},
 	}
-	gp.State = enums.GamePage
+	gp.State = pagemodel.GamePage
 	gp.RoomViewMgr.OnMove = gp.moveToRoom
 
-	gp.RoomDetailsMgr.OnOpenActions = func(npc service.NPCConfig) {
+	gp.RoomDetailsMgr.OnOpenActions = func(npc npc.NPCConfig) {
 		gp.DialogMgr.OpenAction(npc)
 	}
-	gp.RoomDetailsMgr.OnAttackNPC = func(npc service.NPCConfig) {
+	gp.RoomDetailsMgr.OnAttackNPC = func(npc npc.NPCConfig) {
 		gp.AttackMgr.StartCombat(npc)
 	}
 
-	gp.AttackMgr.OnMonsterDefeated = func(npc service.NPCConfig) {
+	gp.AttackMgr.OnMonsterDefeated = func(npc npc.NPCConfig) {
 		updatedNPC, attacked := gp.MapManager.DamageNPC(npc.Key, 999)
 		if attacked {
 			for index := range gp.RoomDetailsMgr.NPCs {
@@ -181,25 +183,18 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 		}
 	}
 
-	gp.InventoryMgr.OnUseItemInCombat = func(item service.InventoryItem) {
-		healAmount := 30
-		itemIDLower := strings.ToLower(item.ID)
-		if strings.Contains(itemIDLower, "gm") {
-			healAmount = 60
-		} else if strings.Contains(itemIDLower, "pm") {
-			healAmount = 30
-		}
-		gp.AttackMgr.PlayerHP += healAmount
+	gp.InventoryMgr.OnUseItemInCombat = func(item inventory.InventoryItem) {
+		gp.AttackMgr.PlayerHP += item.Cost
 		if gp.AttackMgr.PlayerHP > gp.AttackMgr.PlayerMaxHP {
 			gp.AttackMgr.PlayerHP = gp.AttackMgr.PlayerMaxHP
 		}
-		gp.AttackMgr.AddLog(fmt.Sprintf("Used %s! Recovered %d HP.", item.Name, healAmount))
+		gp.AttackMgr.AddLog(fmt.Sprintf("Used %s! Recovered %d HP.", item.Name, item.Cost))
 	}
 
-	gp.DialogMgr.HasQuest = func(npc service.NPCConfig) bool {
+	gp.DialogMgr.HasQuest = func(npc npc.NPCConfig) bool {
 		return gp.QuestMgr.HasQuest(npc.QuestID)
 	}
-	gp.DialogMgr.OnAcceptQuest = func(npc service.NPCConfig) bool {
+	gp.DialogMgr.OnAcceptQuest = func(npc npc.NPCConfig) bool {
 		return gp.QuestMgr.AcceptQuest(npc)
 	}
 
@@ -235,7 +230,7 @@ func (gp *GamePage) Unload() {
 
 func (gp *GamePage) EventListener() {
 	if rl.IsKeyPressed(rl.KeyEscape) && !gp.hasOpenModal() {
-		gp.NextState = enums.MainMenu
+		gp.NextState = pagemodel.MainMenu
 	}
 
 	if rl.IsKeyPressed(rl.KeyQ) && gp.QuestMgr != nil {
@@ -386,11 +381,11 @@ func (gp *GamePage) syncRoomContext() {
 		})
 	}
 
-	npcs := make([]service.NPCConfig, 0, len(room.NPCs))
+	npcs := make([]npc.NPCConfig, 0, len(room.NPCs))
 	for _, npcKey := range room.NPCs {
 		npcCfg, exists := gp.MapManager.GetNPCConfig(npcKey)
 		if !exists {
-			npcCfg = service.NPCConfig{
+			npcCfg = npc.NPCConfig{
 				Key:       npcKey,
 				Name:      roomEntityName(npcKey),
 				ImageType: npcKey,

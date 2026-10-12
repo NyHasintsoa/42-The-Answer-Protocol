@@ -206,7 +206,6 @@
             "type": "gobelin",
             "image_type": "gobelin",
             "can_be_attacked": true,
-            "hp": 30,
             "max_hp": 30,
             "attack_damage": 5,
             "dialogue": [
@@ -221,7 +220,6 @@
             "type": "gobelin",
             "image_type": "gobelin",
             "can_be_attacked": true,
-            "hp": 55,
             "max_hp": 55,
             "attack_damage": 10,
             "dialogue": [
@@ -234,7 +232,6 @@
             "type": "boss",
             "image_type": "boss",
             "can_be_attacked": true,
-            "hp": 150,
             "max_hp": 150,
             "attack_damage": 20,
             "dialogue": [
@@ -248,61 +245,85 @@
         "book_dagger": {
             "id": "book_dagger",
             "name": "Dagger Mastery Book",
+            "cost": 25,
+            "category": "attack",
             "description": "A leather-bound manual detailing quick strikes and stealth assassination maneuvers."
         },
         "book_sword": {
             "id": "book_sword",
             "name": "Sword Combat Manual",
+            "cost": 25,
+            "category": "attack",
             "description": "An ancient tome describing heavy swings, parries, and knightly stances."
         },
         "boss_horn": {
             "id": "boss_horn",
             "name": "Dragon Horn",
+            "cost": 25,
+            "category": "attack",
             "description": "A razor-sharp horn severed from the Cave Dragon. It radiates intense heat."
         },
         "dagger": {
             "id": "dagger",
             "name": "Rogue Dagger",
+            "cost": 25,
+            "category": "attack",
             "description": "A swift, light blade perfect for sneaky critical strikes."
         },
         "medals": {
             "id": "medals",
             "name": "Mayor's Medal of Honor",
+            "cost": 25,
+            "category": "attack",
             "description": "A shiny gold medal awarded by the Mayor. It looks expensive, but is mostly painted cardboard."
         },
         "potion_attack_PM": {
             "id": "potion_attack_PM",
             "name": "Petite Attack Potion",
+            "cost": 25,
+            "category": "heal",
             "description": "A small vial of glowing red elixir that temporarily boosts your attack damage (+5 ATK)."
         },
         "potion_attack_GM": {
             "id": "potion_attack_GM",
             "name": "Grand Attack Potion",
+            "cost": 25,
+            "category": "heal",
             "description": "A large flask of surging crimson brew that drastically empowers your strikes (+20 ATK)."
         },
         "potion_health_PM": {
             "id": "potion_health_PM",
             "name": "Petite Health Potion",
+            "cost": 25,
+            "category": "heal",
             "description": "A small green potion that instantly restores 25 HP."
         },
         "potion_health_GM": {
             "id": "potion_health_GM",
             "name": "Grand Health Potion",
+            "cost": 25,
+            "category": "heal",
             "description": "A potent, bubbling green brew that fully restores up to 100 HP."
         },
         "sword": {
             "id": "sword",
             "name": "Iron Sword",
+            "cost": 25,
+            "category": "attack",
             "description": "A sturdy iron sword. Far better than throwing harsh words at a dragon."
         },
         "herb": {
             "id": "herb",
             "name": "Healing Herb",
+            "cost": 25,
+            "category": "attack",
             "description": "A glowing medicinal plant emitting a soothing peppermint aroma."
         },
         "magic_amulet": {
             "id": "magic_amulet",
             "name": "Magic Amulet",
+            "cost": 25,
+            "category": "attack",
             "description": "A glowing ancient amulet belonging to the Mayor. It hums with tacky magical energy."
         }
     },

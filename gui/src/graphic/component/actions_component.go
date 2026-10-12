@@ -6,6 +6,7 @@ import (
 
 	"tap-gui/src/graphic/component/character"
 	"tap-gui/src/graphic/component/ui"
+	"tap-gui/src/model/npc"
 	"tap-gui/src/service"
 	"tap-gui/src/utils"
 
@@ -39,7 +40,7 @@ func (dc *ActionComponent) Unload() {
 	}
 }
 
-func (dc *ActionComponent) getOrCreateNPCPreview(npc service.NPCConfig) character.INpc {
+func (dc *ActionComponent) getOrCreateNPCPreview(npc npc.NPCConfig) character.INpc {
 	if preview, exists := dc.NPCPreviews[npc.Key]; exists {
 		return preview
 	}
@@ -63,8 +64,8 @@ func (dc *ActionComponent) getOrCreateNPCPreview(npc service.NPCConfig) characte
 	case "guard":
 		npcComp, err = character.NewGuardCharacter(dc.PathResolver, "npc/guard", scale)
 		npcComp.SetPositionOffset(-45, -10)
-	case "merchant", "seller":
-		npcComp, err = character.NewSellerCharacter(dc.PathResolver, "npc/merchant", scale)
+	case "merchant":
+		npcComp, err = character.NewMerchantCharacter(dc.PathResolver, "npc/merchant", scale)
 		npcComp.SetPositionOffset(10, 40)
 	default:
 		relDir := "npc/" + imageType

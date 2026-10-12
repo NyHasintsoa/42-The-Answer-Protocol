@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"tap-gui/src/graphic/component/ui"
-	"tap-gui/src/model/enums"
+	"tap-gui/src/model/inventory"
 	"tap-gui/src/service"
 	"tap-gui/src/utils"
 
@@ -14,18 +14,18 @@ import (
 type InventoryComponent struct {
 	Manager  *service.InventoryManager
 	Resolver *utils.PathResolver
-	textures map[enums.InventoryItemType]rl.Texture2D
+	textures map[inventory.InventoryItemType]rl.Texture2D
 }
 
 func NewInventoryComponent(mgr *service.InventoryManager, resolver *utils.PathResolver) *InventoryComponent {
 	return &InventoryComponent{
 		Manager:  mgr,
 		Resolver: resolver,
-		textures: make(map[enums.InventoryItemType]rl.Texture2D),
+		textures: make(map[inventory.InventoryItemType]rl.Texture2D),
 	}
 }
 
-func (ic *InventoryComponent) GetTexture(itemType enums.InventoryItemType) rl.Texture2D {
+func (ic *InventoryComponent) GetTexture(itemType inventory.InventoryItemType) rl.Texture2D {
 	if tex, exists := ic.textures[itemType]; exists {
 		return tex
 	}
@@ -43,7 +43,7 @@ func (ic *InventoryComponent) GetTexture(itemType enums.InventoryItemType) rl.Te
 }
 
 func (ic *InventoryComponent) Unload() {
-	ic.textures = make(map[enums.InventoryItemType]rl.Texture2D)
+	ic.textures = make(map[inventory.InventoryItemType]rl.Texture2D)
 }
 
 func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
@@ -151,7 +151,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 				destRec := slotRect
 				rl.DrawTexturePro(tex, srcRec, destRec, rl.Vector2{X: 0, Y: 0}, 0, rl.White)
 			} else {
-				rl.DrawRectangleRounded(slotRect, 0.15, 8, item.Color)
+				rl.DrawRectangleRounded(slotRect, 0.15, 8, rl.NewColor(130, 140, 155, 255))
 			}
 
 			countStr := fmt.Sprintf("x%d", item.Count)

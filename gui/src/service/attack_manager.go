@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"math/rand"
+	"tap-gui/src/model/npc"
 	"time"
 )
 
@@ -10,13 +11,13 @@ type AttackManager struct {
 	IsOpen            bool
 	PlayerHP          int
 	PlayerMaxHP       int
-	NPC               NPCConfig
+	NPC               npc.NPCConfig
 	NPCHP             int
 	NPCMaxHP          int
 	CombatLog         []string
 	IsCombatOver      bool
 	OnPlayerRespawn   func()
-	OnMonsterDefeated func(npc NPCConfig)
+	OnMonsterDefeated func(npc npc.NPCConfig)
 	OnOpenInventory   func()
 	OnFlee            func()
 	respawnPending    bool
@@ -32,33 +33,18 @@ func NewAttackManager() *AttackManager {
 	}
 }
 
-func (am *AttackManager) StartCombat(npc NPCConfig) {
+func (am *AttackManager) StartCombat(npc npc.NPCConfig) {
 	am.NPC = npc
 	am.IsOpen = true
 	am.IsCombatOver = false
 	am.CombatLog = make([]string, 0)
 
-	maxHp := npc.MaxHP
-	if maxHp <= 0 {
-		switch npc.ImageType {
-		case "boss":
-			maxHp = 120
-		case "gobelin":
-			maxHp = 40
-		case "guard":
-			maxHp = 80
-		default:
-			maxHp = 50
-		}
-	}
-
 	if npc.HP <= 0 {
-		am.NPCHP = maxHp
+		am.NPCHP = npc.MaxHP
 	} else {
 		am.NPCHP = npc.HP
 	}
-	am.NPCMaxHP = maxHp
-
+	am.NPCMaxHP = npc.MaxHP
 	if am.PlayerHP <= 0 {
 		am.PlayerHP = am.PlayerMaxHP
 	}

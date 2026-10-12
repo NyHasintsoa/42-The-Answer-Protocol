@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"tap-gui/src/model/npc"
 	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -48,25 +49,11 @@ type RoomConfig struct {
 	NPCs        []string          `json:"npcs"`
 }
 
-type NPCConfig struct {
-	Key           string   `json:"key,omitempty"`
-	Name          string   `json:"name"`
-	Description   string   `json:"description"`
-	Type          string   `json:"type"`
-	ImageType     string   `json:"image_type"`
-	CanBeAttacked bool     `json:"can_be_attacked"`
-	HP            int      `json:"hp"`
-	MaxHP         int      `json:"max_hp"`
-	AttackDamage  int      `json:"attack_damage"`
-	QuestID       string   `json:"quest_id"`
-	Dialogue      []string `json:"dialogue"`
-}
-
 type MapConfig struct {
 	World struct {
 		Rooms map[string]RoomConfig `json:"rooms"`
 	} `json:"world"`
-	NPCs map[string]NPCConfig `json:"npcs"`
+	NPCs map[string]npc.NPCConfig `json:"npcs"`
 }
 
 type RoomNode struct {
@@ -91,46 +78,27 @@ type WorldMap struct {
 	EnvObjectIdx [][]int
 }
 
-type Monster interface {
-	UpdateAI(dt float32, target rl.Vector2, isWalkable func(float32, float32) bool)
-	Render()
-	UnloadAnimations()
-	SetPosition(x, y float32)
-}
-
-type INpc interface {
-	Update(dt float32)
-	Render()
-	UnloadAnimations()
-	SetPosition(x, y float32)
-}
-
-type EntityFactory struct {
-	NewMonster func(scale float32, resolver *utils.PathResolver, assetPath, name string) Monster
-	NewNPC     func(kind, relativeDir string, scale float32) (INpc, error)
-}
-
 type MapManager struct {
 	World          *WorldMap
-	NPCConfigs     map[string]NPCConfig
-	Enemies        []Monster
-	NPCs           []INpc
+	NPCConfigs     map[string]npc.NPCConfig
+	Enemies        []npc.Monster
+	NPCs           []npc.INpc
 	PathTextures   map[string]rl.Texture2D
 	RoomTextures   map[string]rl.Texture2D
 	EmptyTexture   rl.Texture2D
 	SceneryObjects []EnvObjectInfo
 	PathResolver   *utils.PathResolver
 	ActiveRoom     *RoomNode
-	entityFactory  EntityFactory
+	entityFactory  npc.EntityFactory
 }
 
-func NewMapManager(pathResolver *utils.PathResolver, configJSON string, factory EntityFactory) *MapManager {
+func NewMapManager(pathResolver *utils.PathResolver, configJSON string, factory npc.EntityFactory) *MapManager {
 	mm := &MapManager{
 		PathResolver:  pathResolver,
 		PathTextures:  make(map[string]rl.Texture2D),
 		RoomTextures:  make(map[string]rl.Texture2D),
-		Enemies:       make([]Monster, 0),
-		NPCs:          make([]INpc, 0),
+		Enemies:       make([]npc.Monster, 0),
+		NPCs:          make([]npc.INpc, 0),
 		entityFactory: factory,
 	}
 
@@ -179,24 +147,17 @@ func (mm *MapManager) GetRoomInDirection(direction string) (*RoomNode, bool) {
 	return room, true
 }
 
-func (mm *MapManager) GetNPCConfig(key string) (NPCConfig, bool) {
-	keyLower := strings.ToLower(key)
-	if cfg, exists := mm.NPCConfigs[keyLower]; exists {
-		if cfg.Key == "" {
-			cfg.Key = key
-		}
-		return cfg, true
-	}
+func (mm *MapManager) GetNPCConfig(key string) (npc.NPCConfig, bool) {
 	if cfg, exists := mm.NPCConfigs[key]; exists {
 		if cfg.Key == "" {
 			cfg.Key = key
 		}
 		return cfg, true
 	}
-	return NPCConfig{Key: key, Name: key}, false
+	return npc.NPCConfig{Key: key, Name: key}, false
 }
 
-func (mm *MapManager) DamageNPC(key string, damage int) (NPCConfig, bool) {
+func (mm *MapManager) DamageNPC(key string, damage int) (npc.NPCConfig, bool) {
 	key = strings.ToLower(key)
 	npc, exists := mm.NPCConfigs[key]
 	if !exists || !npc.CanBeAttacked || damage <= 0 || (npc.MaxHP > 0 && npc.HP <= 0) {
@@ -279,8 +240,8 @@ func (mm *MapManager) Unload() {
 }
 
 func (mm *MapManager) spawnEntities() {
-	mm.Enemies = make([]Monster, 0)
-	mm.NPCs = make([]INpc, 0)
+	mm.Enemies = make([]npc.Monster, 0)
+	mm.NPCs = make([]npc.INpc, 0)
 
 	for _, room := range mm.World.Rooms {
 		roomX := float32(room.TileX)*TileSize + TileSize*2
@@ -294,8 +255,8 @@ func (mm *MapManager) spawnEntities() {
 
 			npcDef, exists := mm.GetNPCConfig(npcKey)
 
-			imageType := ""
-			npcType := ""
+			var imageType string
+			var npcType string
 			npcName := npcKey
 
 			if exists {
@@ -305,18 +266,7 @@ func (mm *MapManager) spawnEntities() {
 					npcName = npcDef.Name
 				}
 			} else {
-				npcKeyLower := strings.ToLower(npcKey)
-				if strings.Contains(npcKeyLower, "boss") {
-					imageType = "boss"
-				} else if strings.Contains(npcKeyLower, "gobelin") {
-					imageType = "gobelin"
-				} else if strings.Contains(npcKeyLower, "guard") {
-					imageType = "guard"
-				} else if strings.Contains(npcKeyLower, "seller") || strings.Contains(npcKeyLower, "shop") || strings.Contains(npcKeyLower, "merchant") {
-					imageType = "merchant"
-				} else {
-					imageType = "person"
-				}
+				imageType = "person"
 			}
 
 			if imageType == "boss" || imageType == "gobelin" || npcType == "boss" || npcType == "gobelin" {
@@ -334,8 +284,8 @@ func (mm *MapManager) spawnEntities() {
 				switch imageType {
 				case "guard":
 					kind = "guard"
-				case "merchant", "seller":
-					kind = "seller"
+				case "merchant":
+					kind = "merchant"
 				}
 
 				relDir := filepath.Join("npc", imageType)
@@ -422,10 +372,10 @@ func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 	grid := make([][]TileType, mapHeight)
 	envIdx := make([][]int, mapHeight)
 
-	for y := 0; y < mapHeight; y++ {
+	for y := range mapHeight {
 		grid[y] = make([]TileType, mapWidth)
 		envIdx[y] = make([]int, mapWidth)
-		for x := 0; x < mapWidth; x++ {
+		for x := range mapWidth {
 			envIdx[y][x] = -1
 		}
 	}
@@ -782,7 +732,6 @@ const defaultMapConfigJSON = `{
             "type": "gobelin",
             "image_type": "gobelin",
             "can_be_attacked": true,
-            "hp": 30,
             "max_hp": 30,
             "attack_damage": 5,
             "dialogue": [
@@ -797,7 +746,6 @@ const defaultMapConfigJSON = `{
             "type": "gobelin",
             "image_type": "gobelin",
             "can_be_attacked": true,
-            "hp": 55,
             "max_hp": 55,
             "attack_damage": 10,
             "dialogue": [
@@ -810,7 +758,6 @@ const defaultMapConfigJSON = `{
             "type": "boss",
             "image_type": "boss",
             "can_be_attacked": true,
-            "hp": 150,
             "max_hp": 150,
             "attack_damage": 20,
             "dialogue": [

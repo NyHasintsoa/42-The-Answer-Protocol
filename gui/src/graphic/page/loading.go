@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"tap-gui/src/model"
-	"tap-gui/src/model/enums"
+	pagemodel "tap-gui/src/model/page"
 	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -20,8 +20,8 @@ func NewLoadingPage(ctx *model.GameContext) *LoadingPage {
 	lp := &LoadingPage{
 		LoadingMessage: "LOADING RESOURCES ...",
 	}
-	lp.State = enums.LoadingPage
-	lp.NextState = enums.LoadingPage
+	lp.State = pagemodel.LoadingPage
+	lp.NextState = pagemodel.LoadingPage
 	lp.Context = ctx
 	return lp
 }
