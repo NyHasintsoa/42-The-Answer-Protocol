@@ -7,9 +7,11 @@ GO_PACKAGE_NAME := go1.26.5.linux-amd64.tar.gz
 GO_DOWNLOAD_URL := https://go.dev/dl/$(GO_PACKAGE_NAME)
 
 FT_CACHE_DIR := $(shell dirname $(PWD))/.cache
-GO_BIN_PATH := $(FT_CACHE_DIR)/go/bin
+GO_DIR := $(FT_CACHE_DIR)/go
+GO_BIN_PATH := $(GO_DIR)/go/bin
+GO_PKG_PATH := $(GO_DIR)/pkg
 
-IS_DOCKER := $(shell docker info >/dev/null 2>&1 && echo 1)
+export GOPATH := $(GO_PKG_PATH)
 
 #---------------------------------------------------------------
 # Docker Configuration Variables
@@ -39,19 +41,18 @@ GREEN = /bin/echo -e "\x1b[32m\#\# $1\x1b[0m"
 ## Main Commands
 ##-----------------------------------
 .PHONY: install
-install: ## Install all Go dependencies
+install: $(GO_DIR) ## Install all Go dependencies
 	$(call GREEN,"Installing Go dependencies...")
-	$(MAKE) go-download
 	$(GO) mod download
 	$(GO) mod tidy
 
 .PHONY: build
-build: ## Build the Go binary executable
+build: $(GO_DIR) ## Build the Go binary executable
 	$(call GREEN,"Building $(BINARY_NAME)...")
 	$(GO_BUILD) -o $(BINARY_NAME)
 
 .PHONY: run
-run: ## Run the Go project
+run: $(GO_DIR) ## Run the Go project
 	$(GO_RUN) .
 
 .PHONY: clean
@@ -70,10 +71,16 @@ re: fclean build ## Rebuild project from scratch
 .PHONY: go-download
 go-download: ## Download go packages executable
 	$(call GREEN,"Downloading Go packages...")
-	mkdir -p $(FT_CACHE_DIR)
+	mkdir -p $(GO_DIR)
 	curl -L -o $(FT_CACHE_DIR)/$(GO_PACKAGE_NAME) $(GO_DOWNLOAD_URL)
-	tar -C $(FT_CACHE_DIR) -xzf $(FT_CACHE_DIR)/$(GO_PACKAGE_NAME)
+	tar -C $(GO_DIR) -xzf $(FT_CACHE_DIR)/$(GO_PACKAGE_NAME)
 	rm $(FT_CACHE_DIR)/$(GO_PACKAGE_NAME)
+
+.PHONY: cache-clear
+cache-clear: ## Clear the cache directory
+	$(call GREEN,"Clearing cache directory...")
+	chmod -R u+w $(FT_CACHE_DIR)
+	rm -rf $(FT_CACHE_DIR)
 
 ##
 ##-----------------------------------
@@ -99,3 +106,12 @@ docker-remove: ## Remove the Docker image
 .PHONY: help
 help: ## List available commands
 	grep -E '(^[a-zA-Z0-9_-]+:.*?##.*$$)|(^##)' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}{printf "\033[32m%-30s\033[0m %s\n", $$1, $$2}' | sed -e 's/\[32m##/[33m/'
+
+##
+
+#
+#-----------------------------------
+# Dependencies
+#-----------------------------------
+$(GO_DIR): ## Ensure Go is downloaded and extracted
+	$(MAKE) go-download
