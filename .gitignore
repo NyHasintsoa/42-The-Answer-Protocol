@@ -5,6 +5,7 @@
 **/gen
 **/*.txt
 .cache
+test
 
 ### C ###
 # Prerequisites
