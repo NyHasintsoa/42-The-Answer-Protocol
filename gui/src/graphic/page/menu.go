@@ -16,7 +16,7 @@ type MenuPage struct {
 	WindowHeight  int32
 }
 
-func NewMenuPage(winWidth, winHeight int32) *MenuPage {
+func NewMenuPage(winWidth int32, winHeight int32) *MenuPage {
 	mp := &MenuPage{
 		SelectedIndex: 0,
 		WindowWidth:   winWidth,
@@ -30,15 +30,13 @@ func NewMenuPage(winWidth, winHeight int32) *MenuPage {
 
 	mp.Buttons = []*ui.Button{
 		ui.NewButton(btnX, 500, btnWidth, btnHeight, "Play Game", 24),
-		ui.NewButton(btnX, 570, btnWidth, btnHeight, "How To Play", 24),
-		ui.NewButton(btnX, 640, btnWidth, btnHeight, "High Scores", 24),
 		ui.NewButton(btnX, 710, btnWidth, btnHeight, "Quit Game", 24),
 	}
 
 	return mp
 }
 
-func (p *MenuPage) EventListener() bool {
+func (p *MenuPage) EventListener() {
 	if rl.IsKeyPressed(rl.KeyUp) || rl.IsKeyPressed(rl.KeyW) {
 		p.SelectedIndex = (p.SelectedIndex - 1 + len(p.Buttons)) % len(p.Buttons)
 	}
@@ -50,16 +48,10 @@ func (p *MenuPage) EventListener() bool {
 	enterPressed := rl.IsKeyPressed(rl.KeyEnter) || rl.IsKeyPressed(rl.KeyKpEnter)
 
 	if p.Buttons[0].IsClicked || (p.SelectedIndex == 0 && enterPressed) {
-		p.NextState = pagemodel.GamePage
-	} else if p.Buttons[1].IsClicked || (p.SelectedIndex == 1 && enterPressed) {
-		p.NextState = pagemodel.HelpMenu
-	} else if p.Buttons[2].IsClicked || (p.SelectedIndex == 2 && enterPressed) {
-		p.NextState = pagemodel.HighScoresPage
-	} else if p.Buttons[3].IsClicked || (p.SelectedIndex == 3 && enterPressed) {
+		p.NextState = pagemodel.PlayerNamePage
+	} else if p.Buttons[1].IsClicked || (p.SelectedIndex == 3 && enterPressed) {
 		p.NextState = pagemodel.QuitPage
 	}
-
-	return false
 }
 
 func (p *MenuPage) Render() {
@@ -68,7 +60,7 @@ func (p *MenuPage) Render() {
 		return
 	}
 
-	rl.DrawText("PAC-MAN", 320, 180, 72, utils.ThemeAccent)
+	rl.DrawText("The Answer Protocol", 320, 180, 72, utils.ThemeAccent)
 
 	mousePos := rl.GetMousePosition()
 	for i, button := range p.Buttons {

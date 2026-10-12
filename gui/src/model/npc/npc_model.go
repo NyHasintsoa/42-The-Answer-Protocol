@@ -38,4 +38,3 @@ type EntityFactory struct {
 	NewMonster func(scale float32, resolver *utils.PathResolver, assetPath, name string) Monster
 	NewNPC     func(kind, relativeDir string, scale float32) (INpc, error)
 }
-

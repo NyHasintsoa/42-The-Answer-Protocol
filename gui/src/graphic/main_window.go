@@ -73,6 +73,7 @@ func (mw *MainWindow) LoadPage() {
 }
 
 func (mw *MainWindow) loadPages() {
+	mw.Windows[pagemodel.PlayerNamePage] = page.NewPlayerNamePage(mw.Width, mw.Height, mw.Context)
 	mw.Windows[pagemodel.MainMenu] = page.NewMenuPage(mw.Width, mw.Height)
 	mw.Windows[pagemodel.GamePage] = page.NewGamePage(mw.Width, mw.Height, mw.Context)
 }

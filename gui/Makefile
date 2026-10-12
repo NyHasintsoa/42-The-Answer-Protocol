@@ -65,6 +65,10 @@ fclean: clean ## Remove build cache and binary executable
 	$(call GREEN,"Removing executable $(BINARY_NAME)...")
 	$(RM) $(BINARY_NAME)
 
+.PHONY: format
+format: ## Format Code
+	$(GO_FMT) -w .
+
 .PHONY: re
 re: fclean build ## Rebuild project from scratch
 

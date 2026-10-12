@@ -3,8 +3,8 @@ package inventory
 type InventoryCategory string
 
 const (
-	Attack  InventoryCategory = "attack"
-	Heal    InventoryCategory = "heal"
+	Attack InventoryCategory = "attack"
+	Heal   InventoryCategory = "heal"
 )
 
 type InventoryItemType string
@@ -54,6 +54,6 @@ type InventoryItem struct {
 	Name     string
 	Type     InventoryItemType
 	Category InventoryCategory
-	Cost	 int
+	Cost     int
 	Count    int
 }
