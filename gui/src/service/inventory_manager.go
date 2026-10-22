@@ -17,6 +17,7 @@ type InventoryManager struct {
 	OnUseItemInCombat func(item inventory.InventoryItem)
 }
 
+// NewInventoryManager creates an inventory manager populated with the default sample items.
 func NewInventoryManager() *InventoryManager {
 	return &InventoryManager{
 		IsOpen:            false,
@@ -40,6 +41,7 @@ func NewInventoryManager() *InventoryManager {
 	}
 }
 
+// GetTotalPages returns the number of pages required to display all items.
 func (im *InventoryManager) GetTotalPages() int {
 	if len(im.Items) == 0 {
 		return 1
@@ -47,18 +49,21 @@ func (im *InventoryManager) GetTotalPages() int {
 	return (len(im.Items) + im.ItemsPerPage - 1) / im.ItemsPerPage
 }
 
+// NextPage advances the current page when another page is available.
 func (im *InventoryManager) NextPage() {
 	if im.CurrentPage < im.GetTotalPages()-1 {
 		im.CurrentPage++
 	}
 }
 
+// PrevPage moves to the previous page when the current page is not the first.
 func (im *InventoryManager) PrevPage() {
 	if im.CurrentPage > 0 {
 		im.CurrentPage--
 	}
 }
 
+// Toggle opens or closes the inventory and resets modal state when closing it.
 func (im *InventoryManager) Toggle() {
 	im.IsOpen = !im.IsOpen
 	if !im.IsOpen {
@@ -67,6 +72,7 @@ func (im *InventoryManager) Toggle() {
 	}
 }
 
+// SelectItem selects the item at index and opens its detail modal when the index is valid.
 func (im *InventoryManager) SelectItem(index int) {
 	if index >= 0 && index < len(im.Items) {
 		im.SelectedItemIndex = index
@@ -74,11 +80,13 @@ func (im *InventoryManager) SelectItem(index int) {
 	}
 }
 
+// CloseModal closes the item detail modal and clears the selection.
 func (im *InventoryManager) CloseModal() {
 	im.IsModalOpen = false
 	im.SelectedItemIndex = -1
 }
 
+// UseItem consumes one item at index and invokes the combat callback when applicable.
 func (im *InventoryManager) UseItem(index int) {
 	if index < 0 || index >= len(im.Items) {
 		return
@@ -101,6 +109,7 @@ func (im *InventoryManager) UseItem(index int) {
 	}
 }
 
+// TakeItem increases the count of the item at index when the index is valid.
 func (im *InventoryManager) TakeItem(index int) {
 	if index < 0 || index >= len(im.Items) {
 		return
@@ -108,6 +117,8 @@ func (im *InventoryManager) TakeItem(index int) {
 	im.Items[index].Count++
 }
 
+// DropItem removes one unit of the item at index and returns the dropped item.
+// index identifies the inventory entry; the boolean is false if the index is invalid.
 func (im *InventoryManager) DropItem(index int) (inventory.InventoryItem, bool) {
 	if index < 0 || index >= len(im.Items) {
 		return inventory.InventoryItem{}, false
@@ -126,6 +137,8 @@ func (im *InventoryManager) DropItem(index int) (inventory.InventoryItem, bool) 
 	return droppedItem, true
 }
 
+// Update handles inventory keyboard and mouse input for a window of the given size.
+// winWidth and winHeight are the window dimensions in pixels.
 func (im *InventoryManager) Update(winWidth, winHeight int32) {
 	if rl.IsKeyPressed(rl.KeyI) {
 		im.Toggle()

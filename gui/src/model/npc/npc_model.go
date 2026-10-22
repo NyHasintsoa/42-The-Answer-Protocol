@@ -1,3 +1,4 @@
+// Package npc defines the configuration data used to create non-player characters.
 package npc
 
 import (

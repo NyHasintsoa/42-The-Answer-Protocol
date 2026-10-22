@@ -12,6 +12,9 @@ type MainCharacter struct {
 	Character
 }
 
+// NewMainCharacter creates a player character and loads its standard animations.
+// scale controls rendered size; resolver handles resource lookup when supplied;
+// assetPath is the character asset directory.
 func NewMainCharacter(scale float32, resolver *utils.PathResolver, assetPath string) *MainCharacter {
 	mc := &MainCharacter{
 		Character: NewCharacter(scale, resolver, assetPath),
@@ -20,6 +23,7 @@ func NewMainCharacter(scale float32, resolver *utils.PathResolver, assetPath str
 	return mc
 }
 
+// loadAnimations loads the standard directional and action animations for the player character.
 func (mc *MainCharacter) loadAnimations() {
 	mc.LoadAnim("Front_Idle", "Front_Idle", "Front_Idle_%03d.png", 16)
 	mc.LoadAnim("Back_Idle", "Back_Idle", "Back_Idle_%03d.png", 16)
@@ -44,6 +48,7 @@ func (mc *MainCharacter) loadAnimations() {
 	mc.LoadAnim("Dying", "Dying", "Dying_%03d.png", 10)
 }
 
+// Render draws the current player animation frame.
 func (mc *MainCharacter) Render() {
 	key := mc.GetAnimKey()
 	frames := mc.Animations[key]
@@ -72,6 +77,7 @@ func (mc *MainCharacter) Render() {
 	rl.DrawTexturePro(tex, srcRect, destRect, origin, 0, rl.White)
 }
 
+// GetAnimKey returns the animation key for the character's current action and direction.
 func (c *MainCharacter) GetAnimKey() string {
 	if c.Action == ActionDying {
 		return "Dying"
@@ -104,6 +110,9 @@ func (c *MainCharacter) GetAnimKey() string {
 	return fmt.Sprintf("%s_%s", dirStr, actionStr)
 }
 
+// AdvanceFrame advances the current animation by dt seconds.
+// loop controls whether the animation restarts at its first frame; the result is true
+// when a non-looping animation reaches its final frame.
 func (c *MainCharacter) AdvanceFrame(dt float32, loop bool) bool {
 	c.FrameTimer += dt
 	if c.FrameTimer >= (1.0 / c.FrameSpeed) {

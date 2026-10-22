@@ -10,12 +10,14 @@ type MapComponent struct {
 	Manager *service.MapManager
 }
 
+// NewMapComponent creates a map renderer backed by mgr.
 func NewMapComponent(mgr *service.MapManager) *MapComponent {
 	return &MapComponent{
 		Manager: mgr,
 	}
 }
 
+// Render draws the world map and labels for its rooms.
 func (mc *MapComponent) Render() {
 	if mc.Manager == nil || mc.Manager.World == nil {
 		return

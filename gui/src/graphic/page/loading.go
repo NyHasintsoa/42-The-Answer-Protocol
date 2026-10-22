@@ -16,6 +16,7 @@ type LoadingPage struct {
 	LoadError      string
 }
 
+// NewLoadingPage creates a loading page associated with ctx.
 func NewLoadingPage(ctx *model.GameContext) *LoadingPage {
 	lp := &LoadingPage{
 		LoadingMessage: "LOADING RESOURCES ...",
@@ -26,10 +27,13 @@ func NewLoadingPage(ctx *model.GameContext) *LoadingPage {
 	return lp
 }
 
+// SetLoadError stores message for display on the loading screen.
 func (p *LoadingPage) SetLoadError(message string) {
 	p.LoadError = message
 }
 
+// Draw renders the loading progress and any error message in the given window dimensions.
+// winWidth and winHeight are the window width and height in pixels.
 func (p *LoadingPage) Draw(winWidth, winHeight int32) {
 	centerX := winWidth / 2
 	centerY := winHeight / 2
@@ -63,6 +67,7 @@ func (p *LoadingPage) Draw(winWidth, winHeight int32) {
 	}
 }
 
+// Render draws the loading page using the current screen dimensions.
 func (p *LoadingPage) Render() {
 	p.Draw(int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight()))
 }

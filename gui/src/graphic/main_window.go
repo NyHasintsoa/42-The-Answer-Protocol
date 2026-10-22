@@ -1,3 +1,4 @@
+// Package graphic manages the Raylib window and transitions between game pages.
 package graphic
 
 import (
@@ -22,6 +23,9 @@ type MainWindow struct {
 	pagesLoaded  bool
 }
 
+// NewMainWindow creates and initializes the game's Raylib window.
+// width and height are the window dimensions in pixels; config is the game configuration;
+// title is the window title shown by the operating system.
 func NewMainWindow(width, height int32, config model.GameConfig, title string) *MainWindow {
 	mw := &MainWindow{
 		Width:  width,
@@ -42,10 +46,12 @@ func NewMainWindow(width, height int32, config model.GameConfig, title string) *
 	return mw
 }
 
+// AddEvent disables Raylib's default exit-key handling.
 func (mw *MainWindow) AddEvent() {
 	rl.SetExitKey(0)
 }
 
+// Close unloads pages and shared resources, closes the network client, and shuts down the window.
 func (mw *MainWindow) Close() {
 	if mw.Closed {
 		return
@@ -67,6 +73,7 @@ func (mw *MainWindow) Close() {
 	mw.Closed = true
 }
 
+// LoadPage initializes the loading page and sets it as the current page.
 func (mw *MainWindow) LoadPage() {
 	mw.Windows = map[pagemodel.PageState]page.Page{
 		pagemodel.LoadingPage: page.NewLoadingPage(mw.Context),
@@ -79,12 +86,14 @@ func (mw *MainWindow) LoadPage() {
 	}
 }
 
+// loadPages creates the player-name, menu, and gameplay pages.
 func (mw *MainWindow) loadPages() {
 	mw.Windows[pagemodel.PlayerNamePage] = page.NewPlayerNamePage(mw.Width, mw.Height, mw.Context)
 	mw.Windows[pagemodel.MainMenu] = page.NewMenuPage(mw.Width, mw.Height)
 	mw.Windows[pagemodel.GamePage] = page.NewGamePage(mw.Width, mw.Height, mw.Context)
 }
 
+// Render runs the window loop, draws the active page, and processes page transitions.
 func (mw *MainWindow) Render() {
 	for !rl.WindowShouldClose() {
 		rl.ClearBackground(utils.ThemeBackground)

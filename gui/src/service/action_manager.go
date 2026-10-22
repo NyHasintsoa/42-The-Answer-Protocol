@@ -23,6 +23,7 @@ type ActionManager struct {
 	OnAcceptQuest func(npc.NPCConfig) bool
 }
 
+// NewActionManager creates a closed action manager with no available responses.
 func NewActionManager() *ActionManager {
 	return &ActionManager{
 		IsOpen:    false,
@@ -30,6 +31,8 @@ func NewActionManager() *ActionManager {
 	}
 }
 
+// OpenAction opens the dialogue and available responses for npc.
+// npc supplies the dialogue lines, quest, and name shown in the action panel.
 func (dm *ActionManager) OpenAction(npc npc.NPCConfig) {
 	dm.NPC = npc
 	dm.IsOpen = true
@@ -43,6 +46,7 @@ func (dm *ActionManager) OpenAction(npc npc.NPCConfig) {
 	dm.refreshResponses()
 }
 
+// refreshResponses rebuilds the response list for the current NPC and dialogue state.
 func (dm *ActionManager) refreshResponses() {
 	dm.Responses = make([]ActionResponse, 0, 3)
 	addResponse := func(text, tag string, onSelect func()) {
@@ -63,6 +67,7 @@ func (dm *ActionManager) refreshResponses() {
 	addResponse("Leave", "CLOSE", dm.Close)
 }
 
+// continueDialogue advances to the next dialogue line, wrapping to the first line.
 func (dm *ActionManager) continueDialogue() {
 	if len(dm.NPC.Dialogue) == 0 {
 		return
@@ -71,6 +76,7 @@ func (dm *ActionManager) continueDialogue() {
 	dm.CurrentText = dm.NPC.Dialogue[dm.DialogueIndex]
 }
 
+// acceptQuest asks the configured callback to accept the current NPC's quest and refreshes responses.
 func (dm *ActionManager) acceptQuest() {
 	if dm.OnAcceptQuest != nil && dm.OnAcceptQuest(dm.NPC) {
 		dm.QuestAccepted = true
@@ -82,10 +88,12 @@ func (dm *ActionManager) acceptQuest() {
 	dm.refreshResponses()
 }
 
+// Close hides the action panel.
 func (dm *ActionManager) Close() {
 	dm.IsOpen = false
 }
 
+// Toggle changes whether the action panel is open.
 func (dm *ActionManager) Toggle() {
 	dm.IsOpen = !dm.IsOpen
 }

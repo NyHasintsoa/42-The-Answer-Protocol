@@ -12,6 +12,9 @@ type Monster struct {
 	Name string
 }
 
+// NewMonster creates a monster with the given display name and loads its animations.
+// scale controls rendered size; resolver handles resource lookup when supplied;
+// assetPath is the monster asset directory; name identifies the monster.
 func NewMonster(scale float32, resolver *utils.PathResolver, assetPath string, name string) *Monster {
 	m := &Monster{
 		Character: NewCharacter(scale, resolver, assetPath),
@@ -22,6 +25,7 @@ func NewMonster(scale float32, resolver *utils.PathResolver, assetPath string, n
 	return m
 }
 
+// loadAnimations loads the standard directional and action animations for the monster.
 func (m *Monster) loadAnimations() {
 	m.LoadAnim("Front_Idle", "Front_Idle", "Front_Idle_%03d.png", 16)
 	m.LoadAnim("Back_Idle", "Back_Idle", "Back_Idle_%03d.png", 16)
@@ -46,6 +50,7 @@ func (m *Monster) loadAnimations() {
 	m.LoadAnim("Dying", "Dying", "Dying_%03d.png", 10)
 }
 
+// GetAnimKey returns the animation key for the monster's current action and direction.
 func (m *Monster) GetAnimKey() string {
 	if m.Action == ActionDying {
 		return "Dying"
@@ -78,6 +83,7 @@ func (m *Monster) GetAnimKey() string {
 	return fmt.Sprintf("%s_%s", dirStr, actionStr)
 }
 
+// Render draws the monster's current animation frame.
 func (m *Monster) Render() {
 	key := m.GetAnimKey()
 	frames := m.Animations[key]
@@ -110,6 +116,9 @@ func (m *Monster) Render() {
 	rl.DrawText(m.Name, int32(m.Position.X-float32(rl.MeasureText(m.Name, 12))/2), int32(m.Position.Y-scaledHeight/2-10), 12, rl.Red)
 }
 
+// AdvanceFrame advances the current animation by dt seconds.
+// loop controls whether the animation restarts at its first frame; the result is true
+// when a non-looping animation reaches its final frame.
 func (m *Monster) AdvanceFrame(dt float32, loop bool) bool {
 	m.FrameTimer += dt
 	if m.FrameTimer >= (1.0 / m.FrameSpeed) {
@@ -131,6 +140,9 @@ func (m *Monster) AdvanceFrame(dt float32, loop bool) bool {
 	return false
 }
 
+// UpdateAI moves the monster toward target while respecting isWalkable.
+// dt is the elapsed time in seconds; target is the destination position;
+// isWalkable reports whether a world coordinate can be traversed.
 func (m *Monster) UpdateAI(dt float32, target rl.Vector2, isWalkable func(float32, float32) bool) {
 	if m.IsDead {
 		return
@@ -172,6 +184,7 @@ func (m *Monster) UpdateAI(dt float32, target rl.Vector2, isWalkable func(float3
 	m.AdvanceFrame(dt, true)
 }
 
+// abs returns the non-negative magnitude of value.
 func abs(value float32) float32 {
 	if value < 0 {
 		return -value

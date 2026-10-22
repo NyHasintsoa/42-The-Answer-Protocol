@@ -19,6 +19,8 @@ type InventoryComponent struct {
 	OnLog    func(string)
 }
 
+// NewInventoryComponent creates an inventory view backed by mgr and resolver.
+// mgr supplies inventory state; resolver locates item image assets.
 func NewInventoryComponent(mgr *service.InventoryManager, resolver *utils.PathResolver) *InventoryComponent {
 	return &InventoryComponent{
 		Manager:  mgr,
@@ -27,6 +29,7 @@ func NewInventoryComponent(mgr *service.InventoryManager, resolver *utils.PathRe
 	}
 }
 
+// GetTexture returns the icon texture for itemType.
 func (ic *InventoryComponent) GetTexture(itemType inventory.InventoryItemType) rl.Texture2D {
 	if tex, exists := ic.textures[itemType]; exists {
 		return tex
@@ -44,10 +47,13 @@ func (ic *InventoryComponent) GetTexture(itemType inventory.InventoryItemType) r
 	return tex
 }
 
+// Unload releases the resources owned by the inventory component.
 func (ic *InventoryComponent) Unload() {
 	ic.textures = make(map[inventory.InventoryItemType]rl.Texture2D)
 }
 
+// Render draws the inventory interface within a window of the specified dimensions.
+// winWidth and winHeight are the window dimensions in pixels.
 func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	if ic.Manager == nil || !ic.Manager.IsOpen {
 		return
@@ -310,6 +316,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	}
 }
 
+// logAction forwards message to the configured inventory log callback.
 func (ic *InventoryComponent) logAction(message string) {
 	if ic.OnLog != nil {
 		ic.OnLog(message)

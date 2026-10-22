@@ -13,11 +13,17 @@ import (
 )
 
 type INpc interface {
+	// Update advances the active animation by dt seconds.
 	Update(dt float32)
+	// Render draws the character at its current position.
 	Render()
+	// UnloadAnimations clears the character's animation frames.
 	UnloadAnimations()
+	// SetAction selects the animation identified by action.
 	SetAction(action string)
+	// SetPosition places the character at x and y, including its position offset.
 	SetPosition(x, y float32)
+	// SetPositionOffset sets the horizontal and vertical position offsets.
 	SetPositionOffset(x, y float32)
 }
 
@@ -35,6 +41,9 @@ type NpcCharacter struct {
 	RelativeDir    string
 }
 
+// NewNpcCharacter creates an NPC character using the supplied name, resolver, and asset directory.
+// name is the display name; resolver locates and loads assets; relativeDir identifies the NPC's
+// asset directory relative to the resolver's base; scale controls rendered size.
 func NewNpcCharacter(name string, resolver *utils.PathResolver, relativeDir string, scale float32) NpcCharacter {
 	return NpcCharacter{
 		Name:         name,
@@ -48,6 +57,8 @@ func NewNpcCharacter(name string, resolver *utils.PathResolver, relativeDir stri
 	}
 }
 
+// LoadAnim loads the PNG frames for action from the character's asset directory.
+// action is both the animation key and the animation subdirectory.
 func (n *NpcCharacter) LoadAnim(action string) error {
 	dirPath := n.PathResolver.Resolve(n.RelativeDir, action)
 	entries, err := os.ReadDir(dirPath)
@@ -73,6 +84,7 @@ func (n *NpcCharacter) LoadAnim(action string) error {
 	return nil
 }
 
+// SetAction selects action when animation frames for it have been loaded.
 func (n *NpcCharacter) SetAction(action string) {
 	if _, exists := n.Animations[action]; exists && n.CurrentAnim != action {
 		n.CurrentAnim = action
@@ -81,14 +93,19 @@ func (n *NpcCharacter) SetAction(action string) {
 	}
 }
 
+// SetPosition places the character at the specified coordinates, including its offset.
+// x and y are the horizontal and vertical coordinates.
 func (n *NpcCharacter) SetPosition(x, y float32) {
 	n.Position = rl.NewVector2(x+n.PositionOffset.X, y+n.PositionOffset.Y)
 }
 
+// SetPositionOffset sets the horizontal and vertical position offsets.
+// x and y are the offset values applied by SetPosition.
 func (n *NpcCharacter) SetPositionOffset(x, y float32) {
 	n.PositionOffset = rl.NewVector2(x, y)
 }
 
+// Update advances the active animation by dt seconds.
 func (n *NpcCharacter) Update(dt float32) {
 	frames := n.Animations[n.CurrentAnim]
 	if len(frames) == 0 {
@@ -102,6 +119,7 @@ func (n *NpcCharacter) Update(dt float32) {
 	}
 }
 
+// Render draws the current animation frame at the character's position.
 func (n *NpcCharacter) Render() {
 	frames, exists := n.Animations[n.CurrentAnim]
 	if !exists || len(frames) == 0 {
@@ -121,6 +139,7 @@ func (n *NpcCharacter) Render() {
 	rl.DrawTexturePro(tex, srcRec, destRec, origin, 0.0, rl.White)
 }
 
+// UnloadAnimations clears the character's animation frame references.
 func (n *NpcCharacter) UnloadAnimations() {
 	n.Animations = make(map[string][]rl.Texture2D)
 }

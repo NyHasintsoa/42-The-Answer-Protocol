@@ -1,3 +1,4 @@
+// Package model defines shared state passed between game pages and services.
 package model
 
 import (

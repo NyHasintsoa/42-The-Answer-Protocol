@@ -13,10 +13,13 @@ type PlayerComponent struct {
 	ScrollY float32
 }
 
+// NewPlayerComponent creates a player list view backed by mgr.
 func NewPlayerComponent(mgr *service.PlayerManager) *PlayerComponent {
 	return &PlayerComponent{Manager: mgr}
 }
 
+// Render draws the players within rect.
+// rect is the component's screen-space bounds.
 func (pc *PlayerComponent) Render(rect rl.Rectangle) {
 	rl.DrawRectangleRounded(rect, 0.03, 6, utils.ThemeSurface)
 	rl.DrawRectangleRoundedLinesEx(rect, 0.03, 6, 2, utils.ThemeBorder)

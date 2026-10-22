@@ -16,6 +16,9 @@ type InputComponent struct {
 	MaxHeight   float32
 }
 
+// NewInputComponent creates a text input positioned and sized by its bounds.
+// x and y are the top-left coordinates; w and h are its initial dimensions;
+// placeholder is shown while empty; maxLen limits the number of accepted characters.
 func NewInputComponent(x, y, w, h float32, placeholder string, maxLen int) *InputComponent {
 	if h <= 0 {
 		h = 48
@@ -30,6 +33,7 @@ func NewInputComponent(x, y, w, h float32, placeholder string, maxLen int) *Inpu
 	}
 }
 
+// RecalculateHeight updates the input height to fit its current wrapped content.
 func (ic *InputComponent) RecalculateHeight() {
 	fontSize := int32(16)
 	paddingX := float32(16)
@@ -54,6 +58,7 @@ func (ic *InputComponent) RecalculateHeight() {
 	ic.Rect.Height = calcH
 }
 
+// Update processes input for dt seconds and reports whether the input was submitted.
 func (ic *InputComponent) Update(dt float32) bool {
 	mousePos := rl.GetMousePosition()
 
@@ -93,6 +98,7 @@ func (ic *InputComponent) Update(dt float32) bool {
 	return false
 }
 
+// Render draws the input and its current text or placeholder.
 func (ic *InputComponent) Render() {
 	bgColor := rl.NewColor(24, 28, 42, 255)
 	borderColor := rl.NewColor(50, 70, 100, 255)
@@ -148,6 +154,7 @@ func (ic *InputComponent) Render() {
 	}
 }
 
+// GetAndClearText returns the current input text and clears the input.
 func (ic *InputComponent) GetAndClearText() string {
 	t := ic.Text
 	ic.Text = ""

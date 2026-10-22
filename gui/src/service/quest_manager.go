@@ -13,6 +13,7 @@ type Quest struct {
 	TargetProgress  int
 }
 
+// IsCompleted reports whether the quest has reached its target progress.
 func (q *Quest) IsCompleted() bool {
 	return q.CurrentProgress >= q.TargetProgress
 }
@@ -22,6 +23,7 @@ type QuestManager struct {
 	Quests []*Quest
 }
 
+// NewQuestManager creates a quest manager and initializes its default quests.
 func NewQuestManager() *QuestManager {
 	qm := &QuestManager{
 		IsOpen: false,
@@ -31,6 +33,7 @@ func NewQuestManager() *QuestManager {
 	return qm
 }
 
+// initDefaultQuests replaces the current quest list with the built-in sample quests.
 func (qm *QuestManager) initDefaultQuests() {
 	qm.Quests = []*Quest{
 		{ID: "npc_1", Title: "Talk to Guard Captain", NPCName: "Guard", CurrentProgress: 1, TargetProgress: 1},
@@ -47,14 +50,18 @@ func (qm *QuestManager) initDefaultQuests() {
 	}
 }
 
+// Toggle changes whether the quest panel is open.
 func (qm *QuestManager) Toggle() {
 	qm.IsOpen = !qm.IsOpen
 }
 
+// AddQuest appends quest to the manager's quest list.
 func (qm *QuestManager) AddQuest(quest *Quest) {
 	qm.Quests = append(qm.Quests, quest)
 }
 
+// AcceptQuest adds the quest offered by npc unless its ID is empty or already present.
+// npc provides the quest ID and display name; the method reports whether a quest was added.
 func (qm *QuestManager) AcceptQuest(npc npc.NPCConfig) bool {
 	if npc.QuestID == "" {
 		return false
@@ -73,6 +80,7 @@ func (qm *QuestManager) AcceptQuest(npc npc.NPCConfig) bool {
 	return true
 }
 
+// HasQuest reports whether a quest with questID is present in the manager.
 func (qm *QuestManager) HasQuest(questID string) bool {
 	for _, quest := range qm.Quests {
 		if quest.ID == questID {

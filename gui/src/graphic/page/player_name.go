@@ -34,6 +34,8 @@ type connectionResult struct {
 
 const serverAddress = "127.0.0.1:8080"
 
+// NewPlayerNamePage creates the player-name form for the specified window and game context.
+// winWidth and winHeight are the window dimensions in pixels; ctx provides shared game state.
 func NewPlayerNamePage(
 	winWidth, winHeight int32, ctx *model.GameContext,
 ) *PlayerNamePage {
@@ -71,6 +73,7 @@ func NewPlayerNamePage(
 	return mainPage
 }
 
+// handleSubmit validates the entered name and starts a server connection attempt.
 func (p *PlayerNamePage) handleSubmit() {
 	if p.connecting {
 		return
@@ -106,6 +109,7 @@ func (p *PlayerNamePage) handleSubmit() {
 	}()
 }
 
+// Update handles player-name input and submission.
 func (p *PlayerNamePage) Update() {
 	dt := rl.GetFrameTime()
 	select {
@@ -140,6 +144,7 @@ func (p *PlayerNamePage) Update() {
 	}
 }
 
+// Unload releases resources owned by the player-name page.
 func (p *PlayerNamePage) Unload() {
 	p.unloaded.Store(true)
 	if p.connectCancel != nil {
@@ -149,6 +154,7 @@ func (p *PlayerNamePage) Unload() {
 	p.BasePage.Unload()
 }
 
+// Render draws the player-name entry page.
 func (p *PlayerNamePage) Render() {
 	p.Update()
 

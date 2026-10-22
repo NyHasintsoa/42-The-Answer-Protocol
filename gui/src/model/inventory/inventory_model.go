@@ -1,3 +1,4 @@
+// Package inventory defines the data model for player inventory items.
 package inventory
 
 type InventoryCategory string
@@ -22,6 +23,7 @@ const (
 	ItemSword          InventoryItemType = "sword"
 )
 
+// Filename returns the asset filename associated with item type e.
 func (e InventoryItemType) Filename() string {
 	switch e {
 	case ItemBookDagger:

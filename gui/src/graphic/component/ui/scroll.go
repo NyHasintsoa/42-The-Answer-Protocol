@@ -2,6 +2,9 @@ package ui
 
 import rl "github.com/gen2brain/raylib-go/raylib"
 
+// UpdateScrollOffset applies mouse-wheel input and clamps the offset to the content bounds.
+// offset points to the current scroll offset; viewport defines the visible rectangle;
+// contentHeight is the total height of the scrollable content.
 func UpdateScrollOffset(offset *float32, viewport rl.Rectangle, contentHeight float32) float32 {
 	maxOffset := contentHeight - viewport.Height
 	if maxOffset < 0 {
@@ -20,6 +23,8 @@ func UpdateScrollOffset(offset *float32, viewport rl.Rectangle, contentHeight fl
 	return maxOffset
 }
 
+// DrawScrollIndicator renders the scrollbar for content within viewport.
+// contentHeight is the total content height; offset is the current scroll position.
 func DrawScrollIndicator(viewport rl.Rectangle, contentHeight, offset float32) {
 	if contentHeight <= viewport.Height || viewport.Height <= 0 {
 		return

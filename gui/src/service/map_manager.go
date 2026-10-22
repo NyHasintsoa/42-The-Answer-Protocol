@@ -92,6 +92,9 @@ type MapManager struct {
 	entityFactory  npc.EntityFactory
 }
 
+// NewMapManager loads map assets, creates the world described by configJSON, and spawns its entities.
+// pathResolver locates assets; configJSON contains world and NPC configuration; factory creates
+// the runtime NPC and monster entities.
 func NewMapManager(pathResolver *utils.PathResolver, configJSON string, factory npc.EntityFactory) *MapManager {
 	mm := &MapManager{
 		PathResolver:  pathResolver,
@@ -111,6 +114,7 @@ func NewMapManager(pathResolver *utils.PathResolver, configJSON string, factory 
 	return mm
 }
 
+// GetStartPosition returns the center of the start room, or a default map position if it is absent.
 func (mm *MapManager) GetStartPosition() (float32, float32) {
 	if startRoom, exists := mm.World.Rooms["start"]; exists {
 		mm.ActiveRoom = startRoom
@@ -119,6 +123,8 @@ func (mm *MapManager) GetStartPosition() (float32, float32) {
 	return TileSize, TileSize
 }
 
+// IsWalkable reports whether the world-space position x, y is on a path or room tile.
+// x and y are the horizontal and vertical world coordinates.
 func (mm *MapManager) IsWalkable(x, y float32) bool {
 	gridX := int(x / TileSize)
 	gridY := int(y / TileSize)
@@ -129,6 +135,8 @@ func (mm *MapManager) IsWalkable(x, y float32) bool {
 	return tile == TilePath || tile == TileRoom
 }
 
+// GetRoomInDirection returns the adjacent room connected through direction.
+// direction is an exit name such as "north"; the boolean is false if there is no matching room.
 func (mm *MapManager) GetRoomInDirection(direction string) (*RoomNode, bool) {
 	if mm.ActiveRoom == nil {
 		return nil, false
@@ -147,6 +155,8 @@ func (mm *MapManager) GetRoomInDirection(direction string) (*RoomNode, bool) {
 	return room, true
 }
 
+// GetNPCConfig returns the NPC configuration associated with key.
+// key identifies an NPC; the boolean reports whether a configuration was found.
 func (mm *MapManager) GetNPCConfig(key string) (npc.NPCConfig, bool) {
 	if cfg, exists := mm.NPCConfigs[key]; exists {
 		if cfg.Key == "" {
@@ -157,6 +167,8 @@ func (mm *MapManager) GetNPCConfig(key string) (npc.NPCConfig, bool) {
 	return npc.NPCConfig{Key: key, Name: key}, false
 }
 
+// Update advances NPC animations and sets the active room containing playerPos.
+// dt is elapsed time in seconds; playerPos is the player's world-space position.
 func (mm *MapManager) Update(dt float32, playerPos rl.Vector2) {
 	for _, n := range mm.NPCs {
 		n.Update(dt)
@@ -173,6 +185,8 @@ func (mm *MapManager) Update(dt float32, playerPos rl.Vector2) {
 	}
 }
 
+// GetPathTileTexture returns the path texture matching the neighboring tiles at grid position x, y.
+// x and y are tile coordinates; the boolean reports whether a usable texture was found.
 func (mm *MapManager) GetPathTileTexture(x, y int) (rl.Texture2D, bool) {
 	mask := 0
 	if y > 0 && (mm.World.Grid[y-1][x] == TilePath || mm.World.Grid[y-1][x] == TileRoom) {
@@ -198,6 +212,8 @@ func (mm *MapManager) GetPathTileTexture(x, y int) (rl.Texture2D, bool) {
 	return rl.Texture2D{}, false
 }
 
+// GetRoomTileTexture returns the room texture at grid position x, y when one is available.
+// x and y are tile coordinates; the boolean reports whether a usable texture was found.
 func (mm *MapManager) GetRoomTileTexture(x, y int) (rl.Texture2D, bool) {
 	for _, room := range mm.World.Rooms {
 		dx := x - room.TileX
@@ -211,6 +227,7 @@ func (mm *MapManager) GetRoomTileTexture(x, y int) (rl.Texture2D, bool) {
 	return rl.Texture2D{}, false
 }
 
+// Unload clears map entities, textures, and world state owned by the manager.
 func (mm *MapManager) Unload() {
 	if mm == nil {
 		return
@@ -232,6 +249,7 @@ func (mm *MapManager) Unload() {
 	mm.World = nil
 }
 
+// spawnEntities creates and positions the NPCs and monsters defined in each room.
 func (mm *MapManager) spawnEntities() {
 	mm.Enemies = make([]npc.Monster, 0)
 	mm.NPCs = make([]npc.INpc, 0)
@@ -298,6 +316,8 @@ func (mm *MapManager) spawnEntities() {
 	}
 }
 
+// generateWorldMap decodes configJSON and builds the tile grid and room graph.
+// Invalid JSON falls back to the built-in default map configuration.
 func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 	var config MapConfig
 	if err := json.Unmarshal([]byte(configJSON), &config); err != nil {
@@ -445,6 +465,8 @@ func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 	return worldMap
 }
 
+// carvePath marks a horizontal-then-vertical route between two grid coordinates as path tiles.
+// grid is the tile map; x1, y1 and x2, y2 are the start and end tile coordinates.
 func (mm *MapManager) carvePath(grid [][]TileType, x1, y1, x2, y2 int) {
 	currX, currY := x1, y1
 	for {
@@ -468,6 +490,7 @@ func (mm *MapManager) carvePath(grid [][]TileType, x1, y1, x2, y2 int) {
 	}
 }
 
+// loadGroundTextures loads the ground, path, and room textures used by the map.
 func (mm *MapManager) loadGroundTextures() {
 	for i := range 16 {
 		key := fmt.Sprintf("%04b", i)
@@ -480,6 +503,7 @@ func (mm *MapManager) loadGroundTextures() {
 	mm.RoomTextures["full"] = mm.PathResolver.ResourceManager.Load(fullPath)
 }
 
+// loadEnvironmentObjects loads the forest scenery textures and their display scales.
 func (mm *MapManager) loadEnvironmentObjects() {
 	forestFiles := []struct {
 		FileName string
@@ -510,6 +534,7 @@ func (mm *MapManager) loadEnvironmentObjects() {
 	}
 }
 
+// abs returns the non-negative magnitude of v.
 func (mm *MapManager) abs(v int) int {
 	if v < 0 {
 		return -v

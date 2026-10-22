@@ -14,6 +14,7 @@ type ItemComponent struct {
 	textures map[string]rl.Texture2D
 }
 
+// NewItemComponent creates an item renderer using resolver for asset lookup.
 func NewItemComponent(resolver *utils.PathResolver) *ItemComponent {
 	return &ItemComponent{
 		Resolver: resolver,
@@ -21,10 +22,13 @@ func NewItemComponent(resolver *utils.PathResolver) *ItemComponent {
 	}
 }
 
+// GetTextureByItemType returns the texture associated with itemType.
 func (ic *ItemComponent) GetTextureByItemType(itemType inventory.InventoryItemType) rl.Texture2D {
 	return ic.GetTextureByName(itemType.Filename())
 }
 
+// GetTextureByName loads or returns the cached texture for filename.
+// filename is the inventory image name, with or without its .png extension.
 func (ic *ItemComponent) GetTextureByName(filename string) rl.Texture2D {
 	if !strings.HasSuffix(filename, ".png") {
 		filename += ".png"
@@ -45,6 +49,8 @@ func (ic *ItemComponent) GetTextureByName(filename string) rl.Texture2D {
 	return tex
 }
 
+// RenderItemIcon draws the inventory image filename in destRect.
+// filename is the image name; destRect is the destination rectangle in screen coordinates.
 func (ic *ItemComponent) RenderItemIcon(filename string, destRect rl.Rectangle) {
 	tex := ic.GetTextureByName(filename)
 	if tex.ID > 0 {
@@ -55,6 +61,7 @@ func (ic *ItemComponent) RenderItemIcon(filename string, destRect rl.Rectangle) 
 	}
 }
 
+// Unload clears the component's texture cache.
 func (ic *ItemComponent) Unload() {
 	ic.textures = make(map[string]rl.Texture2D)
 }

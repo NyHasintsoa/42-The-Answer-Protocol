@@ -8,6 +8,9 @@ type MerchantCharacter struct {
 	NpcCharacter
 }
 
+// NewMerchantCharacter creates a merchant preview and loads its available animations.
+// resolver loads character assets; relativeDir identifies the asset directory;
+// scale controls the rendered size.
 func NewMerchantCharacter(resolver *utils.PathResolver, relativeDir string, scale float32) (*MerchantCharacter, error) {
 	merchant := &MerchantCharacter{
 		NpcCharacter: NewNpcCharacter("Merchant", resolver, relativeDir, scale),

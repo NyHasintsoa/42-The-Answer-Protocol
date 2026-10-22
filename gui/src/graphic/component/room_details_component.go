@@ -23,6 +23,8 @@ type RoomDetailsComponent struct {
 	NPCScrollY   float32
 }
 
+// NewRoomDetailsComponent creates a room details view using mgr and pathResolver.
+// mgr supplies the active room's items and NPCs; pathResolver locates character assets.
 func NewRoomDetailsComponent(mgr *service.RoomDetailsManager, pathResolver *utils.PathResolver) *RoomDetailsComponent {
 	return &RoomDetailsComponent{
 		Manager:      mgr,
@@ -32,6 +34,7 @@ func NewRoomDetailsComponent(mgr *service.RoomDetailsManager, pathResolver *util
 	}
 }
 
+// Unload releases the character previews owned by the component.
 func (rdc *RoomDetailsComponent) Unload() {
 	if rdc.ItemComp != nil {
 		rdc.ItemComp.Unload()
@@ -43,6 +46,8 @@ func (rdc *RoomDetailsComponent) Unload() {
 	}
 }
 
+// getOrCreateNPCPreview returns the cached character preview for npc or attempts to create one.
+// npc supplies the identity and character type used to select its preview.
 func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc npc.NPCConfig) character.INpc {
 	if preview, exists := rdc.NPCPreviews[npc.Key]; exists {
 		return preview
@@ -88,6 +93,8 @@ func (rdc *RoomDetailsComponent) getOrCreateNPCPreview(npc npc.NPCConfig) charac
 	return npcComp
 }
 
+// Render draws the active room details within rect.
+// rect is the component's screen-space bounds.
 func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 	if rdc.Manager == nil || !rdc.Manager.IsOpen {
 		return

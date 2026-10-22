@@ -6,6 +6,9 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// WrapTextLines splits text into lines that fit within maxWidth at fontSize.
+// text is the input string; fontSize is the rendered text size in pixels;
+// maxWidth is the maximum width of each returned line in pixels.
 func WrapTextLines(text string, fontSize int32, maxWidth int32) []string {
 	var lines []string
 	if maxWidth <= 0 {
@@ -80,6 +83,9 @@ func WrapTextLines(text string, fontSize int32, maxWidth int32) []string {
 	return lines
 }
 
+// DrawTextWrapped draws text in wrapped lines and returns the total drawn height.
+// text is the content; x and y are the top-left coordinates; maxWidth is the line width;
+// fontSize is the text size in pixels; color is the text color.
 func DrawTextWrapped(text string, x, y, maxWidth int32, fontSize int32, color rl.Color) int32 {
 	lineHeight := fontSize + 2
 	lines := WrapTextLines(text, fontSize, maxWidth)

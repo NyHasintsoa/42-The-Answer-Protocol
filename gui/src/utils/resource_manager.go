@@ -16,10 +16,13 @@ type ResourceManager struct {
 	preloadReady bool
 }
 
+// NewResourceManager creates a resource manager with an empty texture cache.
 func NewResourceManager() *ResourceManager {
 	return &ResourceManager{textures: make(map[string]rl.Texture2D)}
 }
 
+// Load returns the cached texture for path or loads and caches it from disk.
+// path is the image file to load.
 func (rm *ResourceManager) Load(path string) rl.Texture2D {
 	if rm == nil {
 		return rl.Texture2D{}
@@ -39,6 +42,8 @@ func (rm *ResourceManager) Load(path string) rl.Texture2D {
 	return texture
 }
 
+// PreloadDirectory loads every supported image under root before returning.
+// root is the directory tree to scan; loading stops and returns an error on failure.
 func (rm *ResourceManager) PreloadDirectory(root string) error {
 	for {
 		done, err := rm.PreloadNextBatch(root, 64)
@@ -51,6 +56,8 @@ func (rm *ResourceManager) PreloadDirectory(root string) error {
 	}
 }
 
+// PreloadNextBatch loads up to batchSize images from root and reports whether preloading is complete.
+// root is the directory tree to scan; batchSize is the maximum number of images to load this call.
 func (rm *ResourceManager) PreloadNextBatch(root string, batchSize int) (bool, error) {
 	if !rm.preloadReady {
 		err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
@@ -81,10 +88,13 @@ func (rm *ResourceManager) PreloadNextBatch(root string, batchSize int) (bool, e
 	return rm.preloadIndex == len(rm.preloadPaths), nil
 }
 
+// PreloadProgress reports the number of images loaded and discovered.
 func (rm *ResourceManager) PreloadProgress() (loaded, total int) {
 	return rm.preloadIndex, len(rm.preloadPaths)
 }
 
+// isImageResource reports whether path has a supported image extension.
+// path is the filesystem path to inspect.
 func isImageResource(path string) bool {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".jpeg", ".jpg", ".png":
@@ -94,6 +104,7 @@ func isImageResource(path string) bool {
 	}
 }
 
+// UnloadAll releases cached textures and resets the preload state.
 func (rm *ResourceManager) UnloadAll() {
 	if rm == nil {
 		return

@@ -51,6 +51,8 @@ type GamePage struct {
 	IsMovingToRoom  bool
 }
 
+// NewGamePage creates the game screen using the supplied window size and shared context.
+// winWidth and winHeight are the window dimensions in pixels; ctx holds shared game state.
 func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	var resourceManager *utils.ResourceManager
 	if ctx != nil {
@@ -239,6 +241,7 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	return gp
 }
 
+// Unload releases resources owned by the game page.
 func (gp *GamePage) Unload() {
 	if gp.IsUnloaded {
 		return
@@ -264,6 +267,7 @@ func (gp *GamePage) Unload() {
 	gp.BasePage.Unload()
 }
 
+// EventListener processes game-page keyboard and mouse input.
 func (gp *GamePage) EventListener() {
 	if rl.IsKeyPressed(rl.KeyEscape) && !gp.hasOpenModal() {
 		gp.returnToMainMenu()
@@ -298,6 +302,7 @@ func (gp *GamePage) EventListener() {
 	}
 }
 
+// returnToMainMenu closes the server connection and requests the main menu.
 func (gp *GamePage) returnToMainMenu() {
 	if gp.Context != nil && gp.Context.TCPClient != nil {
 		if err := gp.Context.TCPClient.Close(); err != nil {
@@ -310,6 +315,7 @@ func (gp *GamePage) returnToMainMenu() {
 	gp.NextState = pagemodel.MainMenu
 }
 
+// hasOpenModal reports whether any gameplay modal is currently open.
 func (gp *GamePage) hasOpenModal() bool {
 	return (gp.QuestMgr != nil && gp.QuestMgr.IsOpen) ||
 		(gp.InventoryMgr != nil && gp.InventoryMgr.IsOpen) ||
@@ -318,6 +324,7 @@ func (gp *GamePage) hasOpenModal() bool {
 		(gp.AttackMgr != nil && gp.AttackMgr.IsOpen)
 }
 
+// Update advances game state by dt seconds.
 func (gp *GamePage) Update(dt float32) {
 	if gp.AttackMgr != nil {
 		gp.AttackMgr.Update(dt)
@@ -393,6 +400,7 @@ func (gp *GamePage) Update(dt float32) {
 	}
 }
 
+// moveToRoom starts player movement toward the adjacent room in direction.
 func (gp *GamePage) moveToRoom(direction component.ExitDirection) {
 	if gp.IsMovingToRoom {
 		return
@@ -426,12 +434,14 @@ func (gp *GamePage) moveToRoom(direction component.ExitDirection) {
 	gp.addLog(fmt.Sprintf("Traveling %s to %s.", strings.ToLower(string(direction)), room.Name))
 }
 
+// addLog appends message to the game's log when the log component is available.
 func (gp *GamePage) addLog(message string) {
 	if gp.LogViewComp != nil {
 		gp.LogViewComp.AddLog(message)
 	}
 }
 
+// syncRoomContext updates the room view and details manager from the active map room.
 func (gp *GamePage) syncRoomContext() {
 	if gp.MapManager == nil || gp.MapManager.ActiveRoom == nil {
 		return
@@ -455,6 +465,8 @@ func (gp *GamePage) syncRoomContext() {
 	gp.RoomDetailsMgr.SetActiveRoom(room.ID, room.Name)
 }
 
+// roomEntityName formats an entity identifier as a display name.
+// value is the identifier to normalize.
 func roomEntityName(value string) string {
 	if separator := strings.LastIndex(value, ":"); separator >= 0 {
 		value = value[separator+1:]
@@ -466,6 +478,7 @@ func roomEntityName(value string) string {
 	return strings.ToUpper(value[:1]) + value[1:]
 }
 
+// Render draws the game page and its components.
 func (gp *GamePage) Render() {
 	gp.EventListener()
 	dt := rl.GetFrameTime()

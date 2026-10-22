@@ -25,6 +25,7 @@ type AttackManager struct {
 	respawnRemaining  float32
 }
 
+// NewAttackManager creates a combat manager with the player at full health.
 func NewAttackManager() *AttackManager {
 	return &AttackManager{
 		IsOpen:      false,
@@ -34,6 +35,8 @@ func NewAttackManager() *AttackManager {
 	}
 }
 
+// StartCombat opens combat against npc and resets the combat log.
+// npc supplies the opponent's identity and health values.
 func (am *AttackManager) StartCombat(npc npc.NPCConfig) {
 	am.NPC = npc
 	am.IsOpen = true
@@ -53,6 +56,7 @@ func (am *AttackManager) StartCombat(npc npc.NPCConfig) {
 	am.AddLog(fmt.Sprintf("Combat started with %s!", npc.Name))
 }
 
+// AddLog appends msg to the combat log and notifies the configured log callback.
 func (am *AttackManager) AddLog(msg string) {
 	am.CombatLog = append(am.CombatLog, msg)
 	if len(am.CombatLog) > 10 {
@@ -63,6 +67,7 @@ func (am *AttackManager) AddLog(msg string) {
 	}
 }
 
+// Attack resolves one player attack and, if the opponent survives, its counterattack.
 func (am *AttackManager) Attack() {
 	if am.IsCombatOver || !am.IsOpen {
 		return
@@ -108,6 +113,7 @@ func (am *AttackManager) Attack() {
 	}
 }
 
+// Status appends the current player and opponent health values to the combat log.
 func (am *AttackManager) Status() {
 	if !am.IsOpen {
 		return
@@ -115,6 +121,7 @@ func (am *AttackManager) Status() {
 	am.AddLog(fmt.Sprintf("STATUS: Player HP: %d/%d | %s HP: %d/%d", am.PlayerHP, am.PlayerMaxHP, am.NPC.Name, am.NPCHP, am.NPCMaxHP))
 }
 
+// Flee attempts to end combat and applies a counterattack if the attempt fails.
 func (am *AttackManager) Flee() {
 	if am.IsCombatOver || !am.IsOpen {
 		return
@@ -143,6 +150,7 @@ func (am *AttackManager) Flee() {
 	}
 }
 
+// UseInventory notifies the configured callback to open the inventory during combat.
 func (am *AttackManager) UseInventory() {
 	if am.IsCombatOver || !am.IsOpen {
 		return
@@ -153,6 +161,7 @@ func (am *AttackManager) UseInventory() {
 	}
 }
 
+// RespawnPlayer restores the player to 50 health, notifies the respawn callback, and closes combat.
 func (am *AttackManager) RespawnPlayer() {
 	am.respawnPending = false
 	am.respawnRemaining = 0
@@ -164,6 +173,8 @@ func (am *AttackManager) RespawnPlayer() {
 	am.Close()
 }
 
+// Update advances the pending respawn timer.
+// dt is the elapsed time in seconds since the previous update.
 func (am *AttackManager) Update(dt float32) {
 	if !am.respawnPending {
 		return
@@ -174,11 +185,13 @@ func (am *AttackManager) Update(dt float32) {
 	}
 }
 
+// scheduleRespawn starts the three-second player respawn countdown.
 func (am *AttackManager) scheduleRespawn() {
 	am.respawnPending = true
 	am.respawnRemaining = 3
 }
 
+// Close hides the combat panel.
 func (am *AttackManager) Close() {
 	am.IsOpen = false
 }

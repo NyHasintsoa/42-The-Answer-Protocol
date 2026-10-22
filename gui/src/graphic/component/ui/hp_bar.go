@@ -17,6 +17,8 @@ type HPBar struct {
 	Speed     float32
 }
 
+// NewHPBar creates a health bar at x and y with the specified dimensions.
+// x and y are the top-left coordinates; width and height define the bar size.
 func NewHPBar(x, y, width, height float32) *HPBar {
 	return &HPBar{
 		Position:  rl.Vector2{X: x, Y: y},
@@ -29,6 +31,8 @@ func NewHPBar(x, y, width, height float32) *HPBar {
 	}
 }
 
+// SetHP sets the displayed current health value.
+// val is the current health amount.
 func (hp *HPBar) SetHP(val float32) {
 	if val < 0 {
 		val = 0
@@ -39,6 +43,7 @@ func (hp *HPBar) SetHP(val float32) {
 	hp.TargetHP = val
 }
 
+// SetMaxHP sets the maximum health used to scale the bar.
 func (hp *HPBar) SetMaxHP(maxHP float32) {
 	if maxHP <= 0 {
 		maxHP = 1
@@ -52,6 +57,7 @@ func (hp *HPBar) SetMaxHP(maxHP float32) {
 	}
 }
 
+// Update advances the health bar's animated values by dt seconds.
 func (hp *HPBar) Update(dt float32) {
 
 	if hp.CurrentHP != hp.TargetHP {
@@ -67,6 +73,7 @@ func (hp *HPBar) Update(dt float32) {
 	}
 }
 
+// Render draws the health bar and its current value.
 func (hp *HPBar) Render() {
 	x := hp.Position.X
 	y := hp.Position.Y
@@ -172,6 +179,7 @@ func (hp *HPBar) Render() {
 	rl.DrawText(hpText, textX, textY, textSize, rl.White)
 }
 
+// drawHeartShape draws a heart centered at cx, cy with radius r and color col.
 func drawHeartShape(cx, cy, r float32, col rl.Color) {
 
 	rl.DrawCircle(int32(cx-r*0.45), int32(cy-r*0.25), r*0.55, col)

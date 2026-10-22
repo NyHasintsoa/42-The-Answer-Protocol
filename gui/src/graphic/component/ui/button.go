@@ -1,3 +1,4 @@
+// Package ui contains reusable controls for the game's graphical interface.
 package ui
 
 import (
@@ -8,6 +9,8 @@ import (
 
 var buttonInputEnabled = true
 
+// SetButtonInputEnabled globally enables or disables mouse interaction with buttons.
+// enabled determines whether button input is accepted.
 func SetButtonInputEnabled(enabled bool) {
 	buttonInputEnabled = enabled
 }
@@ -29,6 +32,9 @@ type Button struct {
 	Disabled       bool
 }
 
+// NewButton creates a button at the given position with the specified size and label.
+// x and y are the top-left coordinates; width and height define its size;
+// text is the displayed label; fontSize is its text size in pixels.
 func NewButton(x, y, width, height float32, text string, fontSize int32) *Button {
 	return &Button{
 		Rect:           rl.NewRectangle(x, y, width, height),
@@ -46,6 +52,7 @@ func NewButton(x, y, width, height float32, text string, fontSize int32) *Button
 	}
 }
 
+// Render draws the button and handles its enabled input state.
 func (b *Button) Render() {
 	b.IsClicked = false
 	currentBorderColor := b.BorderColor

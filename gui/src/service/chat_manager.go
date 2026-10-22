@@ -15,6 +15,7 @@ const (
 	ChannelGroup
 )
 
+// String returns the display name of c, defaulting to "Global" for unknown channels.
 func (c ChatChannel) String() string {
 	switch c {
 	case ChannelRoom:
@@ -41,6 +42,7 @@ type ChatManager struct {
 	Messages  map[ChatChannel][]ChatMessage
 }
 
+// NewChatManager creates a chat manager with sample messages in each channel.
 func NewChatManager() *ChatManager {
 	cm := &ChatManager{
 		IsOpen:    false,
@@ -62,10 +64,13 @@ func NewChatManager() *ChatManager {
 	return cm
 }
 
+// Toggle changes whether the chat panel is open.
 func (cm *ChatManager) Toggle() {
 	cm.IsOpen = !cm.IsOpen
 }
 
+// SendMessage appends text as a message from the current user to the active channel.
+// Empty text is ignored.
 func (cm *ChatManager) SendMessage(text string) {
 	if text == "" {
 		return
@@ -84,6 +89,7 @@ func (cm *ChatManager) SendMessage(text string) {
 	cm.Messages[cm.ActiveTab] = append(cm.Messages[cm.ActiveTab], msg)
 }
 
+// GetCurrentMessages returns the messages in the active channel.
 func (cm *ChatManager) GetCurrentMessages() []ChatMessage {
 	return cm.Messages[cm.ActiveTab]
 }

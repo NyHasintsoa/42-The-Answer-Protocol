@@ -14,6 +14,7 @@ type QuestComponent struct {
 	OnLog   func(string)
 }
 
+// NewQuestComponent creates a quest view backed by mgr.
 func NewQuestComponent(mgr *service.QuestManager) *QuestComponent {
 	return &QuestComponent{
 		Manager: mgr,
@@ -21,6 +22,8 @@ func NewQuestComponent(mgr *service.QuestManager) *QuestComponent {
 	}
 }
 
+// Render draws the quest interface within the specified window dimensions.
+// winWidth and winHeight are the window dimensions in pixels.
 func (qc *QuestComponent) Render(winWidth, winHeight int32) {
 	if qc.Manager == nil || !qc.Manager.IsOpen {
 		return

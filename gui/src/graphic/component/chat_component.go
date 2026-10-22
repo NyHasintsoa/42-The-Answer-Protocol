@@ -17,6 +17,7 @@ type ChatComponent struct {
 	OnLog          func(string)
 }
 
+// NewChatComponent creates a chat view backed by mgr.
 func NewChatComponent(mgr *service.ChatManager) *ChatComponent {
 	return &ChatComponent{
 		Manager:        mgr,
@@ -26,6 +27,8 @@ func NewChatComponent(mgr *service.ChatManager) *ChatComponent {
 	}
 }
 
+// Render draws the chat interface within the specified window dimensions.
+// winWidth and winHeight are the window dimensions in pixels.
 func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 	if cc.Manager == nil {
 		return

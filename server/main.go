@@ -1,3 +1,4 @@
+// Package main runs the TCP server that accepts and echoes client messages.
 package main
 
 import (
@@ -9,6 +10,7 @@ import (
 	"time"
 )
 
+// main listens for TCP clients and handles each connection concurrently.
 func main() {
 	// Start listening on TCP port 8080
 	listener, err := net.Listen("tcp", ":8080")
@@ -32,6 +34,8 @@ func main() {
 	}
 }
 
+// handleClient sends a welcome message, echoes client lines, and closes conn on return.
+// conn is the accepted TCP connection to serve.
 func handleClient(conn net.Conn) {
 	defer conn.Close()
 	clientAddr := conn.RemoteAddr().String()

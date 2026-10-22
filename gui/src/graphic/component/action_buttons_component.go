@@ -1,3 +1,4 @@
+// Package component provides the visual and interactive pieces of game pages.
 package component
 
 import (
@@ -18,6 +19,8 @@ type ActionButtonsComponent struct {
 	OnQuit       func()
 }
 
+// NewActionButtonsComponent creates action buttons backed by the supplied managers.
+// inv controls inventory actions; chat controls chat actions; quest controls quest actions.
 func NewActionButtonsComponent(inv *service.InventoryManager, chat *service.ChatManager, quest *service.QuestManager) *ActionButtonsComponent {
 	return &ActionButtonsComponent{
 		InventoryMgr: inv,
@@ -27,6 +30,8 @@ func NewActionButtonsComponent(inv *service.InventoryManager, chat *service.Chat
 	}
 }
 
+// Render draws the action buttons and command input within rect.
+// rect is the component's screen-space bounds.
 func (abc *ActionButtonsComponent) Render(rect rl.Rectangle) {
 	inputH := float32(32)
 	gridH := rect.Height - inputH - 8
@@ -94,6 +99,7 @@ func (abc *ActionButtonsComponent) Render(rect rl.Rectangle) {
 	abc.CommandInput.Render()
 }
 
+// handleAction dispatches the action associated with label to its manager or callback.
 func (abc *ActionButtonsComponent) handleAction(label string) {
 	switch label {
 	case "INVENTORY":

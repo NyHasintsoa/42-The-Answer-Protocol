@@ -16,6 +16,8 @@ type MenuPage struct {
 	WindowHeight  int32
 }
 
+// NewMenuPage creates the main menu for a window with the specified dimensions.
+// winWidth and winHeight are the window width and height in pixels.
 func NewMenuPage(winWidth int32, winHeight int32) *MenuPage {
 	mp := &MenuPage{
 		SelectedIndex: 0,
@@ -36,6 +38,7 @@ func NewMenuPage(winWidth int32, winHeight int32) *MenuPage {
 	return mp
 }
 
+// EventListener processes keyboard and button input for the menu.
 func (p *MenuPage) EventListener() {
 	if rl.IsKeyPressed(rl.KeyUp) || rl.IsKeyPressed(rl.KeyW) {
 		p.SelectedIndex = (p.SelectedIndex - 1 + len(p.Buttons)) % len(p.Buttons)
@@ -54,6 +57,7 @@ func (p *MenuPage) EventListener() {
 	}
 }
 
+// Render draws the menu and updates its selected page state.
 func (p *MenuPage) Render() {
 	p.EventListener()
 	if p.NextState == pagemodel.QuitPage {

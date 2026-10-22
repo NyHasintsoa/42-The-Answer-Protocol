@@ -28,6 +28,7 @@ type RoomViewManager struct {
 	IsMoving    bool
 }
 
+// NewRoomViewManager creates a room view manager with the sample village room.
 func NewRoomViewManager() *RoomViewManager {
 	return &RoomViewManager{
 		CurrentRoom: RoomViewData{
@@ -43,6 +44,7 @@ func NewRoomViewManager() *RoomViewManager {
 	}
 }
 
+// Move requests movement through the exit in dir when that exit is available.
 func (rvm *RoomViewManager) Move(dir ExitDirection) {
 	if !rvm.CurrentRoom.Exits[dir] {
 		return
@@ -57,10 +59,13 @@ type RoomViewComponent struct {
 	ScrollY float32
 }
 
+// NewRoomViewComponent creates a room view backed by mgr.
 func NewRoomViewComponent(mgr *RoomViewManager) *RoomViewComponent {
 	return &RoomViewComponent{Manager: mgr}
 }
 
+// Render draws the room title, description, scroll bar, and available exits in rect.
+// rect is the component's screen-space bounds.
 func (rvc *RoomViewComponent) Render(rect rl.Rectangle) {
 	rl.DrawRectangleRounded(rect, 0.03, 6, utils.ThemeSurface)
 	rl.DrawRectangleRoundedLinesEx(rect, 0.03, 6, 2, utils.ThemeBorder)

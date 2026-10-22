@@ -21,6 +21,8 @@ type AttackComponent struct {
 	NPCHPBar        *ui.HPBar
 }
 
+// NewAttackComponent creates a combat view backed by mgr and pathResolver.
+// mgr supplies combat state; pathResolver locates player and monster assets.
 func NewAttackComponent(mgr *service.AttackManager, pathResolver *utils.PathResolver) *AttackComponent {
 	assetPath := pathResolver.Resolve("characters", "main_character")
 	mainChar := character.NewMainCharacter(service.CharScale, pathResolver, assetPath)
@@ -35,6 +37,7 @@ func NewAttackComponent(mgr *service.AttackManager, pathResolver *utils.PathReso
 	}
 }
 
+// Unload releases the character animation resources owned by the component.
 func (ac *AttackComponent) Unload() {
 	if ac.MainChar != nil {
 		ac.MainChar.UnloadAnimations()
@@ -46,6 +49,8 @@ func (ac *AttackComponent) Unload() {
 	}
 }
 
+// getOrCreateMonsterPreview returns the cached preview for npc or creates one.
+// npc supplies the monster identity and image type.
 func (ac *AttackComponent) getOrCreateMonsterPreview(npc npc.NPCConfig) *character.Monster {
 	if monster, exists := ac.MonsterPreviews[npc.Key]; exists {
 		return monster
@@ -66,6 +71,8 @@ func (ac *AttackComponent) getOrCreateMonsterPreview(npc npc.NPCConfig) *charact
 	return monster
 }
 
+// Render draws the combat interface within the specified window dimensions.
+// winWidth and winHeight are the window dimensions in pixels.
 func (ac *AttackComponent) Render(winWidth, winHeight int32) {
 	if ac.Manager == nil || !ac.Manager.IsOpen {
 		return
@@ -201,6 +208,7 @@ func (ac *AttackComponent) Render(winWidth, winHeight int32) {
 	}
 }
 
+// styleActionButton applies the combat action button colors and border style to btn.
 func (ac *AttackComponent) styleActionButton(btn *ui.Button) {
 	btn.BgColor = utils.ThemeSurfaceRaised
 	btn.HoverBgColor = utils.ThemeAccentHover

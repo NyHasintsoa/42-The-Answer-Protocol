@@ -1,3 +1,4 @@
+// Package page defines the states used to navigate between game screens.
 package page
 
 type PageState int

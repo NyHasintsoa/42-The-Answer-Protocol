@@ -14,6 +14,7 @@ type LogViewComponent struct {
 	followTail   bool
 }
 
+// NewLogViewComponent creates an empty log view that follows new messages.
 func NewLogViewComponent() *LogViewComponent {
 	return &LogViewComponent{
 		Logs:       []string{},
@@ -21,10 +22,13 @@ func NewLogViewComponent() *LogViewComponent {
 	}
 }
 
+// AddLog appends msg to the log displayed by the component.
 func (lvc *LogViewComponent) AddLog(msg string) {
 	lvc.Logs = append(lvc.Logs, msg)
 }
 
+// Render draws the log messages within rect.
+// rect is the component's screen-space bounds.
 func (lvc *LogViewComponent) Render(rect rl.Rectangle) {
 	rl.DrawRectangleRounded(rect, 0.02, 6, utils.ThemeSurface)
 	rl.DrawRectangleRoundedLinesEx(rect, 0.02, 6, 2, utils.ThemeBorder)

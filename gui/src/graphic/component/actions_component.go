@@ -21,6 +21,8 @@ type ActionComponent struct {
 	OnLog        func(string)
 }
 
+// NewActionComponent creates an NPC action view backed by mgr and pathResolver.
+// mgr supplies dialogue and response state; pathResolver locates portrait assets.
 func NewActionComponent(mgr *service.ActionManager, pathResolver *utils.PathResolver) *ActionComponent {
 	component := &ActionComponent{
 		Manager:      mgr,
@@ -33,6 +35,7 @@ func NewActionComponent(mgr *service.ActionManager, pathResolver *utils.PathReso
 	return component
 }
 
+// Unload releases the animation resources held by cached NPC previews.
 func (dc *ActionComponent) Unload() {
 	for _, npc := range dc.NPCPreviews {
 		if npc != nil {
@@ -41,6 +44,8 @@ func (dc *ActionComponent) Unload() {
 	}
 }
 
+// getOrCreateNPCPreview returns the cached character preview for npc or attempts to create one.
+// npc supplies the identity and character type used to select its portrait.
 func (dc *ActionComponent) getOrCreateNPCPreview(npc npc.NPCConfig) character.INpc {
 	if preview, exists := dc.NPCPreviews[npc.Key]; exists {
 		return preview
@@ -86,6 +91,8 @@ func (dc *ActionComponent) getOrCreateNPCPreview(npc npc.NPCConfig) character.IN
 	return npcComp
 }
 
+// Render draws the action dialog within a window of the specified dimensions.
+// winWidth and winHeight are the window dimensions in pixels.
 func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 	if dc.Manager == nil || !dc.Manager.IsOpen {
 		return
