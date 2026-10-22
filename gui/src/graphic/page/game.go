@@ -171,8 +171,7 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	gp.RoomViewMgr.OnMove = gp.moveToRoom
 	gp.ActionBtnsComp.OnLog = gp.addLog
 	gp.ActionBtnsComp.OnQuit = func() {
-		gp.addLog("Returned to the main menu.")
-		gp.NextState = pagemodel.MainMenu
+		gp.returnToMainMenu()
 	}
 	gp.InventoryComp.OnLog = gp.addLog
 	gp.QuestComp.OnLog = gp.addLog
@@ -267,8 +266,7 @@ func (gp *GamePage) Unload() {
 
 func (gp *GamePage) EventListener() {
 	if rl.IsKeyPressed(rl.KeyEscape) && !gp.hasOpenModal() {
-		gp.addLog("Returned to the main menu.")
-		gp.NextState = pagemodel.MainMenu
+		gp.returnToMainMenu()
 	}
 
 	if rl.IsKeyPressed(rl.KeyQ) && gp.QuestMgr != nil {
@@ -298,6 +296,18 @@ func (gp *GamePage) EventListener() {
 			gp.addLog("Moved east.")
 		}
 	}
+}
+
+func (gp *GamePage) returnToMainMenu() {
+	if gp.Context != nil && gp.Context.TCPClient != nil {
+		if err := gp.Context.TCPClient.Close(); err != nil {
+			gp.addLog("Could not disconnect from the server.")
+		} else {
+			gp.addLog("Disconnected from the server.")
+		}
+	}
+	gp.addLog("Returned to the main menu.")
+	gp.NextState = pagemodel.MainMenu
 }
 
 func (gp *GamePage) hasOpenModal() bool {

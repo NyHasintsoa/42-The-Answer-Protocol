@@ -4,6 +4,7 @@ import (
 	"tap-gui/src/graphic/page"
 	"tap-gui/src/model"
 	pagemodel "tap-gui/src/model/page"
+	"tap-gui/src/service"
 	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -30,10 +31,11 @@ func NewMainWindow(width, height int32, config model.GameConfig, title string) *
 		Context: &model.GameContext{
 			Config:          config,
 			ResourceManager: utils.NewResourceManager(),
+			TCPClient:       service.NewTCPClient(),
 		},
 		Windows: make(map[pagemodel.PageState]page.Page),
 	}
-	rl.SetTraceLogLevel(rl.LogAll)
+	rl.SetTraceLogLevel(rl.LogNone)
 	rl.InitWindow(mw.Width, mw.Height, mw.Title)
 	rl.SetTargetFPS(60)
 
@@ -57,6 +59,9 @@ func (mw *MainWindow) Close() {
 	mw.Windows = nil
 	if mw.Context != nil && mw.Context.ResourceManager != nil {
 		mw.Context.ResourceManager.UnloadAll()
+	}
+	if mw.Context != nil && mw.Context.TCPClient != nil {
+		_ = mw.Context.TCPClient.Close()
 	}
 	rl.CloseWindow()
 	mw.Closed = true

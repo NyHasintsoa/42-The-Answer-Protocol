@@ -1,8 +1,10 @@
 package page
 
 import (
-	"fmt"
+	"context"
 	"strings"
+	"sync/atomic"
+	"time"
 
 	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/model"
@@ -14,20 +16,31 @@ import (
 
 type PlayerNamePage struct {
 	BasePage
-	name_input   ui.InputComponent
-	submit_btn   ui.Button
-	winWidth     int32
-	winHeight    int32
-	errorMessage string
+	name_input     ui.InputComponent
+	submit_btn     ui.Button
+	winWidth       int32
+	winHeight      int32
+	errorMessage   string
+	connecting     bool
+	playerName     string
+	connectCancel  context.CancelFunc
+	connectResults chan connectionResult
+	unloaded       atomic.Bool
 }
+
+type connectionResult struct {
+	err error
+}
+
+const serverAddress = "127.0.0.1:8080"
 
 func NewPlayerNamePage(
 	winWidth, winHeight int32, ctx *model.GameContext,
 ) *PlayerNamePage {
 	mainPage := &PlayerNamePage{
-		winWidth:     winWidth,
-		winHeight:    winHeight,
-		errorMessage: "",
+		winWidth:       winWidth,
+		winHeight:      winHeight,
+		connectResults: make(chan connectionResult, 1),
 	}
 	mainPage.Context = ctx
 	mainPage.State = pagemodel.PlayerNamePage
@@ -59,31 +72,81 @@ func NewPlayerNamePage(
 }
 
 func (p *PlayerNamePage) handleSubmit() {
-	raw_name := strings.TrimSpace(p.name_input.GetAndClearText())
-	fmt.Printf("Player name submitted: '%s'\n", raw_name)
+	if p.connecting {
+		return
+	}
+	rawName := strings.TrimSpace(p.name_input.Text)
 
-	if raw_name == "" {
+	if rawName == "" {
 		p.errorMessage = "PLAYER NAME CANNOT BE EMPTY."
 		return
 	}
-	if strings.ToLower(raw_name) == "shadowslayer" {
+	if strings.ToLower(rawName) == "shadowslayer" {
 		p.errorMessage = "PLAYER NAME IS ALREADY IN USE."
 		return
 	}
-	p.errorMessage = ""
-	if p.Context != nil {
-		p.Context.PlayerName = raw_name
+	if p.Context == nil || p.Context.TCPClient == nil {
+		p.errorMessage = "SERVER CAN'T BE REACHED."
+		return
 	}
-	p.NextState = pagemodel.GamePage
+
+	p.playerName = rawName
+	p.errorMessage = ""
+	p.connecting = true
+	p.submit_btn.Text = "CONNECTING..."
+	connectContext, cancel := context.WithCancel(context.Background())
+	p.connectCancel = cancel
+	client := p.Context.TCPClient
+
+	go func() {
+		err := client.Connect(connectContext, serverAddress, 3*time.Second)
+		if !p.unloaded.Load() {
+			p.connectResults <- connectionResult{err: err}
+		}
+	}()
 }
 
 func (p *PlayerNamePage) Update() {
 	dt := rl.GetFrameTime()
-	p.name_input.Update(dt)
+	select {
+	case result := <-p.connectResults:
+		p.connecting = false
+		if p.connectCancel != nil {
+			p.connectCancel()
+			p.connectCancel = nil
+		}
+		p.submit_btn.Text = "CONTINUE"
+		if result.err != nil {
+			p.errorMessage = "SERVER CAN'T BE REACHED."
+			return
+		}
+		if result.err != nil {
+			p.errorMessage = "SERVER CAN'T BE REACHED."
+			return
+		}
+		p.Context.PlayerName = p.playerName
+		p.NextState = pagemodel.GamePage
+	default:
+	}
 
-	if p.submit_btn.IsClicked || rl.IsKeyPressed(rl.KeyEnter) {
+	if p.connecting {
+		return
+	}
+
+	submitted := p.name_input.Update(dt)
+
+	if p.submit_btn.IsClicked || submitted || rl.IsKeyPressed(rl.KeyEnter) {
 		p.handleSubmit()
 	}
+}
+
+func (p *PlayerNamePage) Unload() {
+	p.unloaded.Store(true)
+	if p.connectCancel != nil {
+		p.connectCancel()
+		p.connectCancel = nil
+	}
+	p.BasePage.Unload()
 }
 
 func (p *PlayerNamePage) Render() {
