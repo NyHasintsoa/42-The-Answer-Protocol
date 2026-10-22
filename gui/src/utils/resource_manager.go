@@ -21,6 +21,12 @@ func NewResourceManager() *ResourceManager {
 }
 
 func (rm *ResourceManager) Load(path string) rl.Texture2D {
+	if rm == nil {
+		return rl.Texture2D{}
+	}
+	if rm.textures == nil {
+		rm.textures = make(map[string]rl.Texture2D)
+	}
 	key := filepath.Clean(path)
 	if texture, exists := rm.textures[key]; exists {
 		return texture
@@ -89,6 +95,9 @@ func isImageResource(path string) bool {
 }
 
 func (rm *ResourceManager) UnloadAll() {
+	if rm == nil {
+		return
+	}
 	for _, texture := range rm.textures {
 		if texture.ID > 0 {
 			rl.UnloadTexture(texture)

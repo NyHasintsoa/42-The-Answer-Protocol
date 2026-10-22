@@ -170,6 +170,10 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	gp.State = pagemodel.GamePage
 	gp.RoomViewMgr.OnMove = gp.moveToRoom
 	gp.ActionBtnsComp.OnLog = gp.addLog
+	gp.ActionBtnsComp.OnQuit = func() {
+		gp.addLog("Returned to the main menu.")
+		gp.NextState = pagemodel.MainMenu
+	}
 	gp.InventoryComp.OnLog = gp.addLog
 	gp.QuestComp.OnLog = gp.addLog
 	gp.InventoryComp.OnDrop = func(item inventory.InventoryItem) {

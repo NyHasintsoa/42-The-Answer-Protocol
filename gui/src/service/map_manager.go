@@ -212,12 +212,24 @@ func (mm *MapManager) GetRoomTileTexture(x, y int) (rl.Texture2D, bool) {
 }
 
 func (mm *MapManager) Unload() {
+	if mm == nil {
+		return
+	}
 	for _, e := range mm.Enemies {
 		e.UnloadAnimations()
 	}
 	for _, n := range mm.NPCs {
 		n.UnloadAnimations()
 	}
+	mm.Enemies = nil
+	mm.NPCs = nil
+	mm.PathTextures = nil
+	mm.RoomTextures = nil
+	mm.EmptyTexture = rl.Texture2D{}
+	mm.SceneryObjects = nil
+	mm.NPCConfigs = nil
+	mm.ActiveRoom = nil
+	mm.World = nil
 }
 
 func (mm *MapManager) spawnEntities() {

@@ -33,7 +33,7 @@ func NewMainWindow(width, height int32, config model.GameConfig, title string) *
 		},
 		Windows: make(map[pagemodel.PageState]page.Page),
 	}
-	rl.SetTraceLogLevel(rl.LogNone)
+	rl.SetTraceLogLevel(rl.LogAll)
 	rl.InitWindow(mw.Width, mw.Height, mw.Title)
 	rl.SetTargetFPS(60)
 
@@ -53,6 +53,8 @@ func (mw *MainWindow) Close() {
 			p.Unload()
 		}
 	}
+	mw.CurrentPage = nil
+	mw.Windows = nil
 	if mw.Context != nil && mw.Context.ResourceManager != nil {
 		mw.Context.ResourceManager.UnloadAll()
 	}

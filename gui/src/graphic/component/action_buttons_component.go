@@ -15,6 +15,7 @@ type ActionButtonsComponent struct {
 	QuestMgr     *service.QuestManager
 	CommandInput *ui.InputComponent
 	OnLog        func(string)
+	OnQuit       func()
 }
 
 func NewActionButtonsComponent(inv *service.InventoryManager, chat *service.ChatManager, quest *service.QuestManager) *ActionButtonsComponent {
@@ -107,6 +108,10 @@ func (abc *ActionButtonsComponent) handleAction(label string) {
 		if abc.QuestMgr != nil {
 			abc.QuestMgr.Toggle()
 		}
-	case "STATUS", "GROUP", "LOOK", "WHO", "QUIT":
+	case "QUIT":
+		if abc.OnQuit != nil {
+			abc.OnQuit()
+		}
+	case "STATUS", "GROUP", "LOOK", "WHO":
 	}
 }
