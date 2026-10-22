@@ -18,6 +18,7 @@ type ActionComponent struct {
 	PathResolver *utils.PathResolver
 	NPCPreviews  map[string]character.INpc
 	LawnTexture  rl.Texture2D
+	OnLog        func(string)
 }
 
 func NewActionComponent(mgr *service.ActionManager, pathResolver *utils.PathResolver) *ActionComponent {
@@ -134,6 +135,9 @@ func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 	closeBtn.Render()
 
 	if closeBtn.IsClicked || rl.IsKeyPressed(rl.KeyEscape) {
+		if dc.OnLog != nil {
+			dc.OnLog(fmt.Sprintf("Closed actions for %s.", dc.Manager.NPC.Name))
+		}
 		dc.Manager.Close()
 	}
 
@@ -239,10 +243,11 @@ func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 		}
 
 		if (isHover && rl.IsMouseButtonPressed(rl.MouseButtonLeft)) || rl.IsKeyPressed(int32(rl.KeyOne)+int32(i)) {
+			if dc.OnLog != nil {
+				dc.OnLog(fmt.Sprintf("%s: %s", dc.Manager.NPC.Name, resp.Text))
+			}
 			if resp.OnSelect != nil {
 				resp.OnSelect()
-			} else {
-				fmt.Printf("[DIALOGUE] Selected option %d: %s\n", resp.Index, resp.Text)
 			}
 		}
 	}

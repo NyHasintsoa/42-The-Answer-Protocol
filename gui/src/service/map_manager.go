@@ -147,6 +147,27 @@ func (mm *MapManager) GetRoomInDirection(direction string) (*RoomNode, bool) {
 	return room, true
 }
 
+func (mm *MapManager) AddItemToActiveRoom(itemID string) bool {
+	if mm == nil || mm.ActiveRoom == nil || itemID == "" {
+		return false
+	}
+	mm.ActiveRoom.Items = append(mm.ActiveRoom.Items, itemID)
+	return true
+}
+
+func (mm *MapManager) RemoveItemFromActiveRoom(itemID string) bool {
+	if mm == nil || mm.ActiveRoom == nil {
+		return false
+	}
+	for index, roomItemID := range mm.ActiveRoom.Items {
+		if roomItemID == itemID {
+			mm.ActiveRoom.Items = append(mm.ActiveRoom.Items[:index], mm.ActiveRoom.Items[index+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
 func (mm *MapManager) GetNPCConfig(key string) (npc.NPCConfig, bool) {
 	if cfg, exists := mm.NPCConfigs[key]; exists {
 		if cfg.Key == "" {

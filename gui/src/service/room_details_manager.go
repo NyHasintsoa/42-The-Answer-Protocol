@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"tap-gui/src/model/npc"
 )
 
@@ -18,6 +17,7 @@ type RoomDetailsManager struct {
 	NPCs          []npc.NPCConfig
 	OnOpenActions func(npc npc.NPCConfig)
 	OnAttackNPC   func(npc npc.NPCConfig)
+	OnTakeItem    func(string)
 }
 
 func NewRoomDetailsManager() *RoomDetailsManager {
@@ -34,14 +34,17 @@ func (rm *RoomDetailsManager) SetRoomDetails(roomName string, items []RoomItemDe
 	rm.NPCs = npcs
 }
 
-func (rm *RoomDetailsManager) TakeItem(itemID string) {
-	fmt.Printf("[ACTION] Take item: %s from room '%s'\n", itemID, rm.RoomName)
+func (rm *RoomDetailsManager) TakeItem(itemID string) bool {
 	for i, item := range rm.Items {
 		if item.ID == itemID {
 			rm.Items = append(rm.Items[:i], rm.Items[i+1:]...)
-			break
+			if rm.OnTakeItem != nil {
+				rm.OnTakeItem(itemID)
+			}
+			return true
 		}
 	}
+	return false
 }
 
 func (rm *RoomDetailsManager) OpenActions(npc npc.NPCConfig) {

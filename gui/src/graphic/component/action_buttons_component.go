@@ -2,6 +2,7 @@ package component
 
 import (
 	"fmt"
+	"strings"
 	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/service"
 
@@ -13,6 +14,7 @@ type ActionButtonsComponent struct {
 	ChatMgr      *service.ChatManager
 	QuestMgr     *service.QuestManager
 	CommandInput *ui.InputComponent
+	OnLog        func(string)
 }
 
 func NewActionButtonsComponent(inv *service.InventoryManager, chat *service.ChatManager, quest *service.QuestManager) *ActionButtonsComponent {
@@ -68,7 +70,9 @@ func (abc *ActionButtonsComponent) Render(rect rl.Rectangle) {
 			button.ClickedColor = button.HoverBgColor
 			button.Render()
 			if button.IsClicked {
-				fmt.Printf("[ACTION LOG] Bottom button clicked: %s\n", btn.Label)
+				if abc.OnLog != nil {
+					abc.OnLog(fmt.Sprintf("Selected %s.", strings.ToLower(btn.Label)))
+				}
 				abc.handleAction(btn.Label)
 			}
 		}
@@ -81,7 +85,9 @@ func (abc *ActionButtonsComponent) Render(rect rl.Rectangle) {
 	if abc.CommandInput.Update(dt) {
 		cmd := abc.CommandInput.GetAndClearText()
 		if cmd != "" {
-			fmt.Printf("[COMMAND LINE LOG] Executing command: %s\n", cmd)
+			if abc.OnLog != nil {
+				abc.OnLog(fmt.Sprintf("Entered command: %s", cmd))
+			}
 		}
 	}
 	abc.CommandInput.Render()

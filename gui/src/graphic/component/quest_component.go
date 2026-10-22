@@ -11,6 +11,7 @@ import (
 type QuestComponent struct {
 	Manager *service.QuestManager
 	ScrollY float32
+	OnLog   func(string)
 }
 
 func NewQuestComponent(mgr *service.QuestManager) *QuestComponent {
@@ -57,6 +58,9 @@ func (qc *QuestComponent) Render(winWidth, winHeight int32) {
 	closeButton.Render()
 	if closeButton.IsClicked {
 		qc.Manager.IsOpen = false
+		if qc.OnLog != nil {
+			qc.OnLog("Closed the quest log.")
+		}
 	}
 
 	quests := qc.Manager.Quests

@@ -18,6 +18,7 @@ type RoomDetailsComponent struct {
 	PathResolver *utils.PathResolver
 	ItemComp     *ItemComponent
 	NPCPreviews  map[string]character.INpc
+	OnLog        func(string)
 }
 
 func NewRoomDetailsComponent(mgr *service.RoomDetailsManager, pathResolver *utils.PathResolver) *RoomDetailsComponent {
@@ -149,8 +150,9 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			takeButton.Render()
 
 			if takeButton.IsClicked {
-				fmt.Printf("[ACTION LOG] TAKE clicked -> Item: %s (ID: %s)\n", item.Name, item.ID)
-				rdc.Manager.TakeItem(item.ID)
+				if rdc.Manager.TakeItem(item.ID) && rdc.OnLog != nil {
+					rdc.OnLog(fmt.Sprintf("Took %s from the room.", item.Name))
+				}
 			}
 
 			itemY += 95
@@ -201,6 +203,9 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			actionsButton.BorderRadius = 0.2
 			actionsButton.Render()
 			if actionsButton.IsClicked {
+				if rdc.OnLog != nil {
+					rdc.OnLog(fmt.Sprintf("Opened actions for %s.", npc.Name))
+				}
 				rdc.Manager.OpenActions(npc)
 			}
 

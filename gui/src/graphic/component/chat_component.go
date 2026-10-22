@@ -14,6 +14,7 @@ type ChatComponent struct {
 	InputComp      *ui.InputComponent
 	ScrollY        float32
 	scrollToBottom bool
+	OnLog          func(string)
 }
 
 func NewChatComponent(mgr *service.ChatManager) *ChatComponent {
@@ -82,6 +83,9 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		if tabButton.IsClicked && !isActive {
 			cc.Manager.ActiveTab = tab
 			cc.scrollToBottom = true
+			if cc.OnLog != nil {
+				cc.OnLog("Switched to " + tabText + " chat.")
+			}
 		}
 
 		tabStartX += tabW + 12
@@ -99,6 +103,9 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 	closeButton.Render()
 	if closeButton.IsClicked {
 		cc.Manager.IsOpen = false
+		if cc.OnLog != nil {
+			cc.OnLog("Closed chat.")
+		}
 	}
 
 	// Update Textarea Input Component layout dynamically
@@ -118,6 +125,9 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		text := cc.InputComp.GetAndClearText()
 		if strings.TrimSpace(text) != "" {
 			cc.Manager.SendMessage(text)
+			if cc.OnLog != nil {
+				cc.OnLog("Sent a message in " + cc.Manager.ActiveTab.String() + " chat.")
+			}
 			cc.scrollToBottom = true
 		}
 	}

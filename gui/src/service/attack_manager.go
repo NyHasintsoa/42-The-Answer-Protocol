@@ -20,6 +20,7 @@ type AttackManager struct {
 	OnMonsterDefeated func(npc npc.NPCConfig)
 	OnOpenInventory   func()
 	OnFlee            func()
+	OnLog             func(string)
 	respawnPending    bool
 	respawnRemaining  float32
 }
@@ -57,6 +58,9 @@ func (am *AttackManager) AddLog(msg string) {
 	if len(am.CombatLog) > 10 {
 		am.CombatLog = am.CombatLog[1:]
 	}
+	if am.OnLog != nil {
+		am.OnLog(msg)
+	}
 }
 
 func (am *AttackManager) Attack() {
@@ -75,7 +79,6 @@ func (am *AttackManager) Attack() {
 		am.IsCombatOver = true
 
 		successMsg := fmt.Sprintf("SUCCESS: %s has been defeated!", am.NPC.Name)
-		fmt.Println(successMsg)
 		am.AddLog(successMsg)
 
 		if am.OnMonsterDefeated != nil {
@@ -144,6 +147,7 @@ func (am *AttackManager) UseInventory() {
 	if am.IsCombatOver || !am.IsOpen {
 		return
 	}
+	am.AddLog("Opened inventory during combat.")
 	if am.OnOpenInventory != nil {
 		am.OnOpenInventory()
 	}

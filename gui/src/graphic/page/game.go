@@ -139,6 +139,23 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	}
 	gp.State = pagemodel.GamePage
 	gp.RoomViewMgr.OnMove = gp.moveToRoom
+	gp.ActionBtnsComp.OnLog = gp.addLog
+	gp.InventoryComp.OnLog = gp.addLog
+	gp.QuestComp.OnLog = gp.addLog
+	gp.InventoryComp.OnDrop = func(item inventory.InventoryItem) {
+		if gp.MapManager.AddItemToActiveRoom(item.ID) {
+			gp.syncRoomContext()
+		}
+	}
+	gp.RoomDetailsComp.OnLog = gp.addLog
+	gp.DialogComp.OnLog = gp.addLog
+	gp.ChatComp.OnLog = gp.addLog
+	gp.AttackMgr.OnLog = gp.addLog
+	gp.RoomDetailsMgr.OnTakeItem = func(itemID string) {
+		if gp.MapManager.RemoveItemFromActiveRoom(itemID) {
+			gp.syncRoomContext()
+		}
+	}
 
 	gp.RoomDetailsMgr.OnOpenActions = func(npc npc.NPCConfig) {
 		gp.DialogMgr.OpenAction(npc)
@@ -230,18 +247,36 @@ func (gp *GamePage) Unload() {
 
 func (gp *GamePage) EventListener() {
 	if rl.IsKeyPressed(rl.KeyEscape) && !gp.hasOpenModal() {
+		gp.addLog("Returned to the main menu.")
 		gp.NextState = pagemodel.MainMenu
 	}
 
 	if rl.IsKeyPressed(rl.KeyQ) && gp.QuestMgr != nil {
 		gp.QuestMgr.Toggle()
+		gp.addLog("Toggled the quest log.")
 	}
 
 	if rl.IsKeyPressed(rl.KeyMinus) || rl.IsKeyPressed(rl.KeyKpSubtract) {
 		gp.HPBar.SetHP(gp.HPBar.TargetHP - 20)
+		gp.addLog("Reduced player health by 20.")
 	}
 	if rl.IsKeyPressed(rl.KeyEqual) || rl.IsKeyPressed(rl.KeyKpAdd) {
 		gp.HPBar.SetHP(gp.HPBar.TargetHP + 20)
+		gp.addLog("Restored player health by 20.")
+	}
+	canMove := !gp.MainChar.IsDead && !gp.hasOpenModal() && !gp.IsMovingToRoom &&
+		gp.MainChar.Action != character.ActionAttacking && gp.MainChar.Action != character.ActionHurt &&
+		!rl.IsKeyPressed(rl.KeySpace)
+	if canMove {
+		if rl.IsKeyPressed(rl.KeyUp) || rl.IsKeyPressed(rl.KeyW) {
+			gp.addLog("Moved north.")
+		} else if rl.IsKeyPressed(rl.KeyDown) || rl.IsKeyPressed(rl.KeyS) {
+			gp.addLog("Moved south.")
+		} else if rl.IsKeyPressed(rl.KeyLeft) || rl.IsKeyPressed(rl.KeyA) {
+			gp.addLog("Moved west.")
+		} else if rl.IsKeyPressed(rl.KeyRight) || rl.IsKeyPressed(rl.KeyD) {
+			gp.addLog("Moved east.")
+		}
 	}
 }
 
@@ -280,6 +315,7 @@ func (gp *GamePage) Update(dt float32) {
 	}
 
 	if rl.IsKeyPressed(rl.KeySpace) {
+		gp.addLog("Attacked.")
 		gp.MainChar.SetAction(character.ActionAttacking)
 		return
 	}
@@ -317,6 +353,7 @@ func (gp *GamePage) Update(dt float32) {
 	gp.MapManager.Update(dt, gp.MainChar.Position)
 	if gp.MapManager.ActiveRoom != previousRoom {
 		gp.syncRoomContext()
+		gp.addLog(fmt.Sprintf("Entered %s.", gp.MapManager.ActiveRoom.Name))
 	}
 	gp.Camera.Target = gp.MainChar.Position
 	gp.MainChar.AdvanceFrame(dt, true)
@@ -333,6 +370,7 @@ func (gp *GamePage) moveToRoom(direction component.ExitDirection) {
 
 	room, exists := gp.MapManager.GetRoomInDirection(string(direction))
 	if !exists {
+		gp.addLog(fmt.Sprintf("There is no room to the %s.", strings.ToLower(string(direction))))
 		return
 	}
 
@@ -355,6 +393,13 @@ func (gp *GamePage) moveToRoom(direction component.ExitDirection) {
 	gp.MainChar.SetAction(character.ActionWalking)
 	gp.MainChar.FrameIndex = 0
 	gp.MainChar.FrameTimer = 0
+	gp.addLog(fmt.Sprintf("Traveling %s to %s.", strings.ToLower(string(direction)), room.Name))
+}
+
+func (gp *GamePage) addLog(message string) {
+	if gp.LogViewComp != nil {
+		gp.LogViewComp.AddLog(message)
+	}
 }
 
 func (gp *GamePage) syncRoomContext() {

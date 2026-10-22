@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"tap-gui/src/model/inventory"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -107,17 +106,15 @@ func (im *InventoryManager) TakeItem(index int) {
 		return
 	}
 	im.Items[index].Count++
-	fmt.Printf("Take: %s\n", im.Items[index].Name)
 }
 
-func (im *InventoryManager) DropItem(index int) {
+func (im *InventoryManager) DropItem(index int) (inventory.InventoryItem, bool) {
 	if index < 0 || index >= len(im.Items) {
-		return
+		return inventory.InventoryItem{}, false
 	}
 
-	fmt.Printf("Drop: %s\n", im.Items[index].Name)
+	droppedItem := im.Items[index]
 	im.Items[index].Count--
-
 	if im.Items[index].Count <= 0 {
 		im.Items = append(im.Items[:index], im.Items[index+1:]...)
 		im.CloseModal()
@@ -126,6 +123,7 @@ func (im *InventoryManager) DropItem(index int) {
 			im.CurrentPage--
 		}
 	}
+	return droppedItem, true
 }
 
 func (im *InventoryManager) Update(winWidth, winHeight int32) {

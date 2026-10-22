@@ -15,6 +15,8 @@ type InventoryComponent struct {
 	Manager  *service.InventoryManager
 	Resolver *utils.PathResolver
 	textures map[inventory.InventoryItemType]rl.Texture2D
+	OnDrop   func(inventory.InventoryItem)
+	OnLog    func(string)
 }
 
 func NewInventoryComponent(mgr *service.InventoryManager, resolver *utils.PathResolver) *InventoryComponent {
@@ -57,9 +59,11 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	if rl.IsKeyPressed(rl.KeyEscape) {
 		if ic.Manager.IsModalOpen {
 			ic.Manager.CloseModal()
+			ic.logAction("Closed item details.")
 		} else {
 			ic.Manager.IsOpen = false
 			ic.Manager.InCombatMode = false
+			ic.logAction("Closed inventory.")
 		}
 		return
 	}
@@ -103,6 +107,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	if closeButton.IsClicked && !ic.Manager.IsModalOpen {
 		ic.Manager.IsOpen = false
 		ic.Manager.InCombatMode = false
+		ic.logAction("Closed inventory.")
 	}
 
 	slotSize := float32(115)
@@ -143,6 +148,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 
 			if mouseClicked && rl.CheckCollisionPointRec(mousePos, slotRect) && !ic.Manager.IsModalOpen {
 				ic.Manager.SelectItem(itemIndex)
+				ic.logAction(fmt.Sprintf("Selected %s.", item.Name))
 			}
 
 			tex := ic.GetTexture(item.Type)
@@ -176,6 +182,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		prevButton.Render()
 		if prevButton.IsClicked && ic.Manager.CurrentPage > 0 && !ic.Manager.IsModalOpen {
 			ic.Manager.PrevPage()
+			ic.logAction("Viewed the previous inventory page.")
 		}
 
 		nextButton := ui.NewButton(panelX+panelW-50, panelY+panelH/2-25, 36, 50, ">", 28)
@@ -190,6 +197,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		nextButton.Render()
 		if nextButton.IsClicked && ic.Manager.CurrentPage < ic.Manager.GetTotalPages()-1 && !ic.Manager.IsModalOpen {
 			ic.Manager.NextPage()
+			ic.logAction("Viewed the next inventory page.")
 		}
 	}
 
@@ -219,6 +227,7 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		modalCloseButton.Render()
 		if modalCloseButton.IsClicked {
 			ic.Manager.CloseModal()
+			ic.logAction("Closed item details.")
 			return
 		}
 
@@ -272,7 +281,9 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 			takeButton.BorderRadius = 0.25
 			takeButton.Render()
 			if takeButton.IsClicked {
+				itemName := ic.Manager.Items[ic.Manager.SelectedItemIndex].Name
 				ic.Manager.TakeItem(ic.Manager.SelectedItemIndex)
+				ic.logAction(fmt.Sprintf("Took %s from inventory.", itemName))
 			}
 
 			dropButton := ui.NewButton(modalX+modalW-30-btnW, btnY, btnW, btnH, "DROP", 16)
@@ -286,8 +297,21 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 			dropButton.BorderRadius = 0.25
 			dropButton.Render()
 			if dropButton.IsClicked {
-				ic.Manager.DropItem(ic.Manager.SelectedItemIndex)
+				if item, dropped := ic.Manager.DropItem(ic.Manager.SelectedItemIndex); dropped {
+					if ic.OnDrop != nil {
+						ic.OnDrop(item)
+					}
+					if ic.OnLog != nil {
+						ic.OnLog(fmt.Sprintf("Dropped %s into the room.", item.Name))
+					}
+				}
 			}
 		}
+	}
+}
+
+func (ic *InventoryComponent) logAction(message string) {
+	if ic.OnLog != nil {
+		ic.OnLog(message)
 	}
 }
