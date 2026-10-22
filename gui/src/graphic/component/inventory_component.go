@@ -2,6 +2,7 @@ package component
 
 import (
 	"fmt"
+	"log"
 
 	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/model/inventory"
@@ -287,9 +288,11 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 			takeButton.BorderRadius = 0.25
 			takeButton.Render()
 			if takeButton.IsClicked {
-				itemName := ic.Manager.Items[ic.Manager.SelectedItemIndex].Name
-				ic.Manager.TakeItem(ic.Manager.SelectedItemIndex)
-				ic.logAction(fmt.Sprintf("Took %s from inventory.", itemName))
+				if item, taken := ic.Manager.TakeItem(ic.Manager.SelectedItemIndex); taken {
+					message := fmt.Sprintf("Took %s from inventory.", item.Name)
+					log.Printf("[ACTION] %s", message)
+					ic.logAction(message)
+				}
 			}
 
 			dropButton := ui.NewButton(modalX+modalW-30-btnW, btnY, btnW, btnH, "DROP", 16)

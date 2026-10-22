@@ -19,6 +19,7 @@ type RoomDetailsComponent struct {
 	ItemComp     *ItemComponent
 	NPCPreviews  map[string]character.INpc
 	OnLog        func(string)
+	OnTakeItem   func(service.RoomItemDetail)
 	ItemScrollY  float32
 	NPCScrollY   float32
 }
@@ -165,8 +166,13 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			takeButton.Render()
 
 			if takeButton.IsClicked && rl.CheckCollisionPointRec(mousePosition, itemViewport) {
-				if rdc.Manager.TakeItem(item.ID) && rdc.OnLog != nil {
-					rdc.OnLog(fmt.Sprintf("Took %s from the room.", item.Name))
+				if rdc.Manager.TakeItem(item.ID) {
+					if rdc.OnTakeItem != nil {
+						rdc.OnTakeItem(item)
+					}
+					if rdc.OnLog != nil {
+						rdc.OnLog(fmt.Sprintf("Took %s from the room into inventory.", item.Name))
+					}
 				}
 			}
 

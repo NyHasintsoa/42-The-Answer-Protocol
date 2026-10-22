@@ -183,6 +183,18 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 		}
 	}
 	gp.RoomDetailsComp.OnLog = gp.addLog
+	gp.RoomDetailsComp.OnTakeItem = func(roomItem service.RoomItemDetail) {
+		itemID := roomItem.ID
+		if separator := strings.LastIndex(itemID, ":"); separator >= 0 {
+			itemID = itemID[separator+1:]
+		}
+		gp.InventoryMgr.AddItem(inventory.InventoryItem{
+			ID:    itemID,
+			Name:  roomItem.Name,
+			Type:  inventory.InventoryItemType(itemID),
+			Count: 1,
+		})
+	}
 	gp.DialogComp.OnLog = gp.addLog
 	gp.ChatComp.OnLog = gp.addLog
 	gp.AttackMgr.OnLog = gp.addLog

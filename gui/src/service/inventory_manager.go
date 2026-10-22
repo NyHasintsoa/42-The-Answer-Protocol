@@ -86,6 +86,27 @@ func (im *InventoryManager) CloseModal() {
 	im.SelectedItemIndex = -1
 }
 
+// AddItem adds item to the inventory, merging it into an existing stack by ID.
+func (im *InventoryManager) AddItem(item inventory.InventoryItem) bool {
+	if item.ID == "" {
+		return false
+	}
+	if item.Count <= 0 {
+		item.Count = 1
+	}
+	for index := range im.Items {
+		if im.Items[index].ID == item.ID {
+			im.Items[index].Count += item.Count
+			return true
+		}
+	}
+	if item.Type == "" {
+		item.Type = inventory.InventoryItemType(item.ID)
+	}
+	im.Items = append(im.Items, item)
+	return true
+}
+
 // UseItem consumes one item at index and invokes the combat callback when applicable.
 func (im *InventoryManager) UseItem(index int) {
 	if index < 0 || index >= len(im.Items) {
@@ -97,11 +118,7 @@ func (im *InventoryManager) UseItem(index int) {
 		im.OnUseItemInCombat(item)
 	}
 
-	im.Items[index].Count--
-	if im.Items[index].Count <= 0 {
-		im.Items = append(im.Items[:index], im.Items[index+1:]...)
-	}
-
+	im.removeOne(index)
 	im.CloseModal()
 	if im.InCombatMode {
 		im.IsOpen = false
@@ -109,12 +126,26 @@ func (im *InventoryManager) UseItem(index int) {
 	}
 }
 
-// TakeItem increases the count of the item at index when the index is valid.
-func (im *InventoryManager) TakeItem(index int) {
+// TakeItem consumes and returns one item at index.
+func (im *InventoryManager) TakeItem(index int) (inventory.InventoryItem, bool) {
+	return im.removeOne(index)
+}
+
+func (im *InventoryManager) removeOne(index int) (inventory.InventoryItem, bool) {
 	if index < 0 || index >= len(im.Items) {
-		return
+		return inventory.InventoryItem{}, false
 	}
-	im.Items[index].Count++
+
+	item := im.Items[index]
+	im.Items[index].Count--
+	if im.Items[index].Count <= 0 {
+		im.Items = append(im.Items[:index], im.Items[index+1:]...)
+		im.CloseModal()
+		if im.CurrentPage >= im.GetTotalPages() && im.CurrentPage > 0 {
+			im.CurrentPage--
+		}
+	}
+	return item, true
 }
 
 // DropItem removes one unit of the item at index and returns the dropped item.
@@ -124,17 +155,7 @@ func (im *InventoryManager) DropItem(index int) (inventory.InventoryItem, bool) 
 		return inventory.InventoryItem{}, false
 	}
 
-	droppedItem := im.Items[index]
-	im.Items[index].Count--
-	if im.Items[index].Count <= 0 {
-		im.Items = append(im.Items[:index], im.Items[index+1:]...)
-		im.CloseModal()
-
-		if im.CurrentPage >= im.GetTotalPages() && im.CurrentPage > 0 {
-			im.CurrentPage--
-		}
-	}
-	return droppedItem, true
+	return im.removeOne(index)
 }
 
 // Update handles inventory keyboard and mouse input for a window of the given size.
