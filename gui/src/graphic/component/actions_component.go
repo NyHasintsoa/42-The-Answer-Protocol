@@ -141,7 +141,7 @@ func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 	closeBtn.BorderRadius = 0.3
 	closeBtn.Render()
 
-	if closeBtn.IsClicked || rl.IsKeyPressed(rl.KeyEscape) {
+	if closeBtn.IsClicked {
 		if dc.OnLog != nil {
 			dc.OnLog(fmt.Sprintf("Closed actions for %s.", dc.Manager.NPC.Name))
 		}
@@ -249,7 +249,7 @@ func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 			rl.DrawText(resp.ActionTag, int32(tagX), int32(itemY+(respH-12)/2), 12, tagColor)
 		}
 
-		if (isHover && rl.IsMouseButtonPressed(rl.MouseButtonLeft)) || rl.IsKeyPressed(int32(rl.KeyOne)+int32(i)) {
+		if (isHover && rl.IsMouseButtonPressed(rl.MouseButtonLeft)) {
 			if dc.OnLog != nil {
 				dc.OnLog(fmt.Sprintf("%s: %s", dc.Manager.NPC.Name, resp.Text))
 			}

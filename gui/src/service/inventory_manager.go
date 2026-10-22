@@ -140,10 +140,6 @@ func (im *InventoryManager) DropItem(index int) (inventory.InventoryItem, bool) 
 // Update handles inventory keyboard and mouse input for a window of the given size.
 // winWidth and winHeight are the window dimensions in pixels.
 func (im *InventoryManager) Update(winWidth, winHeight int32) {
-	if rl.IsKeyPressed(rl.KeyI) {
-		im.Toggle()
-	}
-
 	mousePos := rl.GetMousePosition()
 	mouseClicked := rl.IsMouseButtonPressed(rl.MouseLeftButton)
 

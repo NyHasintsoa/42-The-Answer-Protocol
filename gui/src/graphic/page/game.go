@@ -267,41 +267,6 @@ func (gp *GamePage) Unload() {
 	gp.BasePage.Unload()
 }
 
-// EventListener processes game-page keyboard and mouse input.
-func (gp *GamePage) EventListener() {
-	if rl.IsKeyPressed(rl.KeyEscape) && !gp.hasOpenModal() {
-		gp.returnToMainMenu()
-	}
-
-	if rl.IsKeyPressed(rl.KeyQ) && gp.QuestMgr != nil {
-		gp.QuestMgr.Toggle()
-		gp.addLog("Toggled the quest log.")
-	}
-
-	if rl.IsKeyPressed(rl.KeyMinus) || rl.IsKeyPressed(rl.KeyKpSubtract) {
-		gp.HPBar.SetHP(gp.HPBar.TargetHP - 20)
-		gp.addLog("Reduced player health by 20.")
-	}
-	if rl.IsKeyPressed(rl.KeyEqual) || rl.IsKeyPressed(rl.KeyKpAdd) {
-		gp.HPBar.SetHP(gp.HPBar.TargetHP + 20)
-		gp.addLog("Restored player health by 20.")
-	}
-	canMove := !gp.MainChar.IsDead && !gp.hasOpenModal() && !gp.IsMovingToRoom &&
-		gp.MainChar.Action != character.ActionAttacking && gp.MainChar.Action != character.ActionHurt &&
-		!rl.IsKeyPressed(rl.KeySpace)
-	if canMove {
-		if rl.IsKeyPressed(rl.KeyUp) || rl.IsKeyPressed(rl.KeyW) {
-			gp.addLog("Moved north.")
-		} else if rl.IsKeyPressed(rl.KeyDown) || rl.IsKeyPressed(rl.KeyS) {
-			gp.addLog("Moved south.")
-		} else if rl.IsKeyPressed(rl.KeyLeft) || rl.IsKeyPressed(rl.KeyA) {
-			gp.addLog("Moved west.")
-		} else if rl.IsKeyPressed(rl.KeyRight) || rl.IsKeyPressed(rl.KeyD) {
-			gp.addLog("Moved east.")
-		}
-	}
-}
-
 // returnToMainMenu closes the server connection and requests the main menu.
 func (gp *GamePage) returnToMainMenu() {
 	if gp.Context != nil && gp.Context.TCPClient != nil {
@@ -348,12 +313,6 @@ func (gp *GamePage) Update(dt float32) {
 		if gp.MainChar.AdvanceFrame(dt, false) {
 			gp.MainChar.SetAction(character.ActionIdle)
 		}
-		return
-	}
-
-	if rl.IsKeyPressed(rl.KeySpace) {
-		gp.addLog("Attacked.")
-		gp.MainChar.SetAction(character.ActionAttacking)
 		return
 	}
 
@@ -480,7 +439,6 @@ func roomEntityName(value string) string {
 
 // Render draws the game page and its components.
 func (gp *GamePage) Render() {
-	gp.EventListener()
 	dt := rl.GetFrameTime()
 	gp.Update(dt)
 	modalOpen := gp.hasOpenModal()
