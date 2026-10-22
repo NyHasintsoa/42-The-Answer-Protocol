@@ -8,12 +8,16 @@ import (
 )
 
 type LogViewComponent struct {
-	Logs []string
+	Logs         []string
+	ScrollY      float32
+	lastLogCount int
+	followTail   bool
 }
 
 func NewLogViewComponent() *LogViewComponent {
 	return &LogViewComponent{
-		Logs: []string{},
+		Logs:       []string{},
+		followTail: true,
 	}
 }
 
@@ -29,22 +33,41 @@ func (lvc *LogViewComponent) Render(rect rl.Rectangle) {
 	rl.DrawText(title, int32(rect.X+14), int32(rect.Y+12), 14, utils.ThemeText)
 	rl.DrawLineEx(rl.NewVector2(rect.X+10, rect.Y+32), rl.NewVector2(rect.X+rect.Width-10, rect.Y+32), 1, utils.ThemeBorder)
 
-	logY := rect.Y + 40
-	lineHeight := float32(45)
-	visibleLogs := int((rect.Height - 50) / lineHeight)
-	startIndex := len(lvc.Logs) - visibleLogs
-	if startIndex < 0 {
-		startIndex = 0
+	viewport := rl.NewRectangle(rect.X+8, rect.Y+38, rect.Width-16, rect.Height-46)
+	contentHeights := make([]float32, len(lvc.Logs))
+	contentHeight := float32(0)
+	for i, logMsg := range lvc.Logs {
+		lines := ui.WrapTextLines(logMsg, 10, int32(viewport.Width-14))
+		contentHeights[i] = float32(len(lines)*12 + 6)
+		contentHeight += contentHeights[i]
 	}
-	for _, logMsg := range lvc.Logs[startIndex:] {
+	maxScroll := contentHeight - viewport.Height
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	if lvc.followTail && len(lvc.Logs) > lvc.lastLogCount {
+		lvc.ScrollY = maxScroll
+	}
+	previousScroll := lvc.ScrollY
+	maxScroll = ui.UpdateScrollOffset(&lvc.ScrollY, viewport, contentHeight)
+	if lvc.ScrollY != previousScroll {
+		lvc.followTail = lvc.ScrollY >= maxScroll
+	}
+	lvc.lastLogCount = len(lvc.Logs)
+
+	rl.BeginScissorMode(int32(viewport.X), int32(viewport.Y), int32(viewport.Width), int32(viewport.Height))
+	logY := viewport.Y - lvc.ScrollY
+	for i, logMsg := range lvc.Logs {
 		ui.DrawTextWrapped(
 			logMsg,
-			int32(rect.X+14),
+			int32(viewport.X+4),
 			int32(logY),
-			int32(rect.Width-28),
+			int32(viewport.Width-14),
 			10,
 			utils.ThemeTextMuted,
 		)
-		logY += lineHeight
+		logY += contentHeights[i]
 	}
+	rl.EndScissorMode()
+	ui.DrawScrollIndicator(viewport, contentHeight, lvc.ScrollY)
 }

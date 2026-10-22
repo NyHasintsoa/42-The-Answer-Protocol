@@ -26,8 +26,6 @@ func (qc *QuestComponent) Render(winWidth, winHeight int32) {
 		return
 	}
 
-	mousePos := rl.GetMousePosition()
-
 	rl.DrawRectangle(0, 0, winWidth, winHeight, rl.NewColor(0, 0, 0, 160))
 
 	modalW := float32(650)
@@ -66,32 +64,15 @@ func (qc *QuestComponent) Render(winWidth, winHeight int32) {
 	quests := qc.Manager.Quests
 	listAreaY := modalY + headerH + 15
 	listAreaH := modalH - headerH - 30
-	listAreaRect := rl.NewRectangle(modalX, listAreaY, modalW, listAreaH)
+	listAreaRect := rl.NewRectangle(modalX+8, listAreaY, modalW-16, listAreaH)
 
 	cardH := float32(75)
 	gap := float32(10)
 	totalContentH := float32(len(quests))*(cardH+gap) + 10
 
-	maxScroll := totalContentH - listAreaH
-	if maxScroll < 0 {
-		maxScroll = 0
-	}
+	ui.UpdateScrollOffset(&qc.ScrollY, listAreaRect, totalContentH)
 
-	if rl.CheckCollisionPointRec(mousePos, listAreaRect) {
-		wheel := rl.GetMouseWheelMove()
-		if wheel != 0 {
-			qc.ScrollY -= wheel * 35
-		}
-	}
-
-	if qc.ScrollY < 0 {
-		qc.ScrollY = 0
-	}
-	if qc.ScrollY > maxScroll {
-		qc.ScrollY = maxScroll
-	}
-
-	rl.BeginScissorMode(int32(modalX), int32(listAreaY), int32(modalW), int32(listAreaH))
+	rl.BeginScissorMode(int32(listAreaRect.X), int32(listAreaRect.Y), int32(listAreaRect.Width), int32(listAreaRect.Height))
 
 	currY := listAreaY + 10 - qc.ScrollY
 	cardW := modalW - 40
@@ -141,16 +122,6 @@ func (qc *QuestComponent) Render(winWidth, winHeight int32) {
 		currY += cardH + gap
 	}
 
-	if maxScroll > 0 {
-		trackH := listAreaH
-		thumbH := (listAreaH / totalContentH) * trackH
-		if thumbH < 24 {
-			thumbH = 24
-		}
-		thumbY := listAreaY + (qc.ScrollY/maxScroll)*(trackH-thumbH)
-		scrollBarRect := rl.NewRectangle(modalX+modalW-10, thumbY, 4, thumbH)
-		rl.DrawRectangleRounded(scrollBarRect, 0.5, 4, rl.NewColor(0, 180, 255, 180))
-	}
-
 	rl.EndScissorMode()
+	ui.DrawScrollIndicator(listAreaRect, totalContentH, qc.ScrollY)
 }

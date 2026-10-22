@@ -19,6 +19,8 @@ type RoomDetailsComponent struct {
 	ItemComp     *ItemComponent
 	NPCPreviews  map[string]character.INpc
 	OnLog        func(string)
+	ItemScrollY  float32
+	NPCScrollY   float32
 }
 
 func NewRoomDetailsComponent(mgr *service.RoomDetailsManager, pathResolver *utils.PathResolver) *RoomDetailsComponent {
@@ -92,6 +94,7 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 	}
 
 	dt := rl.GetFrameTime()
+	mousePosition := rl.GetMousePosition()
 
 	rl.DrawRectangleRounded(rect, 0.02, 6, utils.ThemeSurface)
 	rl.DrawRectangleRoundedLinesEx(rect, 0.02, 6, 2, utils.ThemeBorder)
@@ -110,11 +113,15 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 	rl.DrawText("Items in Room", int32(leftColX+(colW-float32(rl.MeasureText("Items in Room", 14)))/2), int32(colY+12), 14, utils.ThemeText)
 	rl.DrawLineEx(rl.NewVector2(leftColX, colY+34), rl.NewVector2(leftColX+colW, colY+34), 1, utils.ThemeBorder)
 
+	itemViewport := rl.NewRectangle(leftColX+6, colY+40, colW-12, colH-44)
+	itemContentHeight := float32(len(rdc.Manager.Items)) * 95
+	ui.UpdateScrollOffset(&rdc.ItemScrollY, itemViewport, itemContentHeight)
 	if len(rdc.Manager.Items) == 0 {
 		emptyMsg := "No items in this room."
-		rl.DrawText(emptyMsg, int32(leftColX+(colW-float32(rl.MeasureText(emptyMsg, 13)))/2), int32(colY+colH/2-10), 13, utils.ThemeTextMuted)
+		rl.DrawText(emptyMsg, int32(leftColX+(colW-float32(rl.MeasureText(emptyMsg, 13)))/2), int32(itemViewport.Y+itemViewport.Height/2-10), 13, utils.ThemeTextMuted)
 	} else {
-		itemY := colY + 45
+		rl.BeginScissorMode(int32(itemViewport.X), int32(itemViewport.Y), int32(itemViewport.Width), int32(itemViewport.Height))
+		itemY := itemViewport.Y + 5 - rdc.ItemScrollY
 		for _, item := range rdc.Manager.Items {
 			parts := strings.Split(item.ID, ":")
 			iconName := item.ID
@@ -149,7 +156,7 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			takeButton.BorderRadius = 0.2
 			takeButton.Render()
 
-			if takeButton.IsClicked {
+			if takeButton.IsClicked && rl.CheckCollisionPointRec(mousePosition, itemViewport) {
 				if rdc.Manager.TakeItem(item.ID) && rdc.OnLog != nil {
 					rdc.OnLog(fmt.Sprintf("Took %s from the room.", item.Name))
 				}
@@ -157,7 +164,9 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 
 			itemY += 95
 		}
+		rl.EndScissorMode()
 	}
+	ui.DrawScrollIndicator(itemViewport, itemContentHeight, rdc.ItemScrollY)
 
 	rightColX := rect.X + colW + 22
 	rightColRect := rl.NewRectangle(rightColX, colY, colW, colH)
@@ -167,11 +176,15 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 	rl.DrawText("NPC in Room", int32(rightColX+(colW-float32(rl.MeasureText("NPC in Room", 14)))/2), int32(colY+12), 14, utils.ThemeText)
 	rl.DrawLineEx(rl.NewVector2(rightColX, colY+34), rl.NewVector2(rightColX+colW, colY+34), 1, utils.ThemeBorder)
 
+	npcViewport := rl.NewRectangle(rightColX+6, colY+40, colW-12, colH-44)
+	npcContentHeight := float32(len(rdc.Manager.NPCs)) * 120
+	ui.UpdateScrollOffset(&rdc.NPCScrollY, npcViewport, npcContentHeight)
 	if len(rdc.Manager.NPCs) == 0 {
 		emptyMsg := "No NPCs in this room."
-		rl.DrawText(emptyMsg, int32(rightColX+(colW-float32(rl.MeasureText(emptyMsg, 13)))/2), int32(colY+colH/2-10), 13, utils.ThemeTextMuted)
+		rl.DrawText(emptyMsg, int32(rightColX+(colW-float32(rl.MeasureText(emptyMsg, 13)))/2), int32(npcViewport.Y+npcViewport.Height/2-10), 13, utils.ThemeTextMuted)
 	} else {
-		npcY := colY + 45
+		rl.BeginScissorMode(int32(npcViewport.X), int32(npcViewport.Y), int32(npcViewport.Width), int32(npcViewport.Height))
+		npcY := npcViewport.Y + 5 - rdc.NPCScrollY
 		for _, npc := range rdc.Manager.NPCs {
 			npcComp := rdc.getOrCreateNPCPreview(npc)
 			previewX := rightColX + 12
@@ -202,7 +215,7 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			actionsButton.BorderWidth = 0
 			actionsButton.BorderRadius = 0.2
 			actionsButton.Render()
-			if actionsButton.IsClicked {
+			if actionsButton.IsClicked && rl.CheckCollisionPointRec(mousePosition, npcViewport) {
 				if rdc.OnLog != nil {
 					rdc.OnLog(fmt.Sprintf("Opened actions for %s.", npc.Name))
 				}
@@ -220,12 +233,14 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 				attackButton.BorderWidth = 0
 				attackButton.BorderRadius = 0.2
 				attackButton.Render()
-				if attackButton.IsClicked {
+				if attackButton.IsClicked && rl.CheckCollisionPointRec(mousePosition, npcViewport) {
 					rdc.Manager.AttackNPC(npc)
 				}
 			}
 
 			npcY += 120
 		}
+		rl.EndScissorMode()
 	}
+	ui.DrawScrollIndicator(npcViewport, npcContentHeight, rdc.NPCScrollY)
 }

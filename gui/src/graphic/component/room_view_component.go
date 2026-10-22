@@ -54,6 +54,7 @@ func (rvm *RoomViewManager) Move(dir ExitDirection) {
 
 type RoomViewComponent struct {
 	Manager *RoomViewManager
+	ScrollY float32
 }
 
 func NewRoomViewComponent(mgr *RoomViewManager) *RoomViewComponent {
@@ -72,17 +73,6 @@ func (rvc *RoomViewComponent) Render(rect rl.Rectangle) {
 	rl.DrawText(title, int32(rect.X+(rect.Width-titleWidth)/2), int32(rect.Y+10), 14, utils.ThemeText)
 	rl.DrawLineEx(rl.NewVector2(rect.X+10, rect.Y+30), rl.NewVector2(rect.X+rect.Width-10, rect.Y+30), 1, utils.ThemeBorder)
 
-	if rvc.Manager != nil && rvc.Manager.CurrentRoom.Description != "" {
-		ui.DrawTextWrapped(
-			rvc.Manager.CurrentRoom.Description,
-			int32(rect.X+12),
-			int32(rect.Y+36),
-			int32(rect.Width-24),
-			10,
-			utils.ThemeTextMuted,
-		)
-	}
-
 	directions := []struct {
 		Label string
 		Dir   ExitDirection
@@ -93,13 +83,25 @@ func (rvc *RoomViewComponent) Render(rect rl.Rectangle) {
 		{"WEST", DirWest},
 	}
 
+	btnH := float32(26)
+	btnY := rect.Y + rect.Height - btnH - 8
+	descriptionViewport := rl.NewRectangle(rect.X+8, rect.Y+36, rect.Width-22, btnY-rect.Y-42)
+	var description string
+	if rvc.Manager != nil {
+		description = rvc.Manager.CurrentRoom.Description
+	}
+	descriptionLines := ui.WrapTextLines(description, 10, int32(descriptionViewport.Width-8))
+	descriptionHeight := float32(len(descriptionLines) * 12)
+	ui.UpdateScrollOffset(&rvc.ScrollY, descriptionViewport, descriptionHeight)
+	rl.BeginScissorMode(int32(descriptionViewport.X), int32(descriptionViewport.Y), int32(descriptionViewport.Width), int32(descriptionViewport.Height))
+	ui.DrawTextWrapped(description, int32(descriptionViewport.X+4), int32(descriptionViewport.Y-rvc.ScrollY), int32(descriptionViewport.Width-8), 10, utils.ThemeTextMuted)
+	rl.EndScissorMode()
+	ui.DrawScrollIndicator(descriptionViewport, descriptionHeight, rvc.ScrollY)
+
 	btnCount := float32(len(directions))
 	btnMargin := float32(6)
 	totalSpacing := btnMargin * (btnCount + 1)
 	btnW := (rect.Width - totalSpacing) / btnCount
-	btnH := float32(26)
-	btnY := rect.Y + rect.Height - btnH - 8
-
 	for i, d := range directions {
 		btnX := rect.X + btnMargin + float32(i)*(btnW+btnMargin)
 		button := ui.NewButton(btnX, btnY, btnW, btnH, d.Label, 10)

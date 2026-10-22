@@ -438,6 +438,10 @@ func (gp *GamePage) syncRoomContext() {
 		}
 		npcs = append(npcs, npcCfg)
 	}
+	if gp.RoomDetailsMgr.RoomName != room.Name && gp.RoomDetailsComp != nil {
+		gp.RoomDetailsComp.ItemScrollY = 0
+		gp.RoomDetailsComp.NPCScrollY = 0
+	}
 	gp.RoomDetailsMgr.SetRoomDetails(room.Name, items, npcs)
 }
 

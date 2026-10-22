@@ -32,7 +32,6 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 	}
 
 	dt := rl.GetFrameTime()
-	mousePos := rl.GetMousePosition()
 
 	if !cc.Manager.IsOpen {
 		return
@@ -170,24 +169,11 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		maxScroll = 0
 	}
 
-	if rl.CheckCollisionPointRec(mousePos, msgAreaRect) {
-		wheel := rl.GetMouseWheelMove()
-		if wheel != 0 {
-			cc.ScrollY -= wheel * 35
-		}
-	}
-
 	if cc.scrollToBottom {
 		cc.ScrollY = maxScroll
 		cc.scrollToBottom = false
 	}
-
-	if cc.ScrollY < 0 {
-		cc.ScrollY = 0
-	}
-	if cc.ScrollY > maxScroll {
-		cc.ScrollY = maxScroll
-	}
+	ui.UpdateScrollOffset(&cc.ScrollY, msgAreaRect, totalContentH)
 
 	rl.BeginScissorMode(int32(modalX), int32(msgAreaY), int32(modalW), int32(msgAreaH))
 
@@ -256,18 +242,8 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 		currY += bubbleH + 20
 	}
 
-	if maxScroll > 0 {
-		trackH := msgAreaH
-		thumbH := (msgAreaH / totalContentH) * trackH
-		if thumbH < 24 {
-			thumbH = 24
-		}
-		thumbY := msgAreaY + (cc.ScrollY/maxScroll)*(trackH-thumbH)
-		scrollBarRect := rl.NewRectangle(modalX+modalW-10, thumbY, 5, thumbH)
-		rl.DrawRectangleRounded(scrollBarRect, 0.5, 4, rl.NewColor(0, 180, 255, 180))
-	}
-
 	rl.EndScissorMode()
+	ui.DrawScrollIndicator(msgAreaRect, totalContentH, cc.ScrollY)
 
 	cc.InputComp.Render()
 }

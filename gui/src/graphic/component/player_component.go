@@ -2,6 +2,7 @@ package component
 
 import (
 	"fmt"
+	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -33,6 +34,7 @@ func (pm *PlayerManager) AddPlayer(id, name string) {
 
 type PlayerComponent struct {
 	Manager *PlayerManager
+	ScrollY float32
 }
 
 func NewPlayerComponent(mgr *PlayerManager) *PlayerComponent {
@@ -55,14 +57,14 @@ func (pc *PlayerComponent) Render(rect rl.Rectangle) {
 		return
 	}
 
-	itemY := rect.Y + 40
+	viewport := rl.NewRectangle(rect.X+6, rect.Y+36, rect.Width-12, rect.Height-42)
+	contentHeight := float32(len(pc.Manager.Players)) * 32
+	ui.UpdateScrollOffset(&pc.ScrollY, viewport, contentHeight)
+	rl.BeginScissorMode(int32(viewport.X), int32(viewport.Y), int32(viewport.Width), int32(viewport.Height))
+	itemY := viewport.Y + 4 - pc.ScrollY
 	rowH := float32(32)
 
 	for _, p := range pc.Manager.Players {
-		if itemY+rowH > rect.Y+rect.Height-5 {
-			break
-		}
-
 		iconX := rect.X + 16
 		iconY := itemY + 4
 
@@ -73,4 +75,6 @@ func (pc *PlayerComponent) Render(rect rl.Rectangle) {
 
 		itemY += rowH
 	}
+	rl.EndScissorMode()
+	ui.DrawScrollIndicator(viewport, contentHeight, pc.ScrollY)
 }
