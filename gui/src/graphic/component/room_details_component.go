@@ -114,15 +114,16 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 	rl.DrawLineEx(rl.NewVector2(leftColX, colY+34), rl.NewVector2(leftColX+colW, colY+34), 1, utils.ThemeBorder)
 
 	itemViewport := rl.NewRectangle(leftColX+6, colY+40, colW-12, colH-44)
-	itemContentHeight := float32(len(rdc.Manager.Items)) * 95
+	items := rdc.Manager.Items()
+	itemContentHeight := float32(len(items)) * 95
 	ui.UpdateScrollOffset(&rdc.ItemScrollY, itemViewport, itemContentHeight)
-	if len(rdc.Manager.Items) == 0 {
+	if len(items) == 0 {
 		emptyMsg := "No items in this room."
 		rl.DrawText(emptyMsg, int32(leftColX+(colW-float32(rl.MeasureText(emptyMsg, 13)))/2), int32(itemViewport.Y+itemViewport.Height/2-10), 13, utils.ThemeTextMuted)
 	} else {
 		rl.BeginScissorMode(int32(itemViewport.X), int32(itemViewport.Y), int32(itemViewport.Width), int32(itemViewport.Height))
 		itemY := itemViewport.Y + 5 - rdc.ItemScrollY
-		for _, item := range rdc.Manager.Items {
+		for _, item := range items {
 			parts := strings.Split(item.ID, ":")
 			iconName := item.ID
 			if len(parts) > 1 {
@@ -177,15 +178,16 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 	rl.DrawLineEx(rl.NewVector2(rightColX, colY+34), rl.NewVector2(rightColX+colW, colY+34), 1, utils.ThemeBorder)
 
 	npcViewport := rl.NewRectangle(rightColX+6, colY+40, colW-12, colH-44)
-	npcContentHeight := float32(len(rdc.Manager.NPCs)) * 120
+	npcs := rdc.Manager.NPCs()
+	npcContentHeight := float32(len(npcs)) * 120
 	ui.UpdateScrollOffset(&rdc.NPCScrollY, npcViewport, npcContentHeight)
-	if len(rdc.Manager.NPCs) == 0 {
+	if len(npcs) == 0 {
 		emptyMsg := "No NPCs in this room."
 		rl.DrawText(emptyMsg, int32(rightColX+(colW-float32(rl.MeasureText(emptyMsg, 13)))/2), int32(npcViewport.Y+npcViewport.Height/2-10), 13, utils.ThemeTextMuted)
 	} else {
 		rl.BeginScissorMode(int32(npcViewport.X), int32(npcViewport.Y), int32(npcViewport.Width), int32(npcViewport.Height))
 		npcY := npcViewport.Y + 5 - rdc.NPCScrollY
-		for _, npc := range rdc.Manager.NPCs {
+		for _, npc := range npcs {
 			npcComp := rdc.getOrCreateNPCPreview(npc)
 			previewX := rightColX + 12
 			previewY := npcY + 42

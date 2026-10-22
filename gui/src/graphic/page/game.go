@@ -25,9 +25,11 @@ type GamePage struct {
 	QuestMgr        *service.QuestManager
 	DialogMgr       *service.ActionManager
 	RoomDetailsMgr  *service.RoomDetailsManager
+	RoomItemMgr     *service.RoomItemManager
+	RoomNPCMgr      *service.RoomNPCManager
 	AttackMgr       *service.AttackManager
 	RoomViewMgr     *component.RoomViewManager
-	PlayerMgr       *component.PlayerManager
+	PlayerMgr       *service.PlayerManager
 	MapComp         *component.MapComponent
 	MainChar        *character.MainCharacter
 	HPBar           *ui.HPBar
@@ -75,10 +77,36 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	inventoryMgr := service.NewInventoryManager()
 	chatMgr := service.NewChatManager()
 	dialogMgr := service.NewActionManager()
-	roomDetailsMgr := service.NewRoomDetailsManager()
+	roomItemMgr := service.NewRoomItemManager()
+	roomNPCMgr := service.NewRoomNPCManager()
+	roomDetailsMgr := service.NewRoomDetailsManager(roomItemMgr, roomNPCMgr)
 	attackMgr := service.NewAttackManager()
 	roomViewMgr := component.NewRoomViewManager()
-	playerMgr := component.NewPlayerManager()
+	playerMgr := service.NewPlayerManager()
+
+	for roomID, room := range mapManager.World.Rooms {
+		items := make([]service.RoomItemDetail, 0, len(room.Items))
+		for _, itemID := range room.Items {
+			items = append(items, service.RoomItemDetail{
+				ID:   itemID,
+				Name: roomEntityName(itemID),
+			})
+		}
+		roomItemMgr.SetRoomItems(roomID, items)
+
+		npcs := make([]npc.NPCConfig, 0, len(room.NPCs))
+		for _, npcKey := range room.NPCs {
+			npcConfig, exists := mapManager.GetNPCConfig(npcKey)
+			if !exists {
+				npcConfig = npc.NPCConfig{Key: npcKey, Name: roomEntityName(npcKey), ImageType: npcKey}
+			}
+			npcs = append(npcs, npcConfig)
+		}
+		roomNPCMgr.SetRoomNPCs(roomID, npcs)
+
+		room.Items = nil
+		room.NPCs = nil
+	}
 
 	mapComp := component.NewMapComponent(mapManager)
 	inventoryComp := component.NewInventoryComponent(inventoryMgr, pathResolver)
@@ -114,6 +142,8 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 		QuestMgr:        questMgr,
 		DialogMgr:       dialogMgr,
 		RoomDetailsMgr:  roomDetailsMgr,
+		RoomItemMgr:     roomItemMgr,
+		RoomNPCMgr:      roomNPCMgr,
 		AttackMgr:       attackMgr,
 		RoomViewMgr:     roomViewMgr,
 		PlayerMgr:       playerMgr,
@@ -143,7 +173,7 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	gp.InventoryComp.OnLog = gp.addLog
 	gp.QuestComp.OnLog = gp.addLog
 	gp.InventoryComp.OnDrop = func(item inventory.InventoryItem) {
-		if gp.MapManager.AddItemToActiveRoom(item.ID) {
+		if gp.RoomItemMgr.AddItemToActiveRoom(service.RoomItemDetail{ID: item.ID, Name: item.Name}) {
 			gp.syncRoomContext()
 		}
 	}
@@ -151,12 +181,6 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	gp.DialogComp.OnLog = gp.addLog
 	gp.ChatComp.OnLog = gp.addLog
 	gp.AttackMgr.OnLog = gp.addLog
-	gp.RoomDetailsMgr.OnTakeItem = func(itemID string) {
-		if gp.MapManager.RemoveItemFromActiveRoom(itemID) {
-			gp.syncRoomContext()
-		}
-	}
-
 	gp.RoomDetailsMgr.OnOpenActions = func(npc npc.NPCConfig) {
 		gp.DialogMgr.OpenAction(npc)
 	}
@@ -165,15 +189,7 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	}
 
 	gp.AttackMgr.OnMonsterDefeated = func(npc npc.NPCConfig) {
-		updatedNPC, attacked := gp.MapManager.DamageNPC(npc.Key, 999)
-		if attacked {
-			for index := range gp.RoomDetailsMgr.NPCs {
-				if gp.RoomDetailsMgr.NPCs[index].Key == npc.Key {
-					gp.RoomDetailsMgr.NPCs[index] = updatedNPC
-					break
-				}
-			}
-		}
+		gp.RoomNPCMgr.DamageActiveNPC(npc.Key, 999)
 		gp.MainChar.SetPosition(gp.MainChar.Position.X, gp.MainChar.Position.Y)
 	}
 
@@ -418,31 +434,11 @@ func (gp *GamePage) syncRoomContext() {
 		Exits:       exits,
 	}
 
-	items := make([]service.RoomItemDetail, 0, len(room.Items))
-	for _, itemID := range room.Items {
-		items = append(items, service.RoomItemDetail{
-			ID:   itemID,
-			Name: roomEntityName(itemID),
-		})
-	}
-
-	npcs := make([]npc.NPCConfig, 0, len(room.NPCs))
-	for _, npcKey := range room.NPCs {
-		npcCfg, exists := gp.MapManager.GetNPCConfig(npcKey)
-		if !exists {
-			npcCfg = npc.NPCConfig{
-				Key:       npcKey,
-				Name:      roomEntityName(npcKey),
-				ImageType: npcKey,
-			}
-		}
-		npcs = append(npcs, npcCfg)
-	}
 	if gp.RoomDetailsMgr.RoomName != room.Name && gp.RoomDetailsComp != nil {
 		gp.RoomDetailsComp.ItemScrollY = 0
 		gp.RoomDetailsComp.NPCScrollY = 0
 	}
-	gp.RoomDetailsMgr.SetRoomDetails(room.Name, items, npcs)
+	gp.RoomDetailsMgr.SetActiveRoom(room.ID, room.Name)
 }
 
 func roomEntityName(value string) string {

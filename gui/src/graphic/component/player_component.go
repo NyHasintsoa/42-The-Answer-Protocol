@@ -1,43 +1,19 @@
 package component
 
 import (
-	"fmt"
 	"tap-gui/src/graphic/component/ui"
+	"tap-gui/src/service"
 	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-type ConnectedPlayer struct {
-	ID   string
-	Name string
-}
-
-type PlayerManager struct {
-	Players []ConnectedPlayer
-}
-
-func NewPlayerManager() *PlayerManager {
-	return &PlayerManager{
-		Players: []ConnectedPlayer{
-			{ID: "p1", Name: "PlayerName 1"},
-			{ID: "p2", Name: "PlayerName 2"},
-			{ID: "p3", Name: "PlayerName 3"},
-		},
-	}
-}
-
-func (pm *PlayerManager) AddPlayer(id, name string) {
-	pm.Players = append(pm.Players, ConnectedPlayer{ID: id, Name: name})
-	fmt.Printf("[PLAYER MANAGER] Connected player added: %s (%s)\n", name, id)
-}
-
 type PlayerComponent struct {
-	Manager *PlayerManager
+	Manager *service.PlayerManager
 	ScrollY float32
 }
 
-func NewPlayerComponent(mgr *PlayerManager) *PlayerComponent {
+func NewPlayerComponent(mgr *service.PlayerManager) *PlayerComponent {
 	return &PlayerComponent{Manager: mgr}
 }
 

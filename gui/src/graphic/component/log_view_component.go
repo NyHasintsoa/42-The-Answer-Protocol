@@ -63,7 +63,7 @@ func (lvc *LogViewComponent) Render(rect rl.Rectangle) {
 			int32(viewport.X+4),
 			int32(logY),
 			int32(viewport.Width-14),
-			10,
+			15,
 			utils.ThemeTextMuted,
 		)
 		logY += contentHeights[i]
