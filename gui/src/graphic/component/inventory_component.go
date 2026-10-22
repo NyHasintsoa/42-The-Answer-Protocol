@@ -2,7 +2,6 @@ package component
 
 import (
 	"fmt"
-	"log"
 
 	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/model/inventory"
@@ -290,7 +289,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 			if takeButton.IsClicked {
 				if item, taken := ic.Manager.TakeItem(ic.Manager.SelectedItemIndex); taken {
 					message := fmt.Sprintf("Took %s from inventory.", item.Name)
-					log.Printf("[ACTION] %s", message)
 					ic.logAction(message)
 				}
 			}

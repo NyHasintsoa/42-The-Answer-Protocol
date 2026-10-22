@@ -1,6 +1,8 @@
 package component
 
 import (
+	"log"
+
 	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/utils"
 
@@ -25,6 +27,7 @@ func NewLogViewComponent() *LogViewComponent {
 // AddLog appends msg to the log displayed by the component.
 func (lvc *LogViewComponent) AddLog(msg string) {
 	lvc.Logs = append(lvc.Logs, msg)
+	log.Println(msg)
 }
 
 // Render draws the log messages within rect.
