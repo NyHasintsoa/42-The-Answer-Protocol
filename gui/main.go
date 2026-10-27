@@ -7,6 +7,9 @@ import (
 
 	"tap-gui/src/graphic"
 	"tap-gui/src/model"
+	"tap-gui/src/service"
+
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -17,7 +20,7 @@ const (
 
 // printCliError writes a categorized error to standard error using the provided color.
 // category labels the error; details is the value to print; color is the terminal escape code.
-func printCliError(category string, details interface{}, color string) {
+func printCliError(category string, details any, color string) {
 	fmt.Fprintf(os.Stderr, "%s[%s]%s %v\n", color, category, ColorReset, details)
 }
 
@@ -35,6 +38,15 @@ func run() error {
 
 // main starts the graphical client and exits with an error status if startup fails.
 func main() {
+    err := godotenv.Load()
+    if err != nil {
+        printCliError("No .env file found; using system variables", nil, ColorYellow)
+		os.Exit(1)
+    }
+	if errEnv := service.EnvChecker(); errEnv != nil {
+		printCliError("Configuration Error", errEnv, ColorRed)
+		os.Exit(1)
+	}
 	if err := run(); err != nil {
 		printCliError("Unexpected Fatal Exception", err, ColorRed)
 		os.Exit(1)

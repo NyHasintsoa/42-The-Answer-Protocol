@@ -3,7 +3,9 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"os"
 	"sync"
 	"time"
 )
@@ -21,7 +23,7 @@ func NewTCPClient() *TCPClient {
 // Connect opens a TCP connection to address and replaces any existing connection.
 // ctx controls cancellation; a nil context is treated as context.Background.
 // address is the TCP endpoint; a positive timeout limits the dialing operation.
-func (client *TCPClient) Connect(ctx context.Context, address string, timeout time.Duration) error {
+func (client *TCPClient) Connect(ctx context.Context, timeout time.Duration) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -31,7 +33,8 @@ func (client *TCPClient) Connect(ctx context.Context, address string, timeout ti
 		defer cancel()
 	}
 
-	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", address)
+	serverAddress := fmt.Sprintf("%s:%s", os.Getenv("SERVER_IP"), os.Getenv("SERVER_PORT"))
+	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", serverAddress)
 	if err != nil {
 		return err
 	}

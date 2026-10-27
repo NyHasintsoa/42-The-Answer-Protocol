@@ -86,6 +86,16 @@ cache-clear: ## Clear the cache directory
 	chmod -R u+w $(FT_CACHE_DIR)
 	rm -rf $(FT_CACHE_DIR)
 
+.PHONY: server
+server: ## Start the server
+	$(call GREEN,"Starting the server...")
+	$(GO_RUN) ../server/main.go
+
+.PHONY: command
+command:
+	$(call GREEN,"Executing command...")
+	$(GO) get github.com/joho/godotenv
+
 ##
 ##-----------------------------------
 ## Docker Commands

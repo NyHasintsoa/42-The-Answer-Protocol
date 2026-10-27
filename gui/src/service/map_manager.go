@@ -534,14 +534,6 @@ func (mm *MapManager) loadEnvironmentObjects() {
 	}
 }
 
-// abs returns the non-negative magnitude of v.
-func (mm *MapManager) abs(v int) int {
-	if v < 0 {
-		return -v
-	}
-	return v
-}
-
 const defaultMapConfigJSON = `{
     "world": {
         "rooms": {

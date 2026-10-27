@@ -32,8 +32,6 @@ type connectionResult struct {
 	err error
 }
 
-const serverAddress = "127.0.0.1:8080"
-
 // NewPlayerNamePage creates the player-name form for the specified window and game context.
 // winWidth and winHeight are the window dimensions in pixels; ctx provides shared game state.
 func NewPlayerNamePage(
@@ -102,7 +100,7 @@ func (p *PlayerNamePage) handleSubmit() {
 	client := p.Context.TCPClient
 
 	go func() {
-		err := client.Connect(connectContext, serverAddress, 3*time.Second)
+		err := client.Connect(connectContext, 3*time.Second)
 		if !p.unloaded.Load() {
 			p.connectResults <- connectionResult{err: err}
 		}
