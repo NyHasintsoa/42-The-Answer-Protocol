@@ -1,72 +1,130 @@
-// Package main runs the TCP server that accepts and echoes client messages.
 package main
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
-	"strings"
+	"os"
+	"sync"
 	"time"
+
+	"tap-server/src/action"
+	"tap-server/src/service"
+	"tap-server/src/util"
+
+	"github.com/joho/godotenv"
 )
 
-// main listens for TCP clients and handles each connection concurrently.
-func main() {
-	// Start listening on TCP port 8080
-	listener, err := net.Listen("tcp", ":8080")
+const (
+	ColorRed    = "\033[31m"
+	ColorYellow = "\033[33m"
+	ColorReset  = "\033[0m"
+)
+
+// printCliError writes a categorized error to standard error using the provided color.
+// category labels the error; details is the value to print; color is the terminal escape code.
+func printCliError(category string, details any, color string) {
+	fmt.Fprintf(os.Stderr, "%s[%s]%s %v\n", color, category, ColorReset, details)
+}
+
+const maxConcurrentClients = 256
+
+func run() error {
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
+	listenAddress, err := service.ServerAddress()
 	if err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		return err
+	}
+	store, err := util.NewJSONStore("data")
+	if err != nil {
+		return fmt.Errorf("initialize interaction store: %w", err)
+	}
+	defer func() {
+		if err := store.Close(); err != nil {
+			logger.Error("failed to close interaction store", "error", err)
+		}
+	}()
+
+	worldSvc, err := service.NewWorldService("map.json")
+	if err != nil {
+		return fmt.Errorf("load map.json: %w", err)
+	}
+
+	broadcastSvc := service.NewBroadcastService()
+	router := action.NewActionRouter(worldSvc, broadcastSvc, store)
+
+	listener, err := net.Listen("tcp", listenAddress)
+	if err != nil {
+		return fmt.Errorf("bind TCP listener on %s: %w", listenAddress, err)
 	}
 	defer listener.Close()
 
-	fmt.Println("TCP Server started on port 8080. Waiting for connections...")
+	router.RecordSessionEvent("INFO", "server_started", "", "", "address="+listenAddress)
 
+	slots := make(chan struct{}, maxConcurrentClients)
+	var attemptsMu sync.Mutex
+	recentAttempts := make(map[string][]time.Time)
 	for {
-		// Accept incoming client connections
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Printf("Failed to accept connection: %v", err)
+			if errors.Is(err, net.ErrClosed) {
+				return nil
+			}
+			logger.Error("failed to accept client connection", "error", err)
 			continue
 		}
-
-		// Handle each client concurrently in a new goroutine
-		go handleClient(conn)
+		remote := conn.RemoteAddr().String()
+		host, _, splitErr := net.SplitHostPort(remote)
+		if splitErr != nil {
+			host = remote
+		}
+		now := time.Now()
+		attemptsMu.Lock()
+		for address, recent := range recentAttempts {
+			if len(recent) == 0 || now.Sub(recent[len(recent)-1]) > time.Minute {
+				delete(recentAttempts, address)
+			}
+		}
+		attempts := recentAttempts[host]
+		firstRecent := 0
+		for firstRecent < len(attempts) && now.Sub(attempts[firstRecent]) > time.Minute {
+			firstRecent++
+		}
+		attempts = append(append([]time.Time(nil), attempts[firstRecent:]...), now)
+		recentAttempts[host] = attempts
+		rapid := len(attempts) > 10
+		attemptsMu.Unlock()
+		if rapid {
+			router.RecordSessionEvent("WARN", "rapid_connections", "", remote, "more than 10 connection attempts in one minute")
+		}
+		select {
+		case slots <- struct{}{}:
+		default:
+			router.RecordSessionEvent("WARN", "connection_limit", "", remote, fmt.Sprintf("maximum=%d", maxConcurrentClients))
+			_ = conn.Close()
+			continue
+		}
+		session := service.NewClientSession(conn, router)
+		go func() {
+			defer func() { <-slots }()
+			session.Serve()
+		}()
 	}
 }
 
-// handleClient sends a welcome message, echoes client lines, and closes conn on return.
-// conn is the accepted TCP connection to serve.
-func handleClient(conn net.Conn) {
-	defer conn.Close()
-	clientAddr := conn.RemoteAddr().String()
-	fmt.Printf("New client connected: %s\n", clientAddr)
-
-	// Send a welcome message to the client
-	conn.Write([]byte("Connected to Go TCP Server! Type your message (type 'quit' to exit).\n"))
-
-	reader := bufio.NewReader(conn)
-	for {
-		message, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Printf("Client %s disconnected or encountered error: %v\n", clientAddr, err)
-			break
-		}
-
-		message = strings.TrimSpace(message)
-		if message == "quit" {
-			conn.Write([]byte("Goodbye!\n"))
-			fmt.Printf("Client %s requested disconnection.\n", clientAddr)
-			break
-		}
-
-		fmt.Printf("[%s] Received: %s\n", clientAddr, message)
-
-		// Echo back the message with a timestamp
-		response := fmt.Sprintf("Echo [%s]: %s\n", time.Now().Format("15:04:05"), message)
-		_, err = conn.Write([]byte(response))
-		if err != nil {
-			fmt.Printf("Error writing to client %s: %v\n", clientAddr, err)
-			break
-		}
+// main starts the server and exits with an error status if startup fails.
+func main() {
+	if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
+		printCliError("Configuration Error", fmt.Errorf("load .env: %w", err), ColorRed)
+		os.Exit(1)
+	}
+	if err := service.EnvChecker(); err != nil {
+		printCliError("Configuration Error", err, ColorRed)
+		os.Exit(1)
+	}
+	if err := run(); err != nil {
+		printCliError("Unexpected Fatal Exception", err, ColorRed)
+		os.Exit(1)
 	}
 }
