@@ -2,6 +2,7 @@ package page
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -82,10 +83,6 @@ func (p *PlayerNamePage) handleSubmit() {
 		p.errorMessage = "PLAYER NAME CANNOT BE EMPTY."
 		return
 	}
-	if strings.ToLower(rawName) == "shadowslayer" {
-		p.errorMessage = "PLAYER NAME IS ALREADY IN USE."
-		return
-	}
 	if p.Context == nil || p.Context.TCPClient == nil {
 		p.errorMessage = "SERVER CAN'T BE REACHED."
 		return
@@ -98,9 +95,20 @@ func (p *PlayerNamePage) handleSubmit() {
 	connectContext, cancel := context.WithCancel(context.Background())
 	p.connectCancel = cancel
 	client := p.Context.TCPClient
+	username := p.playerName
 
 	go func() {
 		err := client.Connect(connectContext, 3*time.Second)
+		if err == nil {
+			var response string
+			response, err = client.Command(connectContext, "CONNECT "+username)
+			if err == nil && response != "OK connected" {
+				err = fmt.Errorf("%s", response)
+			}
+			if err != nil {
+				_ = client.Close()
+			}
+		}
 		if !p.unloaded.Load() {
 			p.connectResults <- connectionResult{err: err}
 		}
@@ -119,11 +127,7 @@ func (p *PlayerNamePage) Update() {
 		}
 		p.submit_btn.Text = "CONTINUE"
 		if result.err != nil {
-			p.errorMessage = "SERVER CAN'T BE REACHED."
-			return
-		}
-		if result.err != nil {
-			p.errorMessage = "SERVER CAN'T BE REACHED."
+			p.errorMessage = strings.ToUpper(result.err.Error())
 			return
 		}
 		p.Context.PlayerName = p.playerName

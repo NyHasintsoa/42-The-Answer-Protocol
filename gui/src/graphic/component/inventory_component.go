@@ -12,11 +12,11 @@ import (
 )
 
 type InventoryComponent struct {
-	Manager  *service.InventoryManager
-	Resolver *utils.PathResolver
-	textures map[inventory.InventoryItemType]rl.Texture2D
-	OnDrop   func(inventory.InventoryItem)
-	OnLog    func(string)
+	Manager   *service.InventoryManager
+	Resolver  *utils.PathResolver
+	textures  map[inventory.InventoryItemType]rl.Texture2D
+	OnLog     func(string)
+	OnCommand func(string)
 }
 
 // NewInventoryComponent creates an inventory view backed by mgr and resolver.
@@ -68,7 +68,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 			ic.logAction("Closed item details.")
 		} else {
 			ic.Manager.IsOpen = false
-			ic.Manager.InCombatMode = false
 			ic.logAction("Closed inventory.")
 		}
 		return
@@ -78,11 +77,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 
 	panelW := float32(500)
 	panelH := float32(520)
-	if ic.Manager.InCombatMode {
-		panelW = 380
-		panelH = 420
-	}
-
 	panelX := (float32(winWidth) - panelW) / 2
 	panelY := (float32(winHeight) - panelH) / 2
 	panelRect := rl.NewRectangle(panelX, panelY, panelW, panelH)
@@ -95,9 +89,6 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	rl.DrawLineEx(rl.NewVector2(panelX, panelY+55), rl.NewVector2(panelX+panelW, panelY+55), 2, rl.NewColor(0, 180, 255, 255))
 
 	titleText := fmt.Sprintf("INVENTORY (%d / %d)", ic.Manager.CurrentPage+1, ic.Manager.GetTotalPages())
-	if ic.Manager.InCombatMode {
-		titleText = "COMBAT INVENTORY"
-	}
 	rl.DrawText(titleText, int32(panelX+24), int32(panelY+17), 20, rl.Gold)
 
 	closeButton := ui.NewButton(panelX+panelW-42, panelY+12, 30, 30, "X", 18)
@@ -112,17 +103,11 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 	closeButton.Render()
 	if closeButton.IsClicked && !ic.Manager.IsModalOpen {
 		ic.Manager.IsOpen = false
-		ic.Manager.InCombatMode = false
 		ic.logAction("Closed inventory.")
 	}
 
 	slotSize := float32(115)
 	spacing := float32(18)
-	if ic.Manager.InCombatMode {
-		slotSize = 90
-		spacing = 12
-	}
-
 	gridStartX := panelX + (panelW-3*slotSize-2*spacing)/2
 	gridStartY := panelY + 75
 
@@ -175,36 +160,34 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		}
 	}
 
-	if !ic.Manager.InCombatMode {
-		prevButton := ui.NewButton(panelX+14, panelY+panelH/2-25, 36, 50, "<", 28)
-		prevButton.BgColor = rl.NewColor(0, 100, 180, 255)
-		prevButton.HoverBgColor = rl.NewColor(0, 150, 220, 255)
-		prevButton.ClickedColor = prevButton.HoverBgColor
-		prevButton.TextColor = rl.White
-		prevButton.BorderColor = rl.NewColor(0, 200, 255, 255)
-		prevButton.ShadowColor = rl.Blank
-		prevButton.BorderWidth = 2
-		prevButton.BorderRadius = 0.25
-		prevButton.Render()
-		if prevButton.IsClicked && ic.Manager.CurrentPage > 0 && !ic.Manager.IsModalOpen {
-			ic.Manager.PrevPage()
-			ic.logAction("Viewed the previous inventory page.")
-		}
+	prevButton := ui.NewButton(panelX+14, panelY+panelH/2-25, 36, 50, "<", 28)
+	prevButton.BgColor = rl.NewColor(0, 100, 180, 255)
+	prevButton.HoverBgColor = rl.NewColor(0, 150, 220, 255)
+	prevButton.ClickedColor = prevButton.HoverBgColor
+	prevButton.TextColor = rl.White
+	prevButton.BorderColor = rl.NewColor(0, 200, 255, 255)
+	prevButton.ShadowColor = rl.Blank
+	prevButton.BorderWidth = 2
+	prevButton.BorderRadius = 0.25
+	prevButton.Render()
+	if prevButton.IsClicked && ic.Manager.CurrentPage > 0 && !ic.Manager.IsModalOpen {
+		ic.Manager.PrevPage()
+		ic.logAction("Viewed the previous inventory page.")
+	}
 
-		nextButton := ui.NewButton(panelX+panelW-50, panelY+panelH/2-25, 36, 50, ">", 28)
-		nextButton.BgColor = rl.NewColor(0, 100, 180, 255)
-		nextButton.HoverBgColor = rl.NewColor(0, 150, 220, 255)
-		nextButton.ClickedColor = nextButton.HoverBgColor
-		nextButton.TextColor = rl.White
-		nextButton.BorderColor = rl.NewColor(0, 200, 255, 255)
-		nextButton.ShadowColor = rl.Blank
-		nextButton.BorderWidth = 2
-		nextButton.BorderRadius = 0.25
-		nextButton.Render()
-		if nextButton.IsClicked && ic.Manager.CurrentPage < ic.Manager.GetTotalPages()-1 && !ic.Manager.IsModalOpen {
-			ic.Manager.NextPage()
-			ic.logAction("Viewed the next inventory page.")
-		}
+	nextButton := ui.NewButton(panelX+panelW-50, panelY+panelH/2-25, 36, 50, ">", 28)
+	nextButton.BgColor = rl.NewColor(0, 100, 180, 255)
+	nextButton.HoverBgColor = rl.NewColor(0, 150, 220, 255)
+	nextButton.ClickedColor = nextButton.HoverBgColor
+	nextButton.TextColor = rl.White
+	nextButton.BorderColor = rl.NewColor(0, 200, 255, 255)
+	nextButton.ShadowColor = rl.Blank
+	nextButton.BorderWidth = 2
+	nextButton.BorderRadius = 0.25
+	nextButton.Render()
+	if nextButton.IsClicked && ic.Manager.CurrentPage < ic.Manager.GetTotalPages()-1 && !ic.Manager.IsModalOpen {
+		ic.Manager.NextPage()
+		ic.logAction("Viewed the next inventory page.")
 	}
 
 	if ic.Manager.IsModalOpen && ic.Manager.SelectedItemIndex >= 0 && ic.Manager.SelectedItemIndex < len(ic.Manager.Items) {
@@ -262,57 +245,18 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		btnH := float32(38)
 		btnY := modalY + modalH - 55
 
-		if ic.Manager.InCombatMode {
-			useButton := ui.NewButton(modalX+(modalW-140)/2, btnY, 140, btnH, "USE ITEM", 16)
-			useButton.BgColor = rl.NewColor(0, 150, 80, 255)
-			useButton.HoverBgColor = rl.NewColor(0, 200, 100, 255)
-			useButton.ClickedColor = useButton.HoverBgColor
-			useButton.TextColor = rl.White
-			useButton.BorderColor = rl.White
-			useButton.BorderWidth = 2
-			useButton.BorderRadius = 0.25
-			useButton.Render()
-			if useButton.IsClicked {
-				ic.Manager.UseItem(ic.Manager.SelectedItemIndex)
-			}
-		} else {
-			takeButton := ui.NewButton(modalX+30, btnY, btnW, btnH, "TAKE", 16)
-			takeButton.BgColor = rl.NewColor(0, 150, 80, 255)
-			takeButton.HoverBgColor = rl.NewColor(0, 200, 100, 255)
-			takeButton.ClickedColor = takeButton.HoverBgColor
-			takeButton.TextColor = rl.White
-			takeButton.BorderColor = rl.White
-			takeButton.ShadowColor = rl.Blank
-			takeButton.BorderWidth = 2
-			takeButton.BorderRadius = 0.25
-			takeButton.Render()
-			if takeButton.IsClicked {
-				if item, taken := ic.Manager.TakeItem(ic.Manager.SelectedItemIndex); taken {
-					message := fmt.Sprintf("Took %s from inventory.", item.Name)
-					ic.logAction(message)
-				}
-			}
-
-			dropButton := ui.NewButton(modalX+modalW-30-btnW, btnY, btnW, btnH, "DROP", 16)
-			dropButton.BgColor = rl.NewColor(170, 40, 40, 255)
-			dropButton.HoverBgColor = rl.NewColor(220, 50, 50, 255)
-			dropButton.ClickedColor = dropButton.HoverBgColor
-			dropButton.TextColor = rl.White
-			dropButton.BorderColor = rl.White
-			dropButton.ShadowColor = rl.Blank
-			dropButton.BorderWidth = 2
-			dropButton.BorderRadius = 0.25
-			dropButton.Render()
-			if dropButton.IsClicked {
-				if item, dropped := ic.Manager.DropItem(ic.Manager.SelectedItemIndex); dropped {
-					if ic.OnDrop != nil {
-						ic.OnDrop(item)
-					}
-					if ic.OnLog != nil {
-						ic.OnLog(fmt.Sprintf("Dropped %s into the room.", item.Name))
-					}
-				}
-			}
+		dropButton := ui.NewButton(modalX+(modalW-btnW)/2, btnY, btnW, btnH, "DROP", 16)
+		dropButton.BgColor = rl.NewColor(170, 40, 40, 255)
+		dropButton.HoverBgColor = rl.NewColor(220, 50, 50, 255)
+		dropButton.ClickedColor = dropButton.HoverBgColor
+		dropButton.TextColor = rl.White
+		dropButton.BorderColor = rl.White
+		dropButton.ShadowColor = rl.Blank
+		dropButton.BorderWidth = 2
+		dropButton.BorderRadius = 0.25
+		dropButton.Render()
+		if dropButton.IsClicked && ic.OnCommand != nil {
+			ic.OnCommand("DROP " + selectedItem.ID)
 		}
 	}
 }

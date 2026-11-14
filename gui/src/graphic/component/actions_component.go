@@ -19,6 +19,7 @@ type ActionComponent struct {
 	NPCPreviews  map[string]character.INpc
 	LawnTexture  rl.Texture2D
 	OnLog        func(string)
+	OnAction     func(npc.NPCConfig, string)
 }
 
 // NewActionComponent creates an NPC action view backed by mgr and pathResolver.
@@ -249,12 +250,17 @@ func (dc *ActionComponent) Render(winWidth, winHeight int32) {
 			rl.DrawText(resp.ActionTag, int32(tagX), int32(itemY+(respH-12)/2), 12, tagColor)
 		}
 
-		if (isHover && rl.IsMouseButtonPressed(rl.MouseButtonLeft)) {
+		if isHover && rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
 			if dc.OnLog != nil {
 				dc.OnLog(fmt.Sprintf("%s: %s", dc.Manager.NPC.Name, resp.Text))
 			}
-			if resp.OnSelect != nil {
-				resp.OnSelect()
+			switch resp.ActionTag {
+			case "CLOSE":
+				dc.Manager.Close()
+			default:
+				if dc.OnAction != nil {
+					dc.OnAction(dc.Manager.NPC, resp.ActionTag)
+				}
 			}
 		}
 	}

@@ -2,193 +2,53 @@ package service
 
 import (
 	"fmt"
-	"math/rand"
 	"tap-gui/src/model/npc"
-	"time"
 )
 
 type AttackManager struct {
-	IsOpen            bool
-	PlayerHP          int
-	PlayerMaxHP       int
-	NPC               npc.NPCConfig
-	NPCHP             int
-	NPCMaxHP          int
-	CombatLog         []string
-	IsCombatOver      bool
-	OnPlayerRespawn   func()
-	OnMonsterDefeated func(npc npc.NPCConfig)
-	OnOpenInventory   func()
-	OnFlee            func()
-	OnLog             func(string)
-	respawnPending    bool
-	respawnRemaining  float32
+	IsOpen       bool
+	PlayerHP     int
+	PlayerMaxHP  int
+	NPC          npc.NPCConfig
+	NPCHP        int
+	NPCMaxHP     int
+	CombatLog    []string
+	IsCombatOver bool
+	OnLog        func(string)
 }
 
-// NewAttackManager creates a combat manager with the player at full health.
+// NewAttackManager creates an empty combat view populated by server responses.
 func NewAttackManager() *AttackManager {
 	return &AttackManager{
-		IsOpen:      false,
 		PlayerHP:    100,
 		PlayerMaxHP: 100,
 		CombatLog:   make([]string, 0),
 	}
 }
 
-// StartCombat opens combat against npc and resets the combat log.
-// npc supplies the opponent's identity and health values.
-func (am *AttackManager) StartCombat(npc npc.NPCConfig) {
-	am.NPC = npc
+// StartCombat opens the combat view for a server-defined opponent.
+func (am *AttackManager) StartCombat(opponent npc.NPCConfig) {
+	am.NPC = opponent
 	am.IsOpen = true
 	am.IsCombatOver = false
-	am.CombatLog = make([]string, 0)
-
-	if npc.HP <= 0 {
-		am.NPCHP = npc.MaxHP
-	} else {
-		am.NPCHP = npc.HP
+	am.CombatLog = nil
+	am.NPCHP = opponent.HP
+	if am.NPCHP <= 0 {
+		am.NPCHP = opponent.MaxHP
 	}
-	am.NPCMaxHP = npc.MaxHP
-	if am.PlayerHP <= 0 {
-		am.PlayerHP = am.PlayerMaxHP
-	}
-
-	am.AddLog(fmt.Sprintf("Combat started with %s!", npc.Name))
+	am.NPCMaxHP = opponent.MaxHP
+	am.AddLog(fmt.Sprintf("Combat started with %s.", opponent.Name))
 }
 
-// AddLog appends msg to the combat log and notifies the configured log callback.
-func (am *AttackManager) AddLog(msg string) {
-	am.CombatLog = append(am.CombatLog, msg)
+// AddLog appends a server response to the combat history.
+func (am *AttackManager) AddLog(message string) {
+	am.CombatLog = append(am.CombatLog, message)
 	if len(am.CombatLog) > 10 {
-		am.CombatLog = am.CombatLog[1:]
+		am.CombatLog = am.CombatLog[len(am.CombatLog)-10:]
 	}
 	if am.OnLog != nil {
-		am.OnLog(msg)
+		am.OnLog(message)
 	}
-}
-
-// Attack resolves one player attack and, if the opponent survives, its counterattack.
-func (am *AttackManager) Attack() {
-	if am.IsCombatOver || !am.IsOpen {
-		return
-	}
-
-	playerDmg := 15 + rand.Intn(11)
-	am.NPCHP -= playerDmg
-	if am.NPCHP < 0 {
-		am.NPCHP = 0
-	}
-	am.AddLog(fmt.Sprintf("You dealt %d damage to %s.", playerDmg, am.NPC.Name))
-
-	if am.NPCHP <= 0 {
-		am.IsCombatOver = true
-
-		successMsg := fmt.Sprintf("SUCCESS: %s has been defeated!", am.NPC.Name)
-		am.AddLog(successMsg)
-
-		if am.OnMonsterDefeated != nil {
-			am.NPC.HP = 0
-			am.NPC.CanBeAttacked = false
-			am.OnMonsterDefeated(am.NPC)
-		}
-
-		go func() {
-			time.Sleep(3 * time.Second)
-			am.Close()
-		}()
-		return
-	}
-
-	monsterDmg := 8 + rand.Intn(10)
-	am.PlayerHP -= monsterDmg
-	if am.PlayerHP < 0 {
-		am.PlayerHP = 0
-	}
-	am.AddLog(fmt.Sprintf("%s counter-attacked for %d damage.", am.NPC.Name, monsterDmg))
-
-	if am.PlayerHP <= 0 {
-		am.IsCombatOver = true
-		am.AddLog("You were defeated in combat! Respawning in 3 seconds...")
-		am.scheduleRespawn()
-	}
-}
-
-// Status appends the current player and opponent health values to the combat log.
-func (am *AttackManager) Status() {
-	if !am.IsOpen {
-		return
-	}
-	am.AddLog(fmt.Sprintf("STATUS: Player HP: %d/%d | %s HP: %d/%d", am.PlayerHP, am.PlayerMaxHP, am.NPC.Name, am.NPCHP, am.NPCMaxHP))
-}
-
-// Flee attempts to end combat and applies a counterattack if the attempt fails.
-func (am *AttackManager) Flee() {
-	if am.IsCombatOver || !am.IsOpen {
-		return
-	}
-
-	if rand.Float32() < 0.7 {
-		am.AddLog("You successfully fled from combat!")
-		am.IsCombatOver = true
-		am.IsOpen = false
-		if am.OnFlee != nil {
-			am.OnFlee()
-		}
-	} else {
-		am.AddLog("Flee failed!")
-		monsterDmg := 5 + rand.Intn(8)
-		am.PlayerHP -= monsterDmg
-		if am.PlayerHP < 0 {
-			am.PlayerHP = 0
-		}
-		am.AddLog(fmt.Sprintf("%s hit you for %d damage while fleeing.", am.NPC.Name, monsterDmg))
-		if am.PlayerHP <= 0 {
-			am.IsCombatOver = true
-			am.AddLog("You were defeated! Respawning in 3 seconds...")
-			am.scheduleRespawn()
-		}
-	}
-}
-
-// UseInventory notifies the configured callback to open the inventory during combat.
-func (am *AttackManager) UseInventory() {
-	if am.IsCombatOver || !am.IsOpen {
-		return
-	}
-	am.AddLog("Opened inventory during combat.")
-	if am.OnOpenInventory != nil {
-		am.OnOpenInventory()
-	}
-}
-
-// RespawnPlayer restores the player to 50 health, notifies the respawn callback, and closes combat.
-func (am *AttackManager) RespawnPlayer() {
-	am.respawnPending = false
-	am.respawnRemaining = 0
-	am.PlayerHP = 50
-	am.AddLog("Respawned at safe location with 50 HP.")
-	if am.OnPlayerRespawn != nil {
-		am.OnPlayerRespawn()
-	}
-	am.Close()
-}
-
-// Update advances the pending respawn timer.
-// dt is the elapsed time in seconds since the previous update.
-func (am *AttackManager) Update(dt float32) {
-	if !am.respawnPending {
-		return
-	}
-	am.respawnRemaining -= dt
-	if am.respawnRemaining <= 0 {
-		am.RespawnPlayer()
-	}
-}
-
-// scheduleRespawn starts the three-second player respawn countdown.
-func (am *AttackManager) scheduleRespawn() {
-	am.respawnPending = true
-	am.respawnRemaining = 3
 }
 
 // Close hides the combat panel.

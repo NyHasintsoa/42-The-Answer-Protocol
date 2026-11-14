@@ -1,7 +1,10 @@
 package page
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"tap-gui/src/graphic/component"
@@ -47,8 +50,35 @@ type GamePage struct {
 	WindowWidth     int32
 	WindowHeight    int32
 	Camera          rl.Camera2D
-	RoomTarget      rl.Vector2
 	IsMovingToRoom  bool
+	commandQueue    chan string
+	commandResults  chan commandResult
+	commandContext  context.Context
+	cancelCommands  context.CancelFunc
+}
+
+type commandResult struct {
+	command  string
+	response string
+	err      error
+}
+
+type lookResponse struct {
+	Room struct {
+		ID          string            `json:"id"`
+		Name        string            `json:"name"`
+		Description string            `json:"description"`
+		Exits       map[string]string `json:"exits"`
+	} `json:"room"`
+	Players []string `json:"players"`
+	Items   []string `json:"items"`
+	NPCs    []string `json:"npcs"`
+}
+
+type serverQuest struct {
+	QuestID  string `json:"quest_id"`
+	Status   string `json:"status"`
+	Progress string `json:"progress"`
 }
 
 // NewGamePage creates the game screen using the supplied window size and shared context.
@@ -59,7 +89,11 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 		resourceManager = ctx.ResourceManager
 	}
 	pathResolver := utils.NewPathResolverWithResourceManager("assets", resourceManager)
-	mapManager := service.NewMapManager(pathResolver, "", npc.EntityFactory{
+	mapJSON := ""
+	if ctx != nil {
+		mapJSON = ctx.Config.MapJSON
+	}
+	mapManager := service.NewMapManager(pathResolver, mapJSON, npc.EntityFactory{
 		NewMonster: func(scale float32, resolver *utils.PathResolver, assetPath, name string) npc.Monster {
 			return character.NewMonster(scale, resolver, assetPath, name)
 		},
@@ -86,30 +120,6 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	roomViewMgr := component.NewRoomViewManager()
 	playerMgr := service.NewPlayerManager()
 
-	for roomID, room := range mapManager.World.Rooms {
-		items := make([]service.RoomItemDetail, 0, len(room.Items))
-		for _, itemID := range room.Items {
-			items = append(items, service.RoomItemDetail{
-				ID:   itemID,
-				Name: roomEntityName(itemID),
-			})
-		}
-		roomItemMgr.SetRoomItems(roomID, items)
-
-		npcs := make([]npc.NPCConfig, 0, len(room.NPCs))
-		for _, npcKey := range room.NPCs {
-			npcConfig, exists := mapManager.GetNPCConfig(npcKey)
-			if !exists {
-				npcConfig = npc.NPCConfig{Key: npcKey, Name: roomEntityName(npcKey), ImageType: npcKey}
-			}
-			npcs = append(npcs, npcConfig)
-		}
-		roomNPCMgr.SetRoomNPCs(roomID, npcs)
-
-		room.Items = nil
-		room.NPCs = nil
-	}
-
 	mapComp := component.NewMapComponent(mapManager)
 	inventoryComp := component.NewInventoryComponent(inventoryMgr, pathResolver)
 	chatComp := component.NewChatComponent(chatMgr)
@@ -135,6 +145,7 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 	}
 
 	gp := &GamePage{
+		BasePage:        BasePage{Context: ctx},
 		WindowWidth:     winWidth,
 		WindowHeight:    winHeight,
 		PathResolver:    pathResolver,
@@ -168,95 +179,381 @@ func NewGamePage(winWidth, winHeight int32, ctx *model.GameContext) *GamePage {
 			Rotation: 0.0,
 			Zoom:     1.0,
 		},
+		commandQueue:   make(chan string, 32),
+		commandResults: make(chan commandResult, 32),
 	}
+	gp.commandContext, gp.cancelCommands = context.WithCancel(context.Background())
 	gp.State = pagemodel.GamePage
 	gp.RoomViewMgr.OnMove = gp.moveToRoom
 	gp.ActionBtnsComp.OnLog = gp.addLog
-	gp.ActionBtnsComp.OnQuit = func() {
-		gp.returnToMainMenu()
-	}
+	gp.ActionBtnsComp.OnCommand = gp.submitCommand
 	gp.InventoryComp.OnLog = gp.addLog
 	gp.QuestComp.OnLog = gp.addLog
-	gp.InventoryComp.OnDrop = func(item inventory.InventoryItem) {
-		if gp.RoomItemMgr.AddItemToActiveRoom(service.RoomItemDetail{ID: item.ID, Name: item.Name}) {
-			gp.syncRoomContext()
-		}
-	}
+	gp.InventoryComp.OnCommand = gp.submitCommand
 	gp.RoomDetailsComp.OnLog = gp.addLog
 	gp.RoomDetailsComp.OnTakeItem = func(roomItem service.RoomItemDetail) {
-		itemID := roomItem.ID
-		if separator := strings.LastIndex(itemID, ":"); separator >= 0 {
-			itemID = itemID[separator+1:]
-		}
-		gp.InventoryMgr.AddItem(inventory.InventoryItem{
-			ID:    itemID,
-			Name:  roomItem.Name,
-			Type:  inventory.InventoryItemType(itemID),
-			Count: 1,
-		})
+		gp.submitCommand("TAKE " + roomItem.ID)
 	}
 	gp.DialogComp.OnLog = gp.addLog
+	gp.DialogComp.OnAction = func(npcConfig npc.NPCConfig, action string) {
+		switch action {
+		case "TALK":
+			gp.submitCommand("TALK " + npcConfig.Key)
+		case "QUEST":
+			gp.submitCommand("QUEST " + npcConfig.Key)
+		}
+	}
 	gp.ChatComp.OnLog = gp.addLog
-	gp.AttackMgr.OnLog = gp.addLog
+	gp.ChatComp.OnCommand = gp.submitCommand
+	gp.AttackComp.OnCommand = func(command string) {
+		if command == "FLEE" {
+			for _, direction := range []string{"north", "south", "east", "west"} {
+				if _, exists := gp.MapManager.ActiveRoom.Exits[direction]; exists {
+					command += " " + direction
+					break
+				}
+			}
+		}
+		gp.submitCommand(command)
+	}
 	gp.RoomDetailsMgr.OnOpenActions = func(npc npc.NPCConfig) {
 		gp.DialogMgr.OpenAction(npc)
+		gp.submitCommand("TALK " + npc.Key)
+	}
+	gp.DialogMgr.HasQuest = func(npcConfig npc.NPCConfig) bool {
+		return gp.QuestMgr.HasQuest(npcConfig.QuestID)
 	}
 	gp.RoomDetailsMgr.OnAttackNPC = func(npc npc.NPCConfig) {
 		gp.AttackMgr.StartCombat(npc)
 	}
-
-	gp.AttackMgr.OnMonsterDefeated = func(npc npc.NPCConfig) {
-		gp.RoomNPCMgr.DamageActiveNPC(npc.Key, 999)
-		gp.MainChar.SetPosition(gp.MainChar.Position.X, gp.MainChar.Position.Y)
-	}
-
-	gp.AttackMgr.OnPlayerRespawn = func() {
-		defX, defY := gp.MapManager.GetStartPosition()
-		gp.MainChar.IsDead = false
-		gp.MainChar.SetAction(character.ActionIdle)
-		gp.MainChar.SetPosition(defX, defY)
-		gp.Camera.Target = gp.MainChar.Position
-		gp.IsMovingToRoom = false
-		gp.RoomViewMgr.IsMoving = false
-		gp.HPBar.SetHP(50)
-	}
-
-	gp.AttackMgr.OnFlee = func() {
-		defX, defY := gp.MapManager.GetStartPosition()
-		gp.MainChar.SetPosition(defX, defY)
-	}
-
-	gp.AttackMgr.OnOpenInventory = func() {
-		if gp.InventoryMgr != nil {
-			gp.InventoryMgr.InCombatMode = true
-			gp.InventoryMgr.IsOpen = true
-		}
-	}
-
-	gp.InventoryMgr.OnUseItemInCombat = func(item inventory.InventoryItem) {
-		gp.AttackMgr.PlayerHP += item.Cost
-		if gp.AttackMgr.PlayerHP > gp.AttackMgr.PlayerMaxHP {
-			gp.AttackMgr.PlayerHP = gp.AttackMgr.PlayerMaxHP
-		}
-		gp.AttackMgr.AddLog(fmt.Sprintf("Used %s! Recovered %d HP.", item.Name, item.Cost))
-	}
-
-	gp.DialogMgr.HasQuest = func(npc npc.NPCConfig) bool {
-		return gp.QuestMgr.HasQuest(npc.QuestID)
-	}
-	gp.DialogMgr.OnAcceptQuest = func(npc npc.NPCConfig) bool {
-		return gp.QuestMgr.AcceptQuest(npc)
-	}
-
-	gp.syncRoomContext()
+	go gp.commandWorker()
+	gp.submitCommand("LOOK")
+	gp.submitCommand("STATUS")
+	gp.submitCommand("INVENTORY")
+	gp.submitCommand("QUESTS")
 
 	return gp
+}
+
+func (gp *GamePage) commandWorker() {
+	for {
+		select {
+		case <-gp.commandContext.Done():
+			return
+		case command := <-gp.commandQueue:
+			response, err := gp.Context.TCPClient.Command(gp.commandContext, command)
+			select {
+			case gp.commandResults <- commandResult{command: command, response: response, err: err}:
+			case <-gp.commandContext.Done():
+				return
+			}
+		}
+	}
+}
+
+func (gp *GamePage) submitCommand(command string) {
+	command = strings.TrimSpace(command)
+	if command == "" {
+		return
+	}
+	if gp.Context == nil || gp.Context.TCPClient == nil || !gp.Context.TCPClient.IsConnected() {
+		gp.addLog("Command not sent: server connection is unavailable.")
+		return
+	}
+	select {
+	case gp.commandQueue <- command:
+		gp.addLog("You: " + command)
+	default:
+		gp.addLog("Command not sent: the server request queue is full.")
+	}
+}
+
+func (gp *GamePage) handleCommandResult(result commandResult) {
+	if result.err != nil {
+		gp.addLog(fmt.Sprintf("%s failed: %v", result.command, result.err))
+		gp.IsMovingToRoom = false
+		gp.RoomViewMgr.IsMoving = false
+		return
+	}
+	gp.addLog("Server: " + result.response)
+	if strings.HasPrefix(result.response, "ERR ") {
+		gp.IsMovingToRoom = false
+		gp.RoomViewMgr.IsMoving = false
+		return
+	}
+
+	body := strings.TrimPrefix(result.response, "OK ")
+	fields := strings.Fields(result.command)
+	if len(fields) == 0 {
+		return
+	}
+	switch strings.ToUpper(fields[0]) {
+	case "LOOK":
+		var data lookResponse
+		if err := json.Unmarshal([]byte(body), &data); err != nil {
+			gp.addLog("Could not decode LOOK response: " + err.Error())
+			return
+		}
+		gp.applyLook(data)
+	case "MOVE":
+		roomID := strings.TrimPrefix(body, "room=")
+		gp.IsMovingToRoom = false
+		gp.RoomViewMgr.IsMoving = false
+		if !gp.MapManager.SetActiveRoom(roomID) {
+			gp.addLog("Server moved to an unknown room: " + roomID)
+			return
+		}
+		gp.setPlayerRoom(roomID)
+		gp.submitCommand("LOOK")
+	case "INVENTORY":
+		var itemIDs []string
+		if err := json.Unmarshal([]byte(body), &itemIDs); err != nil {
+			gp.addLog("Could not decode INVENTORY response: " + err.Error())
+			return
+		}
+		gp.applyInventory(itemIDs)
+	case "QUESTS":
+		var serverQuests []serverQuest
+		if err := json.Unmarshal([]byte(body), &serverQuests); err != nil {
+			gp.addLog("Could not decode QUESTS response: " + err.Error())
+			return
+		}
+		gp.applyQuests(serverQuests)
+	case "STATUS":
+		var status struct {
+			HP     int    `json:"hp"`
+			MaxHP  int    `json:"max_hp"`
+			Status string `json:"status"`
+		}
+		if err := json.Unmarshal([]byte(body), &status); err != nil {
+			gp.addLog("Could not decode STATUS response: " + err.Error())
+			return
+		}
+		gp.applyStatus(status.HP, status.MaxHP)
+	case "TAKE", "DROP":
+		gp.submitCommand("LOOK")
+		gp.submitCommand("INVENTORY")
+	case "QUEST":
+		var questResult struct {
+			Status string `json:"status"`
+		}
+		if err := json.Unmarshal([]byte(body), &questResult); err == nil && questResult.Status != "" {
+			gp.DialogMgr.CurrentText = "Quest status: " + questResult.Status
+		} else {
+			gp.DialogMgr.CurrentText = body
+		}
+		gp.DialogMgr.SetQuestAccepted(true)
+		gp.submitCommand("QUESTS")
+		gp.submitCommand("INVENTORY")
+	case "ATTACK", "DEFEND", "FLEE":
+		status := gp.applyCombatResult(strings.ToUpper(fields[0]), body)
+		gp.submitCommand("STATUS")
+		if strings.ToUpper(fields[0]) == "FLEE" || status == "respawned" {
+			gp.AttackMgr.IsOpen = false
+			gp.submitCommand("LOOK")
+		}
+	case "TALK":
+		if gp.DialogMgr.IsOpen {
+			gp.DialogMgr.CurrentText = body
+		}
+	case "QUIT":
+		gp.returnToMainMenu()
+	}
+}
+
+func (gp *GamePage) applyLook(data lookResponse) {
+	if !gp.MapManager.SetActiveRoom(data.Room.ID) {
+		gp.addLog("LOOK returned a room missing from the server map: " + data.Room.ID)
+		return
+	}
+	room := gp.MapManager.ActiveRoom
+	room.Name = data.Room.Name
+	room.Description = data.Room.Description
+	room.Exits = data.Room.Exits
+	gp.RoomViewMgr.CurrentRoom = component.RoomViewData{
+		Title: data.Room.Name, Description: data.Room.Description,
+		Exits: make(map[component.ExitDirection]bool, len(data.Room.Exits)),
+	}
+	for direction := range data.Room.Exits {
+		gp.RoomViewMgr.CurrentRoom.Exits[component.ExitDirection(strings.ToUpper(direction))] = true
+	}
+
+	items := make([]service.RoomItemDetail, 0, len(data.Items))
+	for _, itemID := range data.Items {
+		item, exists := gp.MapManager.GetItemConfig(itemID)
+		name, description := roomEntityName(itemID), ""
+		if exists {
+			name, description = item.Name, item.Description
+		}
+		items = append(items, service.RoomItemDetail{ID: itemID, Name: name, Description: description})
+	}
+	gp.RoomItemMgr.SetRoomItems(room.ID, items)
+
+	npcs := make([]npc.NPCConfig, 0, len(data.NPCs))
+	for _, key := range data.NPCs {
+		config, exists := gp.MapManager.GetNPCConfig(key)
+		if !exists {
+			config = npc.NPCConfig{Key: key, Name: roomEntityName(key), ImageType: key}
+		}
+		npcs = append(npcs, config)
+	}
+	gp.RoomNPCMgr.SetRoomNPCs(room.ID, npcs)
+	gp.RoomDetailsMgr.SetActiveRoom(room.ID, data.Room.Name)
+	gp.PlayerMgr.SetPlayers(data.Players)
+	gp.setPlayerRoom(room.ID)
+}
+
+func (gp *GamePage) setPlayerRoom(roomID string) {
+	if !gp.MapManager.SetActiveRoom(roomID) {
+		return
+	}
+	room := gp.MapManager.ActiveRoom
+	position := rl.NewVector2(float32(room.TileX)*service.TileSize+service.TileSize*2, float32(room.TileY)*service.TileSize+service.TileSize*2)
+	gp.MainChar.SetPosition(position.X, position.Y)
+	gp.Camera.Target = position
+	gp.RoomViewMgr.IsMoving = false
+	gp.IsMovingToRoom = false
+}
+
+func (gp *GamePage) applyInventory(itemIDs []string) {
+	items := make([]inventory.InventoryItem, 0, len(itemIDs))
+	indexes := make(map[string]int, len(itemIDs))
+	for _, itemID := range itemIDs {
+		if index, exists := indexes[itemID]; exists {
+			items[index].Count++
+			continue
+		}
+		config, exists := gp.MapManager.GetItemConfig(itemID)
+		name, cost := roomEntityName(itemID), 0
+		if exists {
+			name, cost = config.Name, config.Cost
+		}
+		indexes[itemID] = len(items)
+		items = append(items, inventory.InventoryItem{
+			ID: itemID, Name: name, Type: inventory.InventoryItemType(itemID),
+			Category: inventory.InventoryCategory(config.Category), Cost: cost, Count: 1,
+		})
+	}
+	gp.InventoryMgr.SetItems(items)
+}
+
+func (gp *GamePage) applyQuests(serverQuests []serverQuest) {
+	quests := make([]*service.Quest, 0, len(serverQuests))
+	for _, serverQuest := range serverQuests {
+		config, exists := gp.MapManager.GetQuestConfig(serverQuest.QuestID)
+		title, giver := serverQuest.QuestID, ""
+		if exists {
+			title = config.Title
+			if npcConfig, found := gp.MapManager.GetNPCConfig(config.Giver); found {
+				giver = npcConfig.Name
+			} else {
+				giver = config.Giver
+			}
+		}
+		current, target := parseProgress(serverQuest.Progress)
+		quests = append(quests, &service.Quest{
+			ID: serverQuest.QuestID, Title: title, NPCName: giver,
+			CurrentProgress: current, TargetProgress: target,
+		})
+	}
+	gp.QuestMgr.SetQuests(quests)
+}
+
+func parseProgress(progress string) (int, int) {
+	current, target, found := strings.Cut(progress, "/")
+	if !found {
+		return 0, 1
+	}
+	currentValue, currentErr := strconv.Atoi(current)
+	targetValue, targetErr := strconv.Atoi(target)
+	if currentErr != nil || targetErr != nil || targetValue < 1 {
+		return 0, 1
+	}
+	return currentValue, targetValue
+}
+
+func (gp *GamePage) applyStatus(hp, maxHP int) {
+	if maxHP < 1 {
+		return
+	}
+	gp.AttackMgr.PlayerHP = hp
+	gp.AttackMgr.PlayerMaxHP = maxHP
+	gp.HPBar.SetMaxHP(float32(maxHP))
+	gp.HPBar.SetHP(float32(hp))
+}
+
+func (gp *GamePage) applyCombatResult(command, body string) string {
+	var result struct {
+		HP       int    `json:"hp"`
+		Attacker int    `json:"attacker_hp"`
+		TargetHP int    `json:"target_hp"`
+		Damage   int    `json:"damage"`
+		Status   string `json:"status"`
+	}
+	if err := json.Unmarshal([]byte(body), &result); err != nil {
+		return ""
+	}
+	playerHP := result.HP
+	if result.Attacker > 0 {
+		playerHP = result.Attacker
+	}
+	if playerHP > 0 {
+		gp.AttackMgr.PlayerHP = playerHP
+		gp.HPBar.SetHP(float32(playerHP))
+	}
+	if command == "ATTACK" && gp.AttackMgr.NPC.Key != "" {
+		gp.AttackMgr.NPCHP = result.TargetHP
+		gp.RoomNPCMgr.DamageActiveNPC(gp.AttackMgr.NPC.Key, result.Damage)
+	}
+	if result.Status == "victory" || result.Status == "respawned" {
+		gp.AttackMgr.IsCombatOver = true
+		gp.AttackMgr.IsOpen = false
+	}
+	gp.AttackMgr.AddLog(body)
+	return result.Status
+}
+
+func (gp *GamePage) handleServerEvent(event string) {
+	parts := strings.SplitN(event, " ", 5)
+	if gp.ChatMgr != nil && len(parts) == 5 && parts[0] == "EVT" && parts[2] == "CHAT" {
+		channel := service.ChannelGlobal
+		switch parts[1] {
+		case "ROOM":
+			channel = service.ChannelRoom
+		case "GROUP":
+			channel = service.ChannelGroup
+		}
+		gp.ChatMgr.AddMessage(channel, parts[3], parts[4], parts[3] == gp.Context.PlayerName)
+	}
+	if len(parts) == 5 && parts[0] == "EVT" && parts[1] == "ROOM" && parts[2] == "PRESENCE" {
+		switch parts[3] {
+		case "ENTER":
+			for _, player := range gp.PlayerMgr.Players {
+				if player.Name == parts[4] {
+					gp.addLog(event)
+					return
+				}
+			}
+			gp.PlayerMgr.AddPlayer(parts[4], parts[4])
+		case "LEAVE":
+			for _, player := range gp.PlayerMgr.Players {
+				if player.Name == parts[4] {
+					gp.PlayerMgr.RemovePlayer(player.ID)
+					break
+				}
+			}
+		}
+	}
+	gp.addLog(event)
 }
 
 // Unload releases resources owned by the game page.
 func (gp *GamePage) Unload() {
 	if gp.IsUnloaded {
 		return
+	}
+	if gp.cancelCommands != nil {
+		gp.cancelCommands()
 	}
 	if gp.MapManager != nil {
 		gp.MapManager.Unload()
@@ -303,69 +600,32 @@ func (gp *GamePage) hasOpenModal() bool {
 
 // Update advances game state by dt seconds.
 func (gp *GamePage) Update(dt float32) {
-	if gp.AttackMgr != nil {
-		gp.AttackMgr.Update(dt)
+	if gp.Context != nil && gp.Context.TCPClient != nil {
+		for {
+			select {
+			case result := <-gp.commandResults:
+				gp.handleCommandResult(result)
+			case event := <-gp.Context.TCPClient.Events():
+				gp.handleServerEvent(event)
+			default:
+				goto drained
+			}
+		}
 	}
-
-	if gp.MainChar.IsDead {
-		gp.MainChar.AdvanceFrame(dt, false)
-		return
-	}
-
-	if gp.AttackMgr != nil && gp.AttackMgr.IsOpen {
-		gp.HPBar.SetHP(float32(gp.AttackMgr.PlayerHP))
-	}
-
-	if gp.hasOpenModal() {
+drained:
+	if gp.MainChar.IsDead || gp.IsMovingToRoom || gp.hasOpenModal() {
 		gp.MainChar.SetAction(character.ActionIdle)
-		return
-	}
-
-	if gp.MainChar.Action == character.ActionAttacking || gp.MainChar.Action == character.ActionHurt {
+		gp.MainChar.AdvanceFrame(dt, false)
+	} else if gp.MainChar.Action == character.ActionAttacking || gp.MainChar.Action == character.ActionHurt {
 		if gp.MainChar.AdvanceFrame(dt, false) {
 			gp.MainChar.SetAction(character.ActionIdle)
 		}
-		return
-	}
-
-	if gp.IsMovingToRoom {
-		delta := rl.Vector2Subtract(gp.RoomTarget, gp.MainChar.Position)
-		distance := float32(rl.Vector2Length(delta))
-		step := gp.MainChar.Speed * dt
-		if distance <= step || distance == 0 {
-			gp.MainChar.Position = gp.RoomTarget
-			gp.IsMovingToRoom = false
-			gp.RoomViewMgr.IsMoving = false
-			gp.MainChar.SetAction(character.ActionIdle)
-		} else {
-			moveX := delta.X / distance
-			moveY := delta.Y / distance
-			gp.MainChar.Position.X += moveX * step
-			gp.MainChar.Position.Y += moveY * step
-			if moveX < 0 {
-				gp.MainChar.Direction = character.DirLeft
-			} else if moveX > 0 {
-				gp.MainChar.Direction = character.DirRight
-			} else if moveY < 0 {
-				gp.MainChar.Direction = character.DirBack
-			} else {
-				gp.MainChar.Direction = character.DirFront
-			}
-			gp.MainChar.SetAction(character.ActionWalking)
-		}
 	} else {
 		gp.MainChar.SetAction(character.ActionIdle)
-	}
-
-	previousRoom := gp.MapManager.ActiveRoom
-	gp.MapManager.Update(dt, gp.MainChar.Position)
-	if gp.MapManager.ActiveRoom != previousRoom {
-		gp.syncRoomContext()
-		gp.addLog(fmt.Sprintf("Entered %s.", gp.MapManager.ActiveRoom.Name))
+		gp.MapManager.Update(dt, gp.MainChar.Position)
+		gp.MainChar.AdvanceFrame(dt, true)
 	}
 	gp.Camera.Target = gp.MainChar.Position
-	gp.MainChar.AdvanceFrame(dt, true)
-
 	if gp.HPBar != nil {
 		gp.HPBar.Update(dt)
 	}
@@ -377,32 +637,15 @@ func (gp *GamePage) moveToRoom(direction component.ExitDirection) {
 		return
 	}
 
-	room, exists := gp.MapManager.GetRoomInDirection(string(direction))
+	_, exists := gp.MapManager.GetRoomInDirection(string(direction))
 	if !exists {
 		gp.addLog(fmt.Sprintf("There is no room to the %s.", strings.ToLower(string(direction))))
 		return
 	}
 
-	gp.RoomTarget = rl.NewVector2(
-		float32(room.TileX)*service.TileSize+service.TileSize*2,
-		float32(room.TileY)*service.TileSize+service.TileSize*2,
-	)
-	switch direction {
-	case component.DirNorth:
-		gp.MainChar.Direction = character.DirBack
-	case component.DirSouth:
-		gp.MainChar.Direction = character.DirFront
-	case component.DirEast:
-		gp.MainChar.Direction = character.DirRight
-	case component.DirWest:
-		gp.MainChar.Direction = character.DirLeft
-	}
-	gp.IsMovingToRoom = true
 	gp.RoomViewMgr.IsMoving = true
-	gp.MainChar.SetAction(character.ActionWalking)
-	gp.MainChar.FrameIndex = 0
-	gp.MainChar.FrameTimer = 0
-	gp.addLog(fmt.Sprintf("Traveling %s to %s.", strings.ToLower(string(direction)), room.Name))
+	gp.IsMovingToRoom = true
+	gp.submitCommand("MOVE " + strings.ToLower(string(direction)))
 }
 
 // addLog appends message to the game's log when the log component is available.
@@ -410,30 +653,6 @@ func (gp *GamePage) addLog(message string) {
 	if gp.LogViewComp != nil {
 		gp.LogViewComp.AddLog(message)
 	}
-}
-
-// syncRoomContext updates the room view and details manager from the active map room.
-func (gp *GamePage) syncRoomContext() {
-	if gp.MapManager == nil || gp.MapManager.ActiveRoom == nil {
-		return
-	}
-
-	room := gp.MapManager.ActiveRoom
-	exits := make(map[component.ExitDirection]bool, len(room.Exits))
-	for direction := range room.Exits {
-		exits[component.ExitDirection(strings.ToUpper(direction))] = true
-	}
-	gp.RoomViewMgr.CurrentRoom = component.RoomViewData{
-		Title:       room.Name,
-		Description: room.Description,
-		Exits:       exits,
-	}
-
-	if gp.RoomDetailsMgr.RoomName != room.Name && gp.RoomDetailsComp != nil {
-		gp.RoomDetailsComp.ItemScrollY = 0
-		gp.RoomDetailsComp.NPCScrollY = 0
-	}
-	gp.RoomDetailsMgr.SetActiveRoom(room.ID, room.Name)
 }
 
 // roomEntityName formats an entity identifier as a display name.

@@ -28,20 +28,9 @@ type RoomViewManager struct {
 	IsMoving    bool
 }
 
-// NewRoomViewManager creates a room view manager with the sample village room.
+// NewRoomViewManager creates a room view manager with no room selected.
 func NewRoomViewManager() *RoomViewManager {
-	return &RoomViewManager{
-		CurrentRoom: RoomViewData{
-			Title:       "Village Square",
-			Description: "Praesent commodo cursus magna, vel scelerisque nisl consectetur et. Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor.\nPraesent commodo cursus magna, vel scelerisque nisl consectetur et. Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor.",
-			Exits: map[ExitDirection]bool{
-				DirNorth: true,
-				DirSouth: true,
-				DirEast:  true,
-				DirWest:  true,
-			},
-		},
-	}
+	return &RoomViewManager{CurrentRoom: RoomViewData{Exits: make(map[ExitDirection]bool)}}
 }
 
 // Move requests movement through the exit in dir when that exit is available.

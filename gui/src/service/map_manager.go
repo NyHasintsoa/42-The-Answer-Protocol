@@ -53,7 +53,23 @@ type MapConfig struct {
 	World struct {
 		Rooms map[string]RoomConfig `json:"rooms"`
 	} `json:"world"`
-	NPCs map[string]npc.NPCConfig `json:"npcs"`
+	NPCs   map[string]npc.NPCConfig `json:"npcs"`
+	Items  map[string]ItemConfig    `json:"items"`
+	Quests map[string]QuestConfig   `json:"quests"`
+}
+
+type ItemConfig struct {
+	Name        string `json:"name"`
+	Cost        int    `json:"cost"`
+	Category    string `json:"category"`
+	Description string `json:"description"`
+}
+
+type QuestConfig struct {
+	Title       string `json:"title"`
+	Giver       string `json:"giver"`
+	Description string `json:"description"`
+	Reward      string `json:"reward"`
 }
 
 type RoomNode struct {
@@ -81,6 +97,8 @@ type WorldMap struct {
 type MapManager struct {
 	World          *WorldMap
 	NPCConfigs     map[string]npc.NPCConfig
+	ItemConfigs    map[string]ItemConfig
+	QuestConfigs   map[string]QuestConfig
 	Enemies        []npc.Monster
 	NPCs           []npc.INpc
 	PathTextures   map[string]rl.Texture2D
@@ -155,6 +173,16 @@ func (mm *MapManager) GetRoomInDirection(direction string) (*RoomNode, bool) {
 	return room, true
 }
 
+// SetActiveRoom selects the server-reported room and reports whether it exists in the configured world.
+func (mm *MapManager) SetActiveRoom(roomID string) bool {
+	room, exists := mm.World.Rooms[roomID]
+	if !exists {
+		return false
+	}
+	mm.ActiveRoom = room
+	return true
+}
+
 // GetNPCConfig returns the NPC configuration associated with key.
 // key identifies an NPC; the boolean reports whether a configuration was found.
 func (mm *MapManager) GetNPCConfig(key string) (npc.NPCConfig, bool) {
@@ -165,6 +193,18 @@ func (mm *MapManager) GetNPCConfig(key string) (npc.NPCConfig, bool) {
 		return cfg, true
 	}
 	return npc.NPCConfig{Key: key, Name: key}, false
+}
+
+// GetItemConfig returns the server-defined metadata for itemID.
+func (mm *MapManager) GetItemConfig(itemID string) (ItemConfig, bool) {
+	item, exists := mm.ItemConfigs[itemID]
+	return item, exists
+}
+
+// GetQuestConfig returns the server-defined metadata for questID.
+func (mm *MapManager) GetQuestConfig(questID string) (QuestConfig, bool) {
+	quest, exists := mm.QuestConfigs[questID]
+	return quest, exists
 }
 
 // Update advances NPC animations and sets the active room containing playerPos.
@@ -316,19 +356,18 @@ func (mm *MapManager) spawnEntities() {
 	}
 }
 
-// generateWorldMap decodes configJSON and builds the tile grid and room graph.
-// Invalid JSON falls back to the built-in default map configuration.
+// generateWorldMap decodes the server configuration and builds the tile grid and room graph.
 func (mm *MapManager) generateWorldMap(configJSON string) *WorldMap {
 	var config MapConfig
-	if err := json.Unmarshal([]byte(configJSON), &config); err != nil {
-		_ = json.Unmarshal([]byte(defaultMapConfigJSON), &config)
-	}
+	_ = json.Unmarshal([]byte(configJSON), &config)
 
 	for k, npcCfg := range config.NPCs {
 		npcCfg.Key = k
 		config.NPCs[k] = npcCfg
 	}
 	mm.NPCConfigs = config.NPCs
+	mm.ItemConfigs = config.Items
+	mm.QuestConfigs = config.Quests
 
 	roomGridCoords := make(map[string][2]int)
 	visited := make(map[string]bool)

@@ -7,6 +7,7 @@ import (
 )
 
 type GameConfig struct {
+	MapJSON string
 }
 
 type GameContext struct {
