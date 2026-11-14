@@ -8,6 +8,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// MenuPage displays the main menu and handles its navigation choices.
 type MenuPage struct {
 	BasePage
 	SelectedIndex int

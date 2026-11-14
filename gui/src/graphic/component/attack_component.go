@@ -12,6 +12,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// AttackComponent renders the combat panel and sends selected combat commands.
 type AttackComponent struct {
 	Manager         *service.AttackManager
 	PathResolver    *utils.PathResolver
@@ -19,6 +20,7 @@ type AttackComponent struct {
 	MonsterPreviews map[string]*character.Monster
 	PlayerHPBar     *ui.HPBar
 	NPCHPBar        *ui.HPBar
+	OnCommand       func(string)
 }
 
 // NewAttackComponent creates a combat view backed by mgr and pathResolver.
@@ -161,28 +163,36 @@ func (ac *AttackComponent) Render(winWidth, winHeight int32) {
 	ac.styleActionButton(fleeBtn)
 	fleeBtn.Render()
 	if fleeBtn.IsClicked {
-		ac.Manager.Flee()
+		if ac.OnCommand != nil {
+			ac.OnCommand("FLEE")
+		}
 	}
 
 	statusBtn := ui.NewButton(btnGridRect.X+btnW+12, btnGridRect.Y, btnW, btnH, "STATUS", 16)
 	ac.styleActionButton(statusBtn)
 	statusBtn.Render()
 	if statusBtn.IsClicked {
-		ac.Manager.Status()
+		if ac.OnCommand != nil {
+			ac.OnCommand("STATUS")
+		}
 	}
 
-	invBtn := ui.NewButton(btnGridRect.X, btnGridRect.Y+btnH+12, btnW, btnH, "INVENTORY", 16)
+	invBtn := ui.NewButton(btnGridRect.X, btnGridRect.Y+btnH+12, btnW, btnH, "DEFEND", 16)
 	ac.styleActionButton(invBtn)
 	invBtn.Render()
 	if invBtn.IsClicked {
-		ac.Manager.UseInventory()
+		if ac.OnCommand != nil {
+			ac.OnCommand("DEFEND")
+		}
 	}
 
 	attackBtn := ui.NewButton(btnGridRect.X+btnW+12, btnGridRect.Y+btnH+12, btnW, btnH, "ATTACK", 16)
 	ac.styleActionButton(attackBtn)
 	attackBtn.Render()
 	if attackBtn.IsClicked {
-		ac.Manager.Attack()
+		if ac.OnCommand != nil {
+			ac.OnCommand("ATTACK " + ac.Manager.NPC.Key)
+		}
 		if ac.MainChar != nil {
 			ac.MainChar.SetAction(character.ActionAttacking)
 		}

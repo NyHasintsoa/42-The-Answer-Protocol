@@ -13,10 +13,10 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+COPY gui/go.mod gui/go.sum ./
 RUN go mod download
 
-COPY . .
+COPY gui/ .
 
 ENV CGO_ENABLED=1
 RUN go build -o tap-gui main.go

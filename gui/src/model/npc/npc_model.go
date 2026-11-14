@@ -7,6 +7,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// NPCConfig contains server-defined metadata used to display an NPC.
 type NPCConfig struct {
 	Key           string   `json:"key,omitempty"`
 	Name          string   `json:"name"`
@@ -21,6 +22,7 @@ type NPCConfig struct {
 	Dialogue      []string `json:"dialogue"`
 }
 
+// Monster defines the AI, rendering, and positioning operations for hostile entities.
 type Monster interface {
 	UpdateAI(dt float32, target rl.Vector2, isWalkable func(float32, float32) bool)
 	Render()
@@ -28,6 +30,7 @@ type Monster interface {
 	SetPosition(x, y float32)
 }
 
+// INpc defines the update, rendering, and positioning operations for NPC entities.
 type INpc interface {
 	Update(dt float32)
 	Render()
@@ -35,6 +38,7 @@ type INpc interface {
 	SetPosition(x, y float32)
 }
 
+// EntityFactory supplies constructors for graphical NPC and monster entities.
 type EntityFactory struct {
 	NewMonster func(scale float32, resolver *utils.PathResolver, assetPath, name string) Monster
 	NewNPC     func(kind, relativeDir string, scale float32) (INpc, error)

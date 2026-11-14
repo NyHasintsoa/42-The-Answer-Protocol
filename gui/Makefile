@@ -89,7 +89,7 @@ cache-clear: ## Clear the cache directory
 .PHONY: server
 server: ## Start the server
 	$(call GREEN,"Starting the server...")
-	$(GO_RUN) ../server/main.go
+	cd ../server && $(GO_RUN) .
 
 .PHONY: command
 command:
@@ -102,7 +102,7 @@ command:
 ##-----------------------------------
 docker-build: ## Build the Docker image
 	$(call GREEN,"Building Docker image...")
-	$(DOCKER) build -t $(GO_SERVICE_NAME) .
+	$(DOCKER) build -f Dockerfile -t $(GO_SERVICE_NAME) ..
 
 docker-compile: ## Compile the Go binary inside a Docker container
 	$(call GREEN,"Running Docker container...")

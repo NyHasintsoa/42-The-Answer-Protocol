@@ -13,6 +13,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// RoomDetailsComponent renders the active room's items and NPCs.
 type RoomDetailsComponent struct {
 	Manager      *service.RoomDetailsManager
 	PathResolver *utils.PathResolver
@@ -166,10 +167,9 @@ func (rdc *RoomDetailsComponent) Render(rect rl.Rectangle) {
 			takeButton.Render()
 
 			if takeButton.IsClicked && rl.CheckCollisionPointRec(mousePosition, itemViewport) {
-				if rdc.Manager.TakeItem(item.ID) {
-					if rdc.OnTakeItem != nil {
-						rdc.OnTakeItem(item)
-					}
+				if rdc.OnTakeItem != nil {
+					rdc.OnTakeItem(item)
+				} else if rdc.Manager.TakeItem(item.ID) {
 					if rdc.OnLog != nil {
 						rdc.OnLog(fmt.Sprintf("Took %s from the room into inventory.", item.Name))
 					}

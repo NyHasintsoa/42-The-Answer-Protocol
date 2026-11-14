@@ -7,24 +7,37 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// Action identifies the animation currently played by a character.
 type Action int
+
+// Direction identifies the direction a character faces.
 type Direction int
 
 const (
+	// DirFront faces the character toward the viewer.
 	DirFront Direction = iota
+	// DirBack faces the character away from the viewer.
 	DirBack
+	// DirLeft faces the character left.
 	DirLeft
+	// DirRight faces the character right.
 	DirRight
 )
 
 const (
+	// ActionIdle plays the character's idle animation.
 	ActionIdle Action = iota
+	// ActionWalking plays the character's walking animation.
 	ActionWalking
+	// ActionAttacking plays the character's attack animation.
 	ActionAttacking
+	// ActionHurt plays the character's hurt animation.
 	ActionHurt
+	// ActionDying plays the character's death animation.
 	ActionDying
 )
 
+// Character stores shared position, animation, and movement state.
 type Character struct {
 	Position       rl.Vector2
 	PositionOffset rl.Vector2

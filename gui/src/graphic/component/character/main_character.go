@@ -8,6 +8,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// MainCharacter is the player-controlled character and its animation set.
 type MainCharacter struct {
 	Character
 }

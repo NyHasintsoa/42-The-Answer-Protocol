@@ -4,6 +4,7 @@ import (
 	"tap-gui/src/utils"
 )
 
+// GuardCharacter represents a guard NPC and its animations.
 type GuardCharacter struct {
 	NpcCharacter
 }

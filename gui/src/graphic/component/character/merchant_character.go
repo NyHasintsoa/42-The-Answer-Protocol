@@ -4,6 +4,7 @@ import (
 	"tap-gui/src/utils"
 )
 
+// MerchantCharacter represents a merchant NPC and its animations.
 type MerchantCharacter struct {
 	NpcCharacter
 }

@@ -6,6 +6,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// InventoryManager stores server-reported inventory and controls its UI state.
 type InventoryManager struct {
 	Items             []inventory.InventoryItem
 	IsOpen            bool
@@ -13,11 +14,9 @@ type InventoryManager struct {
 	ItemsPerPage      int
 	SelectedItemIndex int
 	IsModalOpen       bool
-	InCombatMode      bool
-	OnUseItemInCombat func(item inventory.InventoryItem)
 }
 
-// NewInventoryManager creates an inventory manager populated with the default sample items.
+// NewInventoryManager creates an empty inventory populated by server responses.
 func NewInventoryManager() *InventoryManager {
 	return &InventoryManager{
 		IsOpen:            false,
@@ -25,9 +24,16 @@ func NewInventoryManager() *InventoryManager {
 		ItemsPerPage:      9,
 		SelectedItemIndex: -1,
 		IsModalOpen:       false,
-		InCombatMode:      false,
-		Items: []inventory.InventoryItem{},
+		Items:             []inventory.InventoryItem{},
 	}
+}
+
+// SetItems replaces inventory entries with the item records returned by the server.
+func (im *InventoryManager) SetItems(items []inventory.InventoryItem) {
+	im.Items = append([]inventory.InventoryItem(nil), items...)
+	im.CurrentPage = 0
+	im.SelectedItemIndex = -1
+	im.IsModalOpen = false
 }
 
 // GetTotalPages returns the number of pages required to display all items.
@@ -57,7 +63,6 @@ func (im *InventoryManager) Toggle() {
 	im.IsOpen = !im.IsOpen
 	if !im.IsOpen {
 		im.IsModalOpen = false
-		im.InCombatMode = false
 	}
 }
 
@@ -73,78 +78,6 @@ func (im *InventoryManager) SelectItem(index int) {
 func (im *InventoryManager) CloseModal() {
 	im.IsModalOpen = false
 	im.SelectedItemIndex = -1
-}
-
-// AddItem adds item to the inventory, merging it into an existing stack by ID.
-func (im *InventoryManager) AddItem(item inventory.InventoryItem) bool {
-	if item.ID == "" {
-		return false
-	}
-	if item.Count <= 0 {
-		item.Count = 1
-	}
-	for index := range im.Items {
-		if im.Items[index].ID == item.ID {
-			im.Items[index].Count += item.Count
-			return true
-		}
-	}
-	if item.Type == "" {
-		item.Type = inventory.InventoryItemType(item.ID)
-	}
-	im.Items = append(im.Items, item)
-	return true
-}
-
-// UseItem consumes one item at index and invokes the combat callback when applicable.
-func (im *InventoryManager) UseItem(index int) {
-	if index < 0 || index >= len(im.Items) {
-		return
-	}
-
-	item := im.Items[index]
-	if im.OnUseItemInCombat != nil && im.InCombatMode {
-		im.OnUseItemInCombat(item)
-	}
-
-	im.removeOne(index)
-	im.CloseModal()
-	if im.InCombatMode {
-		im.IsOpen = false
-		im.InCombatMode = false
-	}
-}
-
-// TakeItem consumes and returns one item at index.
-func (im *InventoryManager) TakeItem(index int) (inventory.InventoryItem, bool) {
-	return im.removeOne(index)
-}
-
-func (im *InventoryManager) removeOne(index int) (inventory.InventoryItem, bool) {
-	if index < 0 || index >= len(im.Items) {
-		return inventory.InventoryItem{}, false
-	}
-
-	item := im.Items[index]
-	im.Items[index].Count--
-	if im.Items[index].Count <= 0 {
-		im.Items = append(im.Items[:index], im.Items[index+1:]...)
-		im.CloseModal()
-		if im.CurrentPage >= im.GetTotalPages() && im.CurrentPage > 0 {
-			im.CurrentPage--
-		}
-	}
-	return item, true
-}
-
-// DropItem removes one unit of the item at index and returns the dropped item.
-// index identifies the inventory entry; the boolean is false if the index is invalid.
-func (im *InventoryManager) DropItem(index int) (inventory.InventoryItem, bool) {
-	if index < 0 || index >= len(im.Items) {
-		return inventory.InventoryItem{}, false
-	}
-
-	return im.removeOne(index)
 }
 
 // Update handles inventory keyboard and mouse input for a window of the given size.
@@ -175,7 +108,6 @@ func (im *InventoryManager) Update(winWidth, winHeight int32) {
 	closeBtn := rl.NewRectangle(panelX+panelW-42, panelY+12, 30, 30)
 	if mouseClicked && rl.CheckCollisionPointRec(mousePos, closeBtn) {
 		im.IsOpen = false
-		im.InCombatMode = false
 		return
 	}
 

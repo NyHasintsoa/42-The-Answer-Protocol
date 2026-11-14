@@ -2,6 +2,7 @@ package page
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -9,11 +10,13 @@ import (
 	"tap-gui/src/graphic/component/ui"
 	"tap-gui/src/model"
 	pagemodel "tap-gui/src/model/page"
+	"tap-gui/src/service"
 	"tap-gui/src/utils"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// PlayerNamePage collects a player name and connects to the game server.
 type PlayerNamePage struct {
 	BasePage
 	name_input     ui.InputComponent
@@ -29,7 +32,8 @@ type PlayerNamePage struct {
 }
 
 type connectionResult struct {
-	err error
+	mapJSON string
+	err     error
 }
 
 // NewPlayerNamePage creates the player-name form for the specified window and game context.
@@ -82,10 +86,6 @@ func (p *PlayerNamePage) handleSubmit() {
 		p.errorMessage = "PLAYER NAME CANNOT BE EMPTY."
 		return
 	}
-	if strings.ToLower(rawName) == "shadowslayer" {
-		p.errorMessage = "PLAYER NAME IS ALREADY IN USE."
-		return
-	}
 	if p.Context == nil || p.Context.TCPClient == nil {
 		p.errorMessage = "SERVER CAN'T BE REACHED."
 		return
@@ -98,11 +98,34 @@ func (p *PlayerNamePage) handleSubmit() {
 	connectContext, cancel := context.WithCancel(context.Background())
 	p.connectCancel = cancel
 	client := p.Context.TCPClient
+	username := p.playerName
 
 	go func() {
+		mapJSON := ""
 		err := client.Connect(connectContext, 3*time.Second)
+		if err == nil {
+			var response string
+			response, err = client.Command(connectContext, "CONNECT "+username)
+			if err == nil && response != "OK connected" {
+				err = fmt.Errorf("%s", response)
+			}
+			if err == nil {
+				response, err = client.Command(connectContext, "MAP")
+				if err == nil {
+					if !strings.HasPrefix(response, "OK ") {
+						err = fmt.Errorf("map request failed: %s", response)
+					} else {
+						mapJSON = strings.TrimPrefix(response, "OK ")
+						err = service.ValidateMapConfigJSON(mapJSON)
+					}
+				}
+			}
+			if err != nil {
+				_ = client.Close()
+			}
+		}
 		if !p.unloaded.Load() {
-			p.connectResults <- connectionResult{err: err}
+			p.connectResults <- connectionResult{mapJSON: mapJSON, err: err}
 		}
 	}()
 }
@@ -119,13 +142,10 @@ func (p *PlayerNamePage) Update() {
 		}
 		p.submit_btn.Text = "CONTINUE"
 		if result.err != nil {
-			p.errorMessage = "SERVER CAN'T BE REACHED."
+			p.errorMessage = strings.ToUpper(result.err.Error())
 			return
 		}
-		if result.err != nil {
-			p.errorMessage = "SERVER CAN'T BE REACHED."
-			return
-		}
+		p.Context.Config.MapJSON = result.mapJSON
 		p.Context.PlayerName = p.playerName
 		p.NextState = pagemodel.GamePage
 	default:

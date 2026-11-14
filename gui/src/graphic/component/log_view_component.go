@@ -9,6 +9,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// LogViewComponent displays the chronological command and server log.
 type LogViewComponent struct {
 	Logs         []string
 	ScrollY      float32

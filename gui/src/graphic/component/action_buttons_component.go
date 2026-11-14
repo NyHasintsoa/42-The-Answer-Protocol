@@ -10,13 +10,14 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// ActionButtonsComponent renders quick actions and the TAP command input.
 type ActionButtonsComponent struct {
 	InventoryMgr *service.InventoryManager
 	ChatMgr      *service.ChatManager
 	QuestMgr     *service.QuestManager
 	CommandInput *ui.InputComponent
 	OnLog        func(string)
-	OnQuit       func()
+	OnCommand    func(string)
 }
 
 // NewActionButtonsComponent creates action buttons backed by the supplied managers.
@@ -26,7 +27,7 @@ func NewActionButtonsComponent(inv *service.InventoryManager, chat *service.Chat
 		InventoryMgr: inv,
 		ChatMgr:      chat,
 		QuestMgr:     quest,
-		CommandInput: ui.NewInputComponent(0, 0, 100, 20, "Command Here ...", 100),
+		CommandInput: ui.NewInputComponent(0, 0, 100, 20, "Type command (e.g. CONNECT alice, LOOK, MOVE north, CHAT GLOBAL hello)...", 512),
 	}
 }
 
@@ -94,6 +95,9 @@ func (abc *ActionButtonsComponent) Render(rect rl.Rectangle) {
 			if abc.OnLog != nil {
 				abc.OnLog(fmt.Sprintf("Entered command: %s", cmd))
 			}
+			if abc.OnCommand != nil {
+				abc.OnCommand(cmd)
+			}
 		}
 	}
 	abc.CommandInput.Render()
@@ -106,6 +110,7 @@ func (abc *ActionButtonsComponent) handleAction(label string) {
 		if abc.InventoryMgr != nil {
 			abc.InventoryMgr.Toggle()
 		}
+		abc.sendCommand("INVENTORY")
 	case "CHAT":
 		if abc.ChatMgr != nil {
 			abc.ChatMgr.Toggle()
@@ -114,10 +119,22 @@ func (abc *ActionButtonsComponent) handleAction(label string) {
 		if abc.QuestMgr != nil {
 			abc.QuestMgr.Toggle()
 		}
+		abc.sendCommand("QUESTS")
 	case "QUIT":
-		if abc.OnQuit != nil {
-			abc.OnQuit()
-		}
+		abc.sendCommand("QUIT")
 	case "STATUS", "GROUP", "LOOK", "WHO":
+		commands := map[string]string{
+			"STATUS": "STATUS",
+			"GROUP":  "GROUP CREATE",
+			"LOOK":   "LOOK",
+			"WHO":    "WHO",
+		}
+		abc.sendCommand(commands[label])
+	}
+}
+
+func (abc *ActionButtonsComponent) sendCommand(command string) {
+	if abc.OnCommand != nil {
+		abc.OnCommand(command)
 	}
 }

@@ -2,27 +2,19 @@ package service
 
 import (
 	"fmt"
+	"net"
 	"os"
+	"strconv"
 	"strings"
 )
 
+// EnvChecker validates the configured server IP address and port.
 func EnvChecker() error {
-	requiredVars := []string{"SERVER_IP", "SERVER_PORT"}
-	var missing []string
-
-	for _, v := range requiredVars {
-		val, exists := os.LookupEnv(v)
-		if !exists || strings.TrimSpace(val) == "" {
-			missing = append(missing, v)
-		}
-	}
-
-	if len(missing) > 0 {
-		return fmt.Errorf("missing or empty required environment variables '%s'", strings.Join(missing, ", "))
-	}
-	return nil
+	_, err := ServerAddress()
+	return err
 }
 
+// ServerAddress returns the configured server address in host:port form.
 func ServerAddress() (string, error) {
 	serverIP := strings.TrimSpace(os.Getenv("SERVER_IP"))
 	serverPort := strings.TrimSpace(os.Getenv("SERVER_PORT"))

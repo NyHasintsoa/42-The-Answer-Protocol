@@ -4,6 +4,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// InputComponent handles text entry and renders a single-line input field.
 type InputComponent struct {
 	Rect        rl.Rectangle
 	Text        string

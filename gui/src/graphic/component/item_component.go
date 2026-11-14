@@ -9,6 +9,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// ItemComponent renders an item icon and its associated display information.
 type ItemComponent struct {
 	Resolver *utils.PathResolver
 	textures map[string]rl.Texture2D

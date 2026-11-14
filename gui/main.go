@@ -13,9 +13,12 @@ import (
 )
 
 const (
-	ColorRed    = "\033[31m"
+	// ColorRed is the ANSI escape sequence for red terminal output.
+	ColorRed = "\033[31m"
+	// ColorYellow is the ANSI escape sequence for yellow terminal output.
 	ColorYellow = "\033[33m"
-	ColorReset  = "\033[0m"
+	// ColorReset restores the terminal's default text color.
+	ColorReset = "\033[0m"
 )
 
 // printCliError writes a categorized error to standard error using the provided color.
@@ -26,8 +29,7 @@ func printCliError(category string, details any, color string) {
 
 // run initializes the client window and runs its event loop.
 func run() error {
-	config := model.GameConfig{}
-	window := graphic.NewMainWindow(1500, 920, config, "The Answer Protocol - 42")
+	window := graphic.NewMainWindow(1500, 920, model.GameConfig{}, "The Answer Protocol - 42")
 	defer window.Close()
 
 	window.AddEvent()
@@ -38,11 +40,10 @@ func run() error {
 
 // main starts the graphical client and exits with an error status if startup fails.
 func main() {
-    err := godotenv.Load()
-    if err != nil {
-        printCliError("No .env file found; using system variables", nil, ColorYellow)
+	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
+		printCliError("Configuration Error", err, ColorRed)
 		os.Exit(1)
-    }
+	}
 	if errEnv := service.EnvChecker(); errEnv != nil {
 		printCliError("Configuration Error", errEnv, ColorRed)
 		os.Exit(1)

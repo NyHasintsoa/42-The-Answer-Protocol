@@ -10,6 +10,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// LoadingPage loads graphical assets before showing the main menu.
 type LoadingPage struct {
 	BasePage
 	LoadingMessage string

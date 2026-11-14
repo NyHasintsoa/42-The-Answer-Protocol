@@ -11,6 +11,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// MainWindow owns the Raylib window, shared context, and page lifecycle.
 type MainWindow struct {
 	Width        int32
 	Height       int32
@@ -86,11 +87,10 @@ func (mw *MainWindow) LoadPage() {
 	}
 }
 
-// loadPages creates the player-name, menu, and gameplay pages.
+// loadPages creates the pages that do not depend on server-provided state.
 func (mw *MainWindow) loadPages() {
 	mw.Windows[pagemodel.PlayerNamePage] = page.NewPlayerNamePage(mw.Width, mw.Height, mw.Context)
 	mw.Windows[pagemodel.MainMenu] = page.NewMenuPage(mw.Width, mw.Height)
-	mw.Windows[pagemodel.GamePage] = page.NewGamePage(mw.Width, mw.Height, mw.Context)
 }
 
 // Render runs the window loop, draws the active page, and processes page transitions.
@@ -114,6 +114,12 @@ func (mw *MainWindow) Render() {
 		if mw.CurrentPage.GetNextState() != mw.CurrentState {
 			nextState := mw.CurrentPage.GetNextState()
 			mw.Context = mw.CurrentPage.GetContext()
+			if nextState == pagemodel.GamePage {
+				if oldGamePage, ok := mw.Windows[pagemodel.GamePage]; ok {
+					oldGamePage.Unload()
+				}
+				mw.Windows[pagemodel.GamePage] = page.NewGamePage(mw.Width, mw.Height, mw.Context)
+			}
 			mw.CurrentState = nextState
 			mw.CurrentPage = mw.Windows[mw.CurrentState]
 			if mw.CurrentPage != nil {

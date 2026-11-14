@@ -9,12 +9,14 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// ChatComponent renders chat messages and submits chat commands.
 type ChatComponent struct {
 	Manager        *service.ChatManager
 	InputComp      *ui.InputComponent
 	ScrollY        float32
 	scrollToBottom bool
 	OnLog          func(string)
+	OnCommand      func(string)
 }
 
 // NewChatComponent creates a chat view backed by mgr.
@@ -126,9 +128,9 @@ func (cc *ChatComponent) Render(winWidth, winHeight int32) {
 	if submitted {
 		text := cc.InputComp.GetAndClearText()
 		if strings.TrimSpace(text) != "" {
-			cc.Manager.SendMessage(text)
-			if cc.OnLog != nil {
-				cc.OnLog("Sent a message in " + cc.Manager.ActiveTab.String() + " chat.")
+			scope := strings.ToUpper(cc.Manager.ActiveTab.String())
+			if cc.OnCommand != nil {
+				cc.OnCommand("CHAT " + scope + " " + strings.TrimSpace(text))
 			}
 			cc.scrollToBottom = true
 		}

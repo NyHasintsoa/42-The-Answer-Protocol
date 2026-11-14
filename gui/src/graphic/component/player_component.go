@@ -8,6 +8,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// PlayerComponent renders the players visible in the active room.
 type PlayerComponent struct {
 	Manager *service.PlayerManager
 	ScrollY float32
