@@ -12,6 +12,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// INpc defines the animation and positioning operations used by NPC entities.
 type INpc interface {
 	// Update advances the active animation by dt seconds.
 	Update(dt float32)
@@ -27,6 +28,7 @@ type INpc interface {
 	SetPositionOffset(x, y float32)
 }
 
+// NpcCharacter stores animation and position state for a non-player character.
 type NpcCharacter struct {
 	Name           string
 	Position       rl.Vector2

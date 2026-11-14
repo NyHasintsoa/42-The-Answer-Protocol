@@ -5,6 +5,7 @@ import (
 	"tap-gui/src/model/npc"
 )
 
+// AttackManager stores combat state and controls the combat panel.
 type AttackManager struct {
 	IsOpen       bool
 	PlayerHP     int

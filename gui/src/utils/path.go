@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 )
 
+// PathResolver builds asset paths and loads textures through a resource manager.
 type PathResolver struct {
 	BaseDir         string
 	ResourceManager *ResourceManager

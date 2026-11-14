@@ -2,6 +2,7 @@ package service
 
 import "tap-gui/src/model/npc"
 
+// RoomDetailsManager coordinates the active room's items, NPCs, and actions.
 type RoomDetailsManager struct {
 	IsOpen        bool
 	RoomName      string

@@ -1,5 +1,6 @@
 package service
 
+// Quest stores a player's displayed quest state.
 type Quest struct {
 	ID              string
 	Title           string
@@ -13,6 +14,7 @@ func (q *Quest) IsCompleted() bool {
 	return q.CurrentProgress >= q.TargetProgress
 }
 
+// QuestManager stores quest state and controls the quest panel.
 type QuestManager struct {
 	IsOpen bool
 	Quests []*Quest

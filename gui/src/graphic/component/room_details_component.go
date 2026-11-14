@@ -13,6 +13,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// RoomDetailsComponent renders the active room's items and NPCs.
 type RoomDetailsComponent struct {
 	Manager      *service.RoomDetailsManager
 	PathResolver *utils.PathResolver

@@ -7,6 +7,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// Monster represents an animated hostile character controlled by game AI.
 type Monster struct {
 	Character
 	Name string

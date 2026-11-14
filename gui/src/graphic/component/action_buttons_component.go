@@ -10,6 +10,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// ActionButtonsComponent renders quick actions and the TAP command input.
 type ActionButtonsComponent struct {
 	InventoryMgr *service.InventoryManager
 	ChatMgr      *service.ChatManager

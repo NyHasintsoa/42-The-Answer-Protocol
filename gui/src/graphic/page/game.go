@@ -21,6 +21,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// GamePage coordinates gameplay state, server commands, and game components.
 type GamePage struct {
 	BasePage
 	MapManager       *service.MapManager

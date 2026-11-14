@@ -13,6 +13,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// ActionComponent renders NPC dialogue and its available actions.
 type ActionComponent struct {
 	Manager      *service.ActionManager
 	PathResolver *utils.PathResolver

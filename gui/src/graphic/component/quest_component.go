@@ -8,6 +8,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// QuestComponent renders the quests returned by the server.
 type QuestComponent struct {
 	Manager *service.QuestManager
 	ScrollY float32

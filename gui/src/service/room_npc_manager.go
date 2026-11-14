@@ -6,6 +6,7 @@ import (
 	"tap-gui/src/model/npc"
 )
 
+// RoomNPCManager stores NPC configurations by room and tracks the active room.
 type RoomNPCManager struct {
 	npcsByRoom   map[string][]npc.NPCConfig
 	activeRoomID string

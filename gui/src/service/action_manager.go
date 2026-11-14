@@ -2,12 +2,14 @@ package service
 
 import "tap-gui/src/model/npc"
 
+// ActionResponse represents one selectable response in an NPC dialogue.
 type ActionResponse struct {
 	Index     int
 	Text      string
 	ActionTag string
 }
 
+// ActionManager stores the active NPC dialogue and its available actions.
 type ActionManager struct {
 	IsOpen        bool
 	NPC           npc.NPCConfig

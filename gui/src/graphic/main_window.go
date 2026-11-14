@@ -11,6 +11,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// MainWindow owns the Raylib window, shared context, and page lifecycle.
 type MainWindow struct {
 	Width        int32
 	Height       int32

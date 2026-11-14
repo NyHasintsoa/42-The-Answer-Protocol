@@ -6,6 +6,7 @@ import (
 	pagemodel "tap-gui/src/model/page"
 )
 
+// Page defines the lifecycle and rendering operations shared by game screens.
 type Page interface {
 	Init(ctx *model.GameContext)
 	Unload()
@@ -16,6 +17,7 @@ type Page interface {
 	GetContext() *model.GameContext
 }
 
+// BasePage provides shared state and lifecycle behavior for pages.
 type BasePage struct {
 	Context    *model.GameContext
 	State      pagemodel.PageState

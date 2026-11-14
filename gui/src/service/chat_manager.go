@@ -6,11 +6,15 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// ChatChannel identifies a chat destination.
 type ChatChannel int
 
 const (
+	// ChannelGlobal is the server-wide chat channel.
 	ChannelGlobal ChatChannel = iota
+	// ChannelRoom is the chat channel for the player's current room.
 	ChannelRoom
+	// ChannelGroup is the player's group chat channel.
 	ChannelGroup
 )
 
@@ -26,6 +30,7 @@ func (c ChatChannel) String() string {
 	}
 }
 
+// ChatMessage stores the content and display state of one chat message.
 type ChatMessage struct {
 	Sender    string
 	Text      string
@@ -35,6 +40,7 @@ type ChatMessage struct {
 	AvatarCol rl.Color
 }
 
+// ChatManager stores chat messages by channel and controls the chat panel.
 type ChatManager struct {
 	IsOpen    bool
 	ActiveTab ChatChannel

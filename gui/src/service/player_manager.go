@@ -1,10 +1,12 @@
 package service
 
+// ConnectedPlayer stores the identifier and display name of a visible player.
 type ConnectedPlayer struct {
 	ID   string
 	Name string
 }
 
+// PlayerManager stores the players currently visible in the active room.
 type PlayerManager struct {
 	Players []ConnectedPlayer
 }

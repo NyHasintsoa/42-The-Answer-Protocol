@@ -7,21 +7,28 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// ExitDirection identifies a direction in which a room may have an exit.
 type ExitDirection string
 
 const (
+	// DirNorth identifies the north room exit.
 	DirNorth ExitDirection = "NORTH"
+	// DirSouth identifies the south room exit.
 	DirSouth ExitDirection = "SOUTH"
-	DirEast  ExitDirection = "EAST"
-	DirWest  ExitDirection = "WEST"
+	// DirEast identifies the east room exit.
+	DirEast ExitDirection = "EAST"
+	// DirWest identifies the west room exit.
+	DirWest ExitDirection = "WEST"
 )
 
+// RoomViewData contains the description and available exits for a room.
 type RoomViewData struct {
 	Title       string
 	Description string
 	Exits       map[ExitDirection]bool
 }
 
+// RoomViewManager stores the active room view and handles exit selections.
 type RoomViewManager struct {
 	CurrentRoom RoomViewData
 	OnMove      func(ExitDirection)
@@ -43,6 +50,7 @@ func (rvm *RoomViewManager) Move(dir ExitDirection) {
 	}
 }
 
+// RoomViewComponent renders room details and direction controls.
 type RoomViewComponent struct {
 	Manager *RoomViewManager
 	ScrollY float32

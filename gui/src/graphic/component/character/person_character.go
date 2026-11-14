@@ -4,6 +4,7 @@ import (
 	"tap-gui/src/utils"
 )
 
+// PersonCharacter represents a non-hostile person rendered with character animations.
 type PersonCharacter struct {
 	NpcCharacter
 }

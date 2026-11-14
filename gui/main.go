@@ -13,9 +13,12 @@ import (
 )
 
 const (
-	ColorRed    = "\033[31m"
+	// ColorRed is the ANSI escape sequence for red terminal output.
+	ColorRed = "\033[31m"
+	// ColorYellow is the ANSI escape sequence for yellow terminal output.
 	ColorYellow = "\033[33m"
-	ColorReset  = "\033[0m"
+	// ColorReset restores the terminal's default text color.
+	ColorReset = "\033[0m"
 )
 
 // printCliError writes a categorized error to standard error using the provided color.

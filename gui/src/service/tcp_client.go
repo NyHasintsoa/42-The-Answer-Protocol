@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// TCPClient maintains the GUI's TAP connection and routes replies and events.
 type TCPClient struct {
 	mu        sync.Mutex
 	request   sync.Mutex

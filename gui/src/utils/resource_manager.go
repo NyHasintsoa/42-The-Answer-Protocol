@@ -9,6 +9,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// ResourceManager caches textures and loads image assets for the client.
 type ResourceManager struct {
 	textures     map[string]rl.Texture2D
 	preloadPaths []string

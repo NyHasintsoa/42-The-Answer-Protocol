@@ -1,11 +1,13 @@
 package service
 
+// RoomItemDetail contains the display data for one room item.
 type RoomItemDetail struct {
 	ID          string
 	Name        string
 	Description string
 }
 
+// RoomItemManager stores room items and tracks the active room.
 type RoomItemManager struct {
 	itemsByRoom  map[string][]RoomItemDetail
 	activeRoomID string

@@ -12,6 +12,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// AttackComponent renders the combat panel and sends selected combat commands.
 type AttackComponent struct {
 	Manager         *service.AttackManager
 	PathResolver    *utils.PathResolver

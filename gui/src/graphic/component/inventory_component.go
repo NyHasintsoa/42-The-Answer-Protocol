@@ -11,6 +11,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// InventoryComponent renders inventory entries and sends item commands.
 type InventoryComponent struct {
 	Manager   *service.InventoryManager
 	Resolver  *utils.PathResolver

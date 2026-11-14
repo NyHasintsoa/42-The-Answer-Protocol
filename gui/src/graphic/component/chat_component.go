@@ -9,6 +9,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// ChatComponent renders chat messages and submits chat commands.
 type ChatComponent struct {
 	Manager        *service.ChatManager
 	InputComp      *ui.InputComponent

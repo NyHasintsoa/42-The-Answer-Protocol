@@ -6,6 +6,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// InventoryManager stores server-reported inventory and controls its UI state.
 type InventoryManager struct {
 	Items             []inventory.InventoryItem
 	IsOpen            bool

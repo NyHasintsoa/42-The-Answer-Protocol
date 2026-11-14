@@ -6,6 +6,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// MapComponent renders the generated world map and its entities.
 type MapComponent struct {
 	Manager *service.MapManager
 }

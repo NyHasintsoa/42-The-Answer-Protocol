@@ -15,6 +15,7 @@ func SetButtonInputEnabled(enabled bool) {
 	buttonInputEnabled = enabled
 }
 
+// Button stores the appearance and input state of a clickable UI control.
 type Button struct {
 	Rect           rl.Rectangle
 	Text           string

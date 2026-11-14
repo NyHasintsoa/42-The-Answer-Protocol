@@ -13,27 +13,39 @@ import (
 )
 
 const (
+	// BaseTileSize is the pixel size of a ground tile before scaling.
 	BaseTileSize = 48
-	GroundScale  = 1.0
-	TileSize     = float32(BaseTileSize) * GroundScale
-	CharScale    = 0.2
-	CellSpacing  = 12
+	// GroundScale is the scale applied to ground tiles.
+	GroundScale = 1.0
+	// TileSize is the rendered size of one ground tile in world units.
+	TileSize = float32(BaseTileSize) * GroundScale
+	// CharScale is the rendering scale applied to map characters.
+	CharScale = 0.2
+	// CellSpacing is the number of grid cells between room origins.
+	CellSpacing = 12
 )
 
+// TileType identifies the kind of terrain occupying a map cell.
 type TileType int
 
 const (
+	// TileWall marks an impassable map cell.
 	TileWall TileType = iota
+	// TilePath marks a traversable path cell.
 	TilePath
+	// TileRoom marks a cell inside a room.
 	TileRoom
 )
 
+// EnvCategory identifies the type of environmental object drawn on the map.
 type EnvCategory int
 
 const (
+	// CategoryScenery identifies decorative environmental objects.
 	CategoryScenery EnvCategory = iota
 )
 
+// EnvObjectInfo describes a scenery asset and its rendering properties.
 type EnvObjectInfo struct {
 	Path     string
 	Category EnvCategory
@@ -41,6 +53,7 @@ type EnvObjectInfo struct {
 	Texture  rl.Texture2D
 }
 
+// RoomConfig contains server-provided data for one world room.
 type RoomConfig struct {
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
@@ -49,6 +62,7 @@ type RoomConfig struct {
 	NPCs        []string          `json:"npcs"`
 }
 
+// MapConfig contains the world and entity metadata received from the server.
 type MapConfig struct {
 	World struct {
 		Rooms map[string]RoomConfig `json:"rooms"`
@@ -58,6 +72,7 @@ type MapConfig struct {
 	Quests map[string]QuestConfig   `json:"quests"`
 }
 
+// ItemConfig contains display metadata for a server-defined item.
 type ItemConfig struct {
 	Name        string `json:"name"`
 	Cost        int    `json:"cost"`
@@ -65,6 +80,7 @@ type ItemConfig struct {
 	Description string `json:"description"`
 }
 
+// QuestConfig contains display metadata for a server-defined quest.
 type QuestConfig struct {
 	Title       string `json:"title"`
 	Giver       string `json:"giver"`
@@ -72,6 +88,7 @@ type QuestConfig struct {
 	Reward      string `json:"reward"`
 }
 
+// ValidateMapConfigJSON decodes configJSON and checks its required room data.
 func ValidateMapConfigJSON(configJSON string) error {
 	var config MapConfig
 	if err := json.Unmarshal([]byte(configJSON), &config); err != nil {
@@ -96,6 +113,7 @@ func ValidateMapConfigJSON(configJSON string) error {
 	return nil
 }
 
+// RoomNode stores a room's world position and server-provided contents.
 type RoomNode struct {
 	ID          string
 	Name        string
@@ -110,6 +128,7 @@ type RoomNode struct {
 	Items       []string
 }
 
+// WorldMap stores the generated tile grid and its room graph.
 type WorldMap struct {
 	Width        int
 	Height       int
@@ -118,6 +137,7 @@ type WorldMap struct {
 	EnvObjectIdx [][]int
 }
 
+// MapManager builds and updates the graphical world from server map data.
 type MapManager struct {
 	World          *WorldMap
 	NPCConfigs     map[string]npc.NPCConfig

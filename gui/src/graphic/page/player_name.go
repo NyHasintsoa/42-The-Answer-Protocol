@@ -16,6 +16,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// PlayerNamePage collects a player name and connects to the game server.
 type PlayerNamePage struct {
 	BasePage
 	name_input     ui.InputComponent

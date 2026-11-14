@@ -8,11 +8,13 @@ import (
 	"strings"
 )
 
+// EnvChecker validates the configured server IP address and port.
 func EnvChecker() error {
 	_, err := ServerAddress()
 	return err
 }
 
+// ServerAddress returns the configured server address in host:port form.
 func ServerAddress() (string, error) {
 	serverIP := strings.TrimSpace(os.Getenv("SERVER_IP"))
 	serverPort := strings.TrimSpace(os.Getenv("SERVER_PORT"))

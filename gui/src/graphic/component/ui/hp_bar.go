@@ -7,6 +7,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
+// HPBar displays and animates the player's current health.
 type HPBar struct {
 	Position  rl.Vector2
 	Width     float32

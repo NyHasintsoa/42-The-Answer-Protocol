@@ -4,6 +4,7 @@ import (
 	"tap-gui/src/utils"
 )
 
+// EnemyCharacter represents an animated enemy character.
 type EnemyCharacter struct {
 	NpcCharacter
 }
