@@ -219,6 +219,17 @@ func (ws *WorldService) GetRoom(roomID string) (*model.Room, bool) {
 	return &copyRoom, true
 }
 
+func (ws *WorldService) MapConfigJSON() (string, error) {
+	ws.mu.RLock()
+	defer ws.mu.RUnlock()
+
+	config, err := json.Marshal(ws.config)
+	if err != nil {
+		return "", fmt.Errorf("encode world map: %w", err)
+	}
+	return string(config), nil
+}
+
 func (ws *WorldService) TakeItemFromRoom(roomID, query string) (string, bool) {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()

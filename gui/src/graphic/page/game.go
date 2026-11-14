@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -22,39 +23,44 @@ import (
 
 type GamePage struct {
 	BasePage
-	MapManager      *service.MapManager
-	InventoryMgr    *service.InventoryManager
-	ChatMgr         *service.ChatManager
-	QuestMgr        *service.QuestManager
-	DialogMgr       *service.ActionManager
-	RoomDetailsMgr  *service.RoomDetailsManager
-	RoomItemMgr     *service.RoomItemManager
-	RoomNPCMgr      *service.RoomNPCManager
-	AttackMgr       *service.AttackManager
-	RoomViewMgr     *component.RoomViewManager
-	PlayerMgr       *service.PlayerManager
-	MapComp         *component.MapComponent
-	MainChar        *character.MainCharacter
-	HPBar           *ui.HPBar
-	InventoryComp   *component.InventoryComponent
-	ChatComp        *component.ChatComponent
-	QuestComp       *component.QuestComponent
-	DialogComp      *component.ActionComponent
-	RoomDetailsComp *component.RoomDetailsComponent
-	AttackComp      *component.AttackComponent
-	RoomViewComp    *component.RoomViewComponent
-	PlayerComp      *component.PlayerComponent
-	ActionBtnsComp  *component.ActionButtonsComponent
-	LogViewComp     *component.LogViewComponent
-	PathResolver    *utils.PathResolver
-	WindowWidth     int32
-	WindowHeight    int32
-	Camera          rl.Camera2D
-	IsMovingToRoom  bool
-	commandQueue    chan string
-	commandResults  chan commandResult
-	commandContext  context.Context
-	cancelCommands  context.CancelFunc
+	MapManager       *service.MapManager
+	InventoryMgr     *service.InventoryManager
+	ChatMgr          *service.ChatManager
+	QuestMgr         *service.QuestManager
+	DialogMgr        *service.ActionManager
+	RoomDetailsMgr   *service.RoomDetailsManager
+	RoomItemMgr      *service.RoomItemManager
+	RoomNPCMgr       *service.RoomNPCManager
+	AttackMgr        *service.AttackManager
+	RoomViewMgr      *component.RoomViewManager
+	PlayerMgr        *service.PlayerManager
+	MapComp          *component.MapComponent
+	MainChar         *character.MainCharacter
+	HPBar            *ui.HPBar
+	InventoryComp    *component.InventoryComponent
+	ChatComp         *component.ChatComponent
+	QuestComp        *component.QuestComponent
+	DialogComp       *component.ActionComponent
+	RoomDetailsComp  *component.RoomDetailsComponent
+	AttackComp       *component.AttackComponent
+	RoomViewComp     *component.RoomViewComponent
+	PlayerComp       *component.PlayerComponent
+	ActionBtnsComp   *component.ActionButtonsComponent
+	LogViewComp      *component.LogViewComponent
+	PathResolver     *utils.PathResolver
+	WindowWidth      int32
+	WindowHeight     int32
+	Camera           rl.Camera2D
+	IsMovingToRoom   bool
+	movementStart    rl.Vector2
+	movementTarget   rl.Vector2
+	movementElapsed  float32
+	movementDuration float32
+	pendingLook      *lookResponse
+	commandQueue     chan string
+	commandResults   chan commandResult
+	commandContext   context.Context
+	cancelCommands   context.CancelFunc
 }
 
 type commandResult struct {
@@ -271,14 +277,20 @@ func (gp *GamePage) submitCommand(command string) {
 func (gp *GamePage) handleCommandResult(result commandResult) {
 	if result.err != nil {
 		gp.addLog(fmt.Sprintf("%s failed: %v", result.command, result.err))
-		gp.IsMovingToRoom = false
-		gp.RoomViewMgr.IsMoving = false
+		if commandName(result.command) == "MOVE" {
+			gp.IsMovingToRoom = false
+			gp.RoomViewMgr.IsMoving = false
+			gp.MainChar.SetAction(character.ActionIdle)
+		}
 		return
 	}
 	gp.addLog("Server: " + result.response)
 	if strings.HasPrefix(result.response, "ERR ") {
-		gp.IsMovingToRoom = false
-		gp.RoomViewMgr.IsMoving = false
+		if commandName(result.command) == "MOVE" {
+			gp.IsMovingToRoom = false
+			gp.RoomViewMgr.IsMoving = false
+			gp.MainChar.SetAction(character.ActionIdle)
+		}
 		return
 	}
 
@@ -294,16 +306,19 @@ func (gp *GamePage) handleCommandResult(result commandResult) {
 			gp.addLog("Could not decode LOOK response: " + err.Error())
 			return
 		}
+		if gp.IsMovingToRoom {
+			gp.pendingLook = &data
+			return
+		}
 		gp.applyLook(data)
 	case "MOVE":
 		roomID := strings.TrimPrefix(body, "room=")
-		gp.IsMovingToRoom = false
-		gp.RoomViewMgr.IsMoving = false
-		if !gp.MapManager.SetActiveRoom(roomID) {
+		if !gp.beginRoomTransition(roomID) {
 			gp.addLog("Server moved to an unknown room: " + roomID)
+			gp.IsMovingToRoom = false
+			gp.RoomViewMgr.IsMoving = false
 			return
 		}
-		gp.setPlayerRoom(roomID)
 		gp.submitCommand("LOOK")
 	case "INVENTORY":
 		var itemIDs []string
@@ -400,7 +415,9 @@ func (gp *GamePage) applyLook(data lookResponse) {
 	gp.RoomNPCMgr.SetRoomNPCs(room.ID, npcs)
 	gp.RoomDetailsMgr.SetActiveRoom(room.ID, data.Room.Name)
 	gp.PlayerMgr.SetPlayers(data.Players)
-	gp.setPlayerRoom(room.ID)
+	if !gp.IsMovingToRoom {
+		gp.setPlayerRoom(room.ID)
+	}
 }
 
 func (gp *GamePage) setPlayerRoom(roomID string) {
@@ -413,6 +430,83 @@ func (gp *GamePage) setPlayerRoom(roomID string) {
 	gp.Camera.Target = position
 	gp.RoomViewMgr.IsMoving = false
 	gp.IsMovingToRoom = false
+}
+
+func (gp *GamePage) beginRoomTransition(roomID string) bool {
+	if !gp.MapManager.SetActiveRoom(roomID) {
+		return false
+	}
+
+	room := gp.MapManager.ActiveRoom
+	gp.movementStart = gp.MainChar.Position
+	gp.movementTarget = rl.NewVector2(
+		float32(room.TileX)*service.TileSize+service.TileSize*2,
+		float32(room.TileY)*service.TileSize+service.TileSize*2,
+	)
+	dx := gp.movementTarget.X - gp.movementStart.X
+	dy := gp.movementTarget.Y - gp.movementStart.Y
+	distance := float32(math.Hypot(float64(dx), float64(dy)))
+	if gp.MainChar.Speed <= 0 {
+		return false
+	}
+
+	gp.movementElapsed = 0
+	gp.movementDuration = distance / gp.MainChar.Speed
+	gp.pendingLook = nil
+	gp.setFacingDirection(dx, dy)
+	gp.IsMovingToRoom = distance > 0
+	gp.RoomViewMgr.IsMoving = gp.IsMovingToRoom
+	if !gp.IsMovingToRoom {
+		gp.MainChar.SetPosition(gp.movementTarget.X, gp.movementTarget.Y)
+	}
+	return true
+}
+
+func (gp *GamePage) setFacingDirection(dx, dy float32) {
+	if math.Abs(float64(dx)) > math.Abs(float64(dy)) {
+		if dx > 0 {
+			gp.MainChar.Direction = character.DirRight
+		} else {
+			gp.MainChar.Direction = character.DirLeft
+		}
+		return
+	}
+	if dy > 0 {
+		gp.MainChar.Direction = character.DirFront
+	} else {
+		gp.MainChar.Direction = character.DirBack
+	}
+}
+
+func (gp *GamePage) updateRoomTransition(dt float32) {
+	gp.movementElapsed += dt
+	progress := gp.movementElapsed / gp.movementDuration
+	if progress >= 1 {
+		gp.MainChar.SetPosition(gp.movementTarget.X, gp.movementTarget.Y)
+		gp.IsMovingToRoom = false
+		gp.RoomViewMgr.IsMoving = false
+		gp.MainChar.SetAction(character.ActionIdle)
+		if gp.pendingLook != nil {
+			gp.applyLook(*gp.pendingLook)
+			gp.pendingLook = nil
+		}
+		return
+	}
+
+	gp.MainChar.Position = rl.NewVector2(
+		gp.movementStart.X+(gp.movementTarget.X-gp.movementStart.X)*progress,
+		gp.movementStart.Y+(gp.movementTarget.Y-gp.movementStart.Y)*progress,
+	)
+	gp.MainChar.SetAction(character.ActionWalking)
+	gp.MainChar.AdvanceFrame(dt, true)
+}
+
+func commandName(command string) string {
+	fields := strings.Fields(command)
+	if len(fields) == 0 {
+		return ""
+	}
+	return strings.ToUpper(fields[0])
 }
 
 func (gp *GamePage) applyInventory(itemIDs []string) {
@@ -613,7 +707,9 @@ func (gp *GamePage) Update(dt float32) {
 		}
 	}
 drained:
-	if gp.MainChar.IsDead || gp.IsMovingToRoom || gp.hasOpenModal() {
+	if gp.IsMovingToRoom {
+		gp.updateRoomTransition(dt)
+	} else if gp.MainChar.IsDead || gp.hasOpenModal() {
 		gp.MainChar.SetAction(character.ActionIdle)
 		gp.MainChar.AdvanceFrame(dt, false)
 	} else if gp.MainChar.Action == character.ActionAttacking || gp.MainChar.Action == character.ActionHurt {

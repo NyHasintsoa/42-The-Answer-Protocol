@@ -73,6 +73,15 @@ func (r *ActionRouter) Dispatch(sender service.ClientSender, rawLine string) (st
 	}
 
 	switch command {
+	case "MAP":
+		if argument != "" {
+			return "ERR 400 INVALID_ARGUMENTS", false
+		}
+		mapConfig, err := r.WorldManager.MapConfigJSON()
+		if err != nil {
+			return "ERR 500 INTERNAL_ERROR", false
+		}
+		return "OK " + mapConfig, false
 	case "LOOK":
 		if argument != "" {
 			return "ERR 400 INVALID_ARGUMENTS", false

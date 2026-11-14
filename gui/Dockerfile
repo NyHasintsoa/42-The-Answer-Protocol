@@ -17,7 +17,6 @@ COPY gui/go.mod gui/go.sum ./
 RUN go mod download
 
 COPY gui/ .
-COPY server/map.json ./server/map.json
 
 ENV CGO_ENABLED=1
 RUN go build -o tap-gui main.go

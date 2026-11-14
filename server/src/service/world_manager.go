@@ -21,6 +21,10 @@ func (manager *WorldManager) Room(roomID string) (*model.Room, bool) {
 	return manager.world.GetRoom(roomID)
 }
 
+func (manager *WorldManager) MapConfigJSON() (string, error) {
+	return manager.world.MapConfigJSON()
+}
+
 func (manager *WorldManager) Look(player *model.Player) (*model.LookResponse, bool) {
 	room, ok := manager.Room(player.CurrentRoom)
 	if !ok {
