@@ -69,7 +69,7 @@ func NewModel(addr, cfgNote string) tea.Model {
 
 func initialModel(addr, cfgNote string) model {
 	ti := textinput.New()
-	ti.Placeholder = "Type command (e.g., CONNECT alice, LOOK, MOVE north, CHAT GLOBAL hello)..."
+	ti.Placeholder = "Type command (e.g., CONNECT alice, INVENTORY, USE potion_health_PM, MOVE north)..."
 	ti.Focus()
 	ti.CharLimit = 512
 	ti.SetWidth(80)

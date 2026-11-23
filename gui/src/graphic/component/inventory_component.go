@@ -242,11 +242,38 @@ func (ic *InventoryComponent) Render(winWidth, winHeight int32) {
 		countW := float32(rl.MeasureText(countText, 14))
 		rl.DrawText(countText, int32(modalX+(modalW-countW)/2), int32(imgY+imgSize+36), 14, rl.Gold)
 
+		effectText := ""
+		switch selectedItem.Category {
+		case inventory.InventoryCategory("heal"):
+			effectText = fmt.Sprintf("Effect: +%d HP", selectedItem.Cost)
+		case inventory.InventoryCategory("attack"):
+			effectText = fmt.Sprintf("Effect: +%d attack", selectedItem.Cost)
+		}
+		if effectText != "" {
+			effectWidth := float32(rl.MeasureText(effectText, 14))
+			rl.DrawText(effectText, int32(modalX+(modalW-effectWidth)/2), int32(imgY+imgSize+60), 14, utils.ThemeAccent)
+		}
+
 		btnW := float32(110)
 		btnH := float32(38)
 		btnY := modalY + modalH - 55
 
-		dropButton := ui.NewButton(modalX+(modalW-btnW)/2, btnY, btnW, btnH, "DROP", 16)
+		useButton := ui.NewButton(modalX+34, btnY, btnW, btnH, "USE", 16)
+		useButton.BgColor = rl.NewColor(0, 130, 100, 255)
+		useButton.HoverBgColor = rl.NewColor(0, 170, 125, 255)
+		useButton.ClickedColor = useButton.HoverBgColor
+		useButton.TextColor = rl.White
+		useButton.BorderColor = rl.White
+		useButton.ShadowColor = rl.Blank
+		useButton.BorderWidth = 2
+		useButton.BorderRadius = 0.25
+		useButton.Disabled = effectText == ""
+		useButton.Render()
+		if useButton.IsClicked && ic.OnCommand != nil {
+			ic.OnCommand("USE " + selectedItem.ID)
+		}
+
+		dropButton := ui.NewButton(modalX+modalW-34-btnW, btnY, btnW, btnH, "DROP", 16)
 		dropButton.BgColor = rl.NewColor(170, 40, 40, 255)
 		dropButton.HoverBgColor = rl.NewColor(220, 50, 50, 255)
 		dropButton.ClickedColor = dropButton.HoverBgColor

@@ -333,6 +333,24 @@ func (ws *WorldService) GetQuest(questID string) (*model.Quest, bool) {
 	return &copyQuest, true
 }
 
+// GetItem returns a copy of the item matching its ID or display name.
+func (ws *WorldService) GetItem(query string) (*model.Item, bool) {
+	ws.mu.RLock()
+	defer ws.mu.RUnlock()
+
+	query = strings.TrimSpace(query)
+	for id, item := range ws.config.Items {
+		if strings.EqualFold(id, query) || strings.EqualFold(item.Name, query) {
+			copyItem := *item
+			if copyItem.ID == "" {
+				copyItem.ID = id
+			}
+			return &copyItem, true
+		}
+	}
+	return nil, false
+}
+
 func (ws *WorldService) ItemName(itemID string) string {
 	ws.mu.RLock()
 	defer ws.mu.RUnlock()
