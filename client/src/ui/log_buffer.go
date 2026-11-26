@@ -1,23 +1,23 @@
-package component
+package ui
 
 import (
 	"math"
 	"unicode/utf8"
 
+	"tap-client/src/ui/animation"
 	"tap-client/src/util"
-
-	"charm.land/lipgloss/v2"
 )
 
 // --- Log buffer & scrolling -----------------------------------------------------------
 
+// addLog appends a new entry to the log and schedules a rebuild. Lines logged
+// while the loader is dissolving wait for the log screen, so their entrance
+// animation is actually seen.
 func (m *model) addLog(kind logKind, text string) {
 	if utf8.RuneCountInString(text) > maxLineRunes {
 		text = string([]rune(text)[:maxLineRunes]) + "…"
 	}
 
-	// Lines logged while the loader is dissolving wait for the log screen, so
-	// their entrance animation is actually seen.
 	base := m.now
 	if m.phase == phaseSuccess && m.revealAt.After(base) {
 		base = m.revealAt
@@ -83,7 +83,7 @@ func (m *model) rebuild() {
 	if m.follow {
 		m.offset = m.maxOffset()
 	} else {
-		m.offset = clampInt(m.offset, 0, m.maxOffset())
+		m.offset = animation.ClampInt(m.offset, 0, m.maxOffset())
 	}
 }
 
@@ -92,7 +92,7 @@ func (m model) maxOffset() int { return max(0, len(m.flat)-m.logH) }
 // scrollTo moves the view; reaching the bottom (re)enables follow mode.
 func (m *model) scrollTo(offset int) {
 	maxOff := m.maxOffset()
-	m.offset = clampInt(offset, 0, maxOff)
+	m.offset = animation.ClampInt(offset, 0, maxOff)
 	m.follow = m.offset >= maxOff
 	if m.follow {
 		m.unread = 0
@@ -101,51 +101,40 @@ func (m *model) scrollTo(offset int) {
 
 func (m *model) scrollBy(delta int) { m.scrollTo(m.offset + delta) }
 
-func (m *model) recalculateLayout() {
-	m.innerW = max(8, m.width-4) // panel border (1) + padding (1) on each side
-	m.logH = max(1, m.height-chromeRows)
-	m.textW = m.innerW - 2 // scrollbar column + one blank column
-	m.msgW = max(8, m.textW-prefixW-1)
-	m.input.SetWidth(max(4, m.innerW-lipgloss.Width(m.input.Prompt)-1))
-	m.rebuild()
-}
+// --- Scrollbar geometry ------------------------------------------------------------
 
-// --- Mouse: scrollbar click & drag ------------------------------------------------------
+// lowerBlocks maps a covered fraction of a cell to a lower-block glyph.
+var lowerBlocks = [...]rune{' ', '▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'}
 
-func (m *model) mouseDown(x, y int, left bool) {
-	if !left || m.phase != phaseMain || m.tooSmall() {
-		return
+// ThumbSpan returns the start and size of the thumb in 1/8-cell units for a
+// track of `rows` cells showing `rows` of `total` lines at `offset`. ok is
+// false when everything fits and there is nothing to scroll.
+func ThumbSpan(rows, total, offset int) (start, size int, ok bool) {
+	if rows <= 0 || total <= rows {
+		return 0, 0, false
 	}
-	// Grab area: the scrollbar column plus one column on each side.
-	if x < barX-1 || x > barX+1 || y < logTop || y >= logTop+m.logH {
-		return
-	}
-	start, size, ok := thumbSpan(m.logH, len(m.flat), m.offset)
-	if !ok {
-		return
-	}
-	pointer := (y-logTop)*8 + 4 // middle of the clicked cell, in 1/8-cell units
-	m.dragging = true
-	if pointer+4 > start && pointer-4 < start+size { // the clicked cell touches the thumb
-		m.dragGrab = pointer - start // exact grab point: nothing moves until the mouse does
-		return
-	}
-	m.dragGrab = size / 2 // clicked the empty rail: centre the thumb on the click
-	m.dragTo(y)
-}
-
-func (m *model) dragTo(y int) {
-	_, size, ok := thumbSpan(m.logH, len(m.flat), m.offset)
-	if !ok {
-		return
-	}
-	units := m.logH * 8
+	units := rows * 8
+	size = animation.ClampInt(int(math.Round(float64(units)*float64(rows)/float64(total))), 8, units)
+	maxOff := total - rows
 	travel := units - size
-	if travel <= 0 {
-		return
+	start = int(math.Round(float64(travel) * float64(animation.ClampInt(offset, 0, maxOff)) / float64(maxOff)))
+	return start, size, true
+}
+
+// ScrollCell describes track row `row` for a thumb at [start, start+size): the
+// glyph to draw and whether the thumb colour is used for its foreground and/or
+// background (partial cells use a lower-block glyph on two colours).
+func ScrollCell(row, start, size int) (glyph rune, fgThumb, bgThumb bool) {
+	top := row * 8
+	covered := min(start+size, top+8) - max(start, top)
+	switch {
+	case covered <= 0:
+		return ' ', false, false // bare track
+	case covered >= 8:
+		return ' ', false, true // solid thumb
+	case start > top: // thumb begins inside this cell and continues below
+		return lowerBlocks[covered], true, false
+	default: // thumb ends inside this cell
+		return lowerBlocks[8-covered], false, true
 	}
-	pointer := clampInt((y-logTop)*8+4, 0, units)
-	start := clampInt(pointer-m.dragGrab, 0, travel)
-	maxOff := len(m.flat) - m.logH
-	m.scrollTo(int(math.Round(float64(start) * float64(maxOff) / float64(travel))))
 }

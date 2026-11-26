@@ -28,7 +28,7 @@ func printCliError(category string, details any, color string) {
 	fmt.Fprintf(os.Stderr, "%s[%s]%s %v\n", color, category, ColorReset, details)
 }
 
-const maxConcurrentClients = 256
+const maxConcurrentClients = 5
 
 func run() error {
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
@@ -115,7 +115,7 @@ func run() error {
 
 // main starts the server and exits with an error status if startup fails.
 func main() {
-	if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := godotenv.Load("../.env", ".env"); err != nil && !errors.Is(err, os.ErrNotExist) {
 		printCliError("Configuration Error", fmt.Errorf("load .env: %w", err), ColorRed)
 		os.Exit(1)
 	}

@@ -1,4 +1,4 @@
-package component
+package ui
 
 import (
 	"bufio"
@@ -6,23 +6,18 @@ import (
 	"strings"
 	"time"
 
-	"tap-client/src/service"
+	"tap-client/src/network"
 	"tap-client/src/util"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 )
 
-type tickMsg time.Time
-
 // --- Commands ---------------------------------------------------------------------
 
-func tickCmd() tea.Cmd {
-	return tea.Tick(frameInterval, func(t time.Time) tea.Msg { return tickMsg(t) })
-}
-
+// Init starts the text-input blink, the first dial attempt and the frame clock.
 func (m model) Init() tea.Cmd {
-	return tea.Batch(textinput.Blink, service.DialCmd(m.address, m.gen), tickCmd())
+	return tea.Batch(textinput.Blink, network.DialCmd(m.address, m.gen), tickCmd())
 }
 
 // --- Update -------------------------------------------------------------------------
@@ -98,13 +93,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseReleaseMsg:
 		m.dragging = false
 
-	case service.ConnectedMsg:
+	case network.ConnectedMsg:
 		if msg.Generation != m.gen {
 			_ = msg.Conn.Close() // a newer attempt superseded this one
 			break
 		}
 		m.conn = msg.Conn
-		m.reader = bufio.NewReader(msg.Conn)
+		m.reader = bufio.NewReader(msg.Conn.Reader())
 		m.connected = true
 		m.lastErr = ""
 		m.retryAt = time.Time{}
@@ -112,16 +107,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.revealAt = m.now.Add(successHold + loaderFadeOut)
 		m.setPhase(phaseSuccess)
 		m.addLog(kindSystem, fmt.Sprintf("Connected to %s", m.address))
-		cmds = append(cmds, service.ReadCmd(m.reader, m.gen))
+		cmds = append(cmds, network.ReadCmd(m.reader, m.gen))
 
-	case service.ServerLineMsg:
+	case network.ServerLineMsg:
 		if msg.Generation != m.gen || m.conn == nil {
 			break
 		}
 		m.handleServerLine(msg.Line)
-		cmds = append(cmds, service.ReadCmd(m.reader, m.gen))
+		cmds = append(cmds, network.ReadCmd(m.reader, m.gen))
 
-	case service.ServerErrMsg:
+	case network.ServerErrMsg:
 		if msg.Generation != m.gen {
 			break
 		}
@@ -138,13 +133,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.setPhase(phaseLoading)
 		}
 		m.addLog(kindError, fmt.Sprintf("Connection error: %v (retrying...)", msg.Err))
-		cmds = append(cmds, tea.Tick(retryDelay, func(time.Time) tea.Msg { return service.RetryMsg{} }))
+		cmds = append(cmds, tea.Tick(retryDelay, func(time.Time) tea.Msg { return network.RetryMsg{} }))
 
-	case service.RetryMsg:
+	case network.RetryMsg:
 		m.gen++
 		m.attempt++
 		m.retryAt = time.Time{}
-		cmds = append(cmds, service.DialCmd(m.address, m.gen))
+		cmds = append(cmds, network.DialCmd(m.address, m.gen))
 	}
 
 	var inputCmd tea.Cmd
@@ -157,41 +152,3 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	return m, tea.Batch(cmds...)
 }
-
-func (m *model) setPhase(p uiPhase) {
-	m.phase = p
-	m.phaseAt = m.now
-}
-
-func (m *model) advancePhase() {
-	if m.phase == phaseSuccess && m.now.Sub(m.phaseAt) >= successHold+loaderFadeOut {
-		m.setPhase(phaseMain)
-	}
-}
-
-// needsFrames reports whether anything is still moving. When nothing is, the
-// frame clock stops and the program is completely idle.
-func (m model) needsFrames() bool {
-	if m.phase != phaseMain {
-		return true
-	}
-	return m.now.Sub(m.phaseAt) < mainFadeIn || m.animating
-}
-
-// phaseFade is the fade level (0 = invisible, 1 = fully visible) of the screen.
-func (m model) phaseFade() float64 {
-	age := m.now.Sub(m.phaseAt)
-	switch m.phase {
-	case phaseLoading:
-		return easeOutCubic(fraction(age, loaderFadeIn))
-	case phaseSuccess:
-		if age <= successHold {
-			return 1
-		}
-		return 1 - easeInCubic(fraction(age-successHold, loaderFadeOut))
-	default:
-		return easeOutCubic(fraction(age, mainFadeIn))
-	}
-}
-
-func (m model) tooSmall() bool { return m.width < minWidth || m.height < minHeight }

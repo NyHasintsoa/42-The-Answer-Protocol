@@ -1,14 +1,17 @@
-package component
+package ui
 
 import (
 	"bufio"
 	"fmt"
-	"net"
 	"time"
+
+	"tap-client/src/network"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+
+	"tap-client/src/ui/theme"
 )
 
 // --- Model ------------------------------------------------------------------------
@@ -24,7 +27,7 @@ const (
 type model struct {
 	// Connection.
 	address     string
-	conn        net.Conn
+	conn        network.Connection
 	reader      *bufio.Reader
 	gen         int // id of the current dial attempt
 	attempt     int
@@ -63,6 +66,7 @@ type model struct {
 	input textinput.Model
 }
 
+// NewModel builds the initial Bubbletea model for the given server address.
 func NewModel(addr, cfgNote string) tea.Model {
 	return initialModel(addr, cfgNote)
 }
@@ -76,9 +80,9 @@ func initialModel(addr, cfgNote string) model {
 	ti.Prompt = "⚡ "
 
 	styles := textinput.DefaultStyles(true)
-	styles.Focused.Prompt = lipgloss.NewStyle().Foreground(colorCyan).Bold(true)
+	styles.Focused.Prompt = lipgloss.NewStyle().Foreground(theme.ColorCyan).Bold(true)
 	styles.Blurred.Prompt = styles.Focused.Prompt
-	styles.Focused.Text = lipgloss.NewStyle().Foreground(colorText)
+	styles.Focused.Text = lipgloss.NewStyle().Foreground(theme.ColorText)
 	styles.Blurred.Text = styles.Focused.Text
 	ti.SetStyles(styles)
 

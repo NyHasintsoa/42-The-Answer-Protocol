@@ -13,7 +13,7 @@ import (
 
 // --- Text helpers -------------------------------------------------------------
 
-// sanitize makes server text safe to print: tabs become spaces and every other
+// Sanitize makes server text safe to print: tabs become spaces and every other
 // control character (ESC, BEL, CR...) is dropped, so a server or another
 // player can never inject terminal escape sequences into the log.
 func Sanitize(s string) string {
@@ -32,10 +32,11 @@ func Sanitize(s string) string {
 	return b.String()
 }
 
-// wrapText splits plain text into lines of at most width terminal cells. It
-// prefers to break on spaces and hard-breaks words that are too long.
+// runeWidth returns the terminal cell width of a single rune.
 func runeWidth(r rune) int { return lipgloss.Width(string(r)) }
 
+// WrapText splits plain text into lines of at most width terminal cells. It
+// prefers to break on spaces and hard-breaks words that are too long.
 func WrapText(s string, width int) []string {
 	if width < 1 {
 		width = 1
@@ -79,6 +80,7 @@ func WrapText(s string, width int) []string {
 	return lines
 }
 
+// TruncateCells truncates s to at most w terminal cells.
 func TruncateCells(s string, w int) string {
 	if w <= 0 {
 		return ""
@@ -86,6 +88,7 @@ func TruncateCells(s string, w int) string {
 	return ansi.Truncate(s, w, "…")
 }
 
+// PadTo right-pads s with spaces up to w terminal cells.
 func PadTo(s string, w int) string {
 	if gap := w - lipgloss.Width(s); gap > 0 {
 		return s + strings.Repeat(" ", gap)
@@ -93,6 +96,7 @@ func PadTo(s string, w int) string {
 	return s
 }
 
+// Center pads s with spaces so it is centered within w terminal cells.
 func Center(s string, w int) string {
 	sw := lipgloss.Width(s)
 	if sw >= w {
@@ -102,6 +106,7 @@ func Center(s string, w int) string {
 	return strings.Repeat(" ", left) + s + strings.Repeat(" ", w-sw-left)
 }
 
+// SpaceOut inserts a single space between every rune of s.
 func SpaceOut(s string) string {
 	var b strings.Builder
 	for i, r := range []rune(s) {
@@ -113,7 +118,8 @@ func SpaceOut(s string) string {
 	return b.String()
 }
 
-// describeErr turns a network error into something short enough for the loader.
+// DescribeErr turns a network error into something short enough for the
+// loader.
 func DescribeErr(err error) string {
 	var opErr *net.OpError
 	switch {

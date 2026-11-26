@@ -6,6 +6,7 @@
 **/*.txt
 .cache
 test
+.env
 
 ### C ###
 # Prerequisites

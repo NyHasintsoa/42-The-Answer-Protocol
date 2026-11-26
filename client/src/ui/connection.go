@@ -1,21 +1,18 @@
-package component
+package ui
 
 import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"tap-client/src/service"
 )
 
-// --- Networking helpers -----------------------------------------------------------
+// --- Connection -------------------------------------------------------------------
 
 func (m *model) sendRaw(line string) error {
 	if m.conn == nil {
 		return errors.New("not connected")
 	}
-	err := service.SendLine(m.conn, line)
-	return err
+	return m.conn.Send(line)
 }
 
 func (m *model) sendCommand(cmd string) {
