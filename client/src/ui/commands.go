@@ -16,6 +16,15 @@ type sessionEventMsg struct {
 
 type sessionClosedMsg struct{}
 
+// sessionEventCmd waits for and converts the next service event into a Bubble Tea message.
+//
+// Parameters:
+//
+//	session: service session whose event stream should be observed.
+//
+// Returns:
+//
+//	A command that emits the next event message or a closed-session message.
 func sessionEventCmd(session *service.Session) tea.Cmd {
 	events := session.Start()
 	return func() tea.Msg {
@@ -27,6 +36,11 @@ func sessionEventCmd(session *service.Session) tea.Cmd {
 	}
 }
 
+// tickCmd schedules the next UI animation frame.
+//
+// Returns:
+//
+//	A command that emits a tickMsg after frameInterval.
 func tickCmd() tea.Cmd {
 	return tea.Tick(frameInterval, func(t time.Time) tea.Msg { return tickMsg(t) })
 }

@@ -9,6 +9,14 @@ import (
 // --- View: scrollbar -----------------------------------------------------------------------------
 
 // scrollbar returns one one-cell-wide string per visible log row.
+//
+// Parameters:
+//
+//	p: painter used to apply the current screen fade.
+//
+// Returns:
+//
+//	Styled scrollbar cells, one for each visible log row.
 func (m model) scrollbar(p animation.Painter) []string {
 	start, size, ok := ThumbSpan(m.logH, len(m.flat), m.offset)
 

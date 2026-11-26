@@ -17,6 +17,14 @@ const (
 
 // kindStyle returns the two-character gutter label of a log kind and the
 // colours of that label and of the message text.
+//
+// Parameters:
+//
+//	k: kind that determines the label and palette.
+//
+// Returns:
+//
+//	The gutter label, its color, and the message text color.
 func kindStyle(k logKind) (label string, labelC, textC animation.RGB) {
 	switch k {
 	case kindClient:

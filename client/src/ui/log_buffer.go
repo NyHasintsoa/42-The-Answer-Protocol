@@ -13,6 +13,11 @@ import (
 // addLog appends a new entry to the log and schedules a rebuild. Lines logged
 // while the loader is dissolving wait for the log screen, so their entrance
 // animation is actually seen.
+//
+// Parameters:
+//
+//	kind: category used to style the entry.
+//	text: message text to sanitize and display.
 func (m *model) addLog(kind logKind, text string) {
 	if utf8.RuneCountInString(text) > maxLineRunes {
 		text = string([]rune(text)[:maxLineRunes]) + "…"
@@ -87,9 +92,18 @@ func (m *model) rebuild() {
 	}
 }
 
+// maxOffset returns the greatest first-line offset that still fills the visible log area.
+//
+// Returns:
+//
+//	The maximum scroll offset, or zero when all lines fit.
 func (m model) maxOffset() int { return max(0, len(m.flat)-m.logH) }
 
 // scrollTo moves the view; reaching the bottom (re)enables follow mode.
+//
+// Parameters:
+//
+//	offset: requested first visible line, clamped to the available range.
 func (m *model) scrollTo(offset int) {
 	maxOff := m.maxOffset()
 	m.offset = animation.ClampInt(offset, 0, maxOff)
@@ -99,6 +113,11 @@ func (m *model) scrollTo(offset int) {
 	}
 }
 
+// scrollBy moves the log view relative to its current offset.
+//
+// Parameters:
+//
+//	delta: signed number of lines to move.
 func (m *model) scrollBy(delta int) { m.scrollTo(m.offset + delta) }
 
 // --- Scrollbar geometry ------------------------------------------------------------
@@ -109,6 +128,16 @@ var lowerBlocks = [...]rune{' ', '▁', '▂', '▃', '▄', '▅', '▆', '▇'
 // ThumbSpan returns the start and size of the thumb in 1/8-cell units for a
 // track of `rows` cells showing `rows` of `total` lines at `offset`. ok is
 // false when everything fits and there is nothing to scroll.
+//
+// Parameters:
+//
+//	rows: number of terminal rows in the scrollbar track and viewport.
+//	total: number of log lines in the complete buffer.
+//	offset: index of the first visible log line.
+//
+// Returns:
+//
+//	Thumb start and size in eighth-cell units, and whether scrolling is possible.
 func ThumbSpan(rows, total, offset int) (start, size int, ok bool) {
 	if rows <= 0 || total <= rows {
 		return 0, 0, false
@@ -124,6 +153,17 @@ func ThumbSpan(rows, total, offset int) (start, size int, ok bool) {
 // ScrollCell describes track row `row` for a thumb at [start, start+size): the
 // glyph to draw and whether the thumb colour is used for its foreground and/or
 // background (partial cells use a lower-block glyph on two colours).
+//
+// Parameters:
+//
+//	row: zero-based scrollbar row to describe.
+//	start: thumb start in eighth-cell units.
+//	size: thumb size in eighth-cell units.
+//
+// Returns:
+//
+//	The cell glyph, whether the thumb color is used for the foreground, and
+//	whether it is used for the background.
 func ScrollCell(row, start, size int) (glyph rune, fgThumb, bgThumb bool) {
 	top := row * 8
 	covered := min(start+size, top+8) - max(start, top)

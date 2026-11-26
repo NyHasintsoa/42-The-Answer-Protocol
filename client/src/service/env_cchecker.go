@@ -10,6 +10,10 @@ import (
 
 // EnvChecker verifies that all required environment variables are present and
 // non-empty.
+//
+// Returns:
+//
+//	An error naming any required variables that are missing or blank.
 func EnvChecker() error {
 	requiredVars := []string{"SERVER_IP", "SERVER_PORT"}
 	var missing []string
@@ -28,7 +32,11 @@ func EnvChecker() error {
 }
 
 // ServerAddress reads SERVER_IP and SERVER_PORT from the environment and
-// returns a validated domain.Address.
+// returns a host-port address after validating both values.
+//
+// Returns:
+//
+//	The joined host-port address, or an error if either environment value is invalid.
 func ServerAddress() (string, error) {
 	serverIP := strings.TrimSpace(os.Getenv("SERVER_IP"))
 	serverPort := strings.TrimSpace(os.Getenv("SERVER_PORT"))

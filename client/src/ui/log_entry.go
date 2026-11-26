@@ -25,16 +25,39 @@ type logEntry struct {
 	final []string // fully rendered lines once the animation is over
 }
 
+// typeDuration bounds the time required to reveal runes in a log entry.
+//
+// Parameters:
+//
+//	runes: number of runes to reveal.
+//
+// Returns:
+//
+//	The typewriter animation duration, clamped to configured minimum and maximum values.
 func typeDuration(runes int) time.Duration {
 	return min(max(time.Duration(runes)*typePerRune, typeMinDur), typeMaxDur)
 }
 
+// animEnd returns the longest animation duration used by this entry.
+//
+// Returns:
+//
+//	The time after which typing, fading, and label-glow animations are complete.
 func (e *logEntry) animEnd() time.Duration {
 	return max(typeDuration(e.runes), lineFadeDur, labelGlowDur)
 }
 
 // render returns the screen lines of the entry at time now, and whether it is
 // still animating. The number of lines never changes during the animation.
+//
+// Parameters:
+//
+//	now: current time used to calculate animation progress.
+//	width: available terminal-cell width for wrapped message text.
+//
+// Returns:
+//
+//	Rendered screen lines and whether any entry animation remains active.
 func (e *logEntry) render(now time.Time, width int) (lines []string, animating bool) {
 	if e.parts == nil || e.wrapW != width {
 		e.wrapW = width
@@ -61,6 +84,17 @@ func (e *logEntry) render(now time.Time, width int) (lines []string, animating b
 
 // build draws the entry with `shown` runes revealed, text colours faded in by
 // fade (0..1) and the label glowing white until glow reaches 1.
+//
+// Parameters:
+//
+//	shown: number of message runes to reveal.
+//	fade: text and label opacity in the range [0, 1].
+//	glow: label glow completion in the range [0, 1].
+//	cursor: whether to draw the typewriter cursor.
+//
+// Returns:
+//
+//	The rendered lines of the log entry.
 func (e *logEntry) build(shown int, fade, glow float64, cursor bool) []string {
 	label, labelC, textC := kindStyle(e.kind)
 	tsStyle := lipgloss.NewStyle().Foreground(animation.RGBBg.Mix(animation.RGBMuted, fade).ToColor())

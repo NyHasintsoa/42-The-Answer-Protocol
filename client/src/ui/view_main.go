@@ -15,6 +15,11 @@ import (
 
 // --- View: main screen ------------------------------------------------------------------------------
 
+// mainView renders the protocol log, command input, and session header.
+//
+// Returns:
+//
+//	The composed main-screen content.
 func (m model) mainView() string {
 	p := animation.Painter{Fade: m.phaseFade()}
 	cyan, muted := p.C(theme.ColorCyan), p.C(theme.ColorMuted)
@@ -55,6 +60,15 @@ func (m model) mainView() string {
 	return lipgloss.JoinVertical(lipgloss.Left, m.headerView(p), logPanel, inputPanel)
 }
 
+// headerView renders the application title, connection badge, and server address.
+//
+// Parameters:
+//
+//	p: painter used to apply the current screen fade.
+//
+// Returns:
+//
+//	The one-line main-screen header.
 func (m model) headerView(p animation.Painter) string {
 	pill := lipgloss.NewStyle().Bold(true).
 		Foreground(p.C(theme.ColorBg)).Background(p.C(theme.ColorCyan)).Padding(0, 1).
@@ -81,6 +95,14 @@ func (m model) headerView(p animation.Painter) string {
 
 // followChip is the status shown at the right of the log title: LIVE while the
 // view follows new output, otherwise the scroll position and unread count.
+//
+// Parameters:
+//
+//	p: painter used to apply the current screen fade.
+//
+// Returns:
+//
+//	The rendered follow-status chip and its terminal-cell width.
 func (m model) followChip(p animation.Painter) (string, int) {
 	text, c := "● LIVE", animation.RGBGreen
 	if !m.follow {

@@ -9,6 +9,11 @@ import (
 
 // --- View ------------------------------------------------------------------------------------
 
+// View renders the active screen or a message explaining why it cannot be rendered.
+//
+// Returns:
+//
+//	The Bubble Tea view with alternate-screen and mouse interaction enabled.
 func (m model) View() tea.View {
 	var content string
 	switch {

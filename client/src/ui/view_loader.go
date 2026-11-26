@@ -13,6 +13,11 @@ import (
 	"tap-client/src/ui/theme"
 )
 
+// loaderView renders the animated connection status screen.
+//
+// Returns:
+//
+//	The loader card positioned within the terminal.
 func (m model) loaderView() string {
 	p := animation.Painter{Fade: m.phaseFade()}
 	t := math.Max(0, m.now.Sub(m.loaderT0).Seconds())
@@ -113,6 +118,18 @@ func (m model) loaderView() string {
 
 // loaderBar draws the progress rail: a comet sweeping back and forth while we
 // wait, or a green fill once the connection is up.
+//
+// Parameters:
+//
+//	width: number of terminal cells occupied by the rail.
+//	t: elapsed animation time in seconds.
+//	age: elapsed time in the current screen phase, in seconds.
+//	success: whether to render the completed connection fill.
+//	p: painter used to apply the current screen fade.
+//
+// Returns:
+//
+//	The styled progress rail.
 func loaderBar(width int, t, age float64, success bool, p animation.Painter) string {
 	track := animation.RGBSurface.Mix(animation.RGBBorder, 0.7)
 	cell := func(c animation.RGB) string {

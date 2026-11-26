@@ -8,6 +8,13 @@ import (
 
 // --- Mouse: scrollbar click & drag ------------------------------------------------------
 
+// mouseDown starts scrollbar dragging or pages the thumb toward the clicked track position.
+//
+// Parameters:
+//
+//	x: mouse column in terminal cells.
+//	y: mouse row in terminal cells.
+//	left: whether the pressed button is the left mouse button.
 func (m *model) mouseDown(x, y int, left bool) {
 	if !left || m.phase != phaseMain || m.tooSmall() {
 		return
@@ -30,6 +37,11 @@ func (m *model) mouseDown(x, y int, left bool) {
 	m.dragTo(y)
 }
 
+// dragTo moves the scrollbar thumb to the supplied terminal row.
+//
+// Parameters:
+//
+//	y: mouse row in terminal cells.
 func (m *model) dragTo(y int) {
 	_, size, ok := ThumbSpan(m.logH, len(m.flat), m.offset)
 	if !ok {

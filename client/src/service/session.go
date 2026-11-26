@@ -12,6 +12,7 @@ import (
 
 const retryDelay = 2 * time.Second
 
+// Session owns the server connection lifecycle and publishes events for the UI.
 type Session struct {
 	address string
 	events  chan model.ConnectionEvent
@@ -23,6 +24,15 @@ type Session struct {
 	closed     bool
 }
 
+// NewSession creates a session for the server at address.
+//
+// Parameters:
+//
+//	address: TCP host and port of the server.
+//
+// Returns:
+//
+//	A session ready to start.
 func NewSession(address string) *Session {
 	return &Session{
 		address: address,
@@ -30,10 +40,20 @@ func NewSession(address string) *Session {
 	}
 }
 
+// Address returns the server address configured for the session.
+//
+// Returns:
+//
+//	The session's TCP host and port.
 func (s *Session) Address() string {
 	return s.address
 }
 
+// Start begins connection and retry processing once and returns its event stream.
+//
+// Returns:
+//
+//	A channel carrying connection-state and server-line events until the session closes.
 func (s *Session) Start() <-chan model.ConnectionEvent {
 	s.startOnce.Do(func() {
 		s.mu.Lock()
@@ -50,6 +70,15 @@ func (s *Session) Start() <-chan model.ConnectionEvent {
 	return s.events
 }
 
+// Send sends a command over the active server connection.
+//
+// Parameters:
+//
+//	line: protocol command to send.
+//
+// Returns:
+//
+//	An error if the session is disconnected or the write fails.
 func (s *Session) Send(line string) error {
 	s.mu.RLock()
 	conn := s.connection
@@ -60,6 +89,7 @@ func (s *Session) Send(line string) error {
 	return conn.Send(line)
 }
 
+// Close cancels session processing and closes any active server connection.
 func (s *Session) Close() {
 	s.mu.Lock()
 	if s.closed {
@@ -83,6 +113,11 @@ func (s *Session) Close() {
 	}
 }
 
+// run dials, reads server lines, publishes events, and retries until ctx is cancelled.
+//
+// Parameters:
+//
+//	ctx: context controlling the lifetime of the session loop.
 func (s *Session) run(ctx context.Context) {
 	defer close(s.events)
 	defer func() {
@@ -160,6 +195,15 @@ func (s *Session) run(ctx context.Context) {
 	}
 }
 
+// classifyServerLine assigns a display category based on the protocol prefix.
+//
+// Parameters:
+//
+//	text: raw line received from the server.
+//
+// Returns:
+//
+//	The line text paired with its event, error, or ordinary-response category.
 func classifyServerLine(text string) model.ServerLine {
 	line := model.ServerLine{Kind: model.ServerLineOK, Text: text}
 	switch {
@@ -171,6 +215,16 @@ func classifyServerLine(text string) model.ServerLine {
 	return line
 }
 
+// setConnection stores conn unless the session is closed or ctx is cancelled.
+//
+// Parameters:
+//
+//	ctx: context that must remain active for the connection to be accepted.
+//	conn: newly established server transport.
+//
+// Returns:
+//
+//	True if conn was stored; false if the session is stopping.
 func (s *Session) setConnection(ctx context.Context, conn network.Connection) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -181,6 +235,11 @@ func (s *Session) setConnection(ctx context.Context, conn network.Connection) bo
 	return true
 }
 
+// clearConnection removes and returns the currently stored transport.
+//
+// Returns:
+//
+//	The active transport, or nil if no connection is stored.
 func (s *Session) clearConnection() network.Connection {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -189,6 +248,16 @@ func (s *Session) clearConnection() network.Connection {
 	return conn
 }
 
+// publish sends event unless ctx is cancelled.
+//
+// Parameters:
+//
+//	ctx: context used to stop a blocked event send.
+//	event: connection or server-line event to publish.
+//
+// Returns:
+//
+//	True if event was delivered; false if the context was cancelled first.
 func (s *Session) publish(ctx context.Context, event model.ConnectionEvent) bool {
 	select {
 	case s.events <- event:
@@ -198,6 +267,15 @@ func (s *Session) publish(ctx context.Context, event model.ConnectionEvent) bool
 	}
 }
 
+// waitForRetry pauses for retryDelay unless ctx is cancelled.
+//
+// Parameters:
+//
+//	ctx: context used to interrupt the retry wait.
+//
+// Returns:
+//
+//	True when the delay expires; false when ctx is cancelled.
 func waitForRetry(ctx context.Context) bool {
 	timer := time.NewTimer(retryDelay)
 	defer timer.Stop()

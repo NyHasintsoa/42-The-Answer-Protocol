@@ -56,10 +56,29 @@ type model struct {
 }
 
 // NewModel builds the initial Bubble Tea model for the server session.
+//
+// Parameters:
+//
+//	session: service that supplies connection and server-line events.
+//	cfgNote: startup note displayed in the protocol log.
+//
+// Returns:
+//
+//	A Bubble Tea model ready to initialize the client interface.
 func NewModel(session *service.Session, cfgNote string) tea.Model {
 	return initialModel(session, cfgNote)
 }
 
+// initialModel configures the input, connection display state, and initial log entries.
+//
+// Parameters:
+//
+//	session: service that supplies the server address and connection events.
+//	cfgNote: startup note displayed in the protocol log.
+//
+// Returns:
+//
+//	The initialized UI model.
 func initialModel(session *service.Session, cfgNote string) model {
 	ti := textinput.New()
 	ti.Placeholder = "Type command (e.g., CONNECT alice, INVENTORY, USE potion_health_PM, MOVE north)..."

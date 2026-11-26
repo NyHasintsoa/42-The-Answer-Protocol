@@ -4,6 +4,9 @@ import "charm.land/lipgloss/v2"
 
 // recalculateLayout recomputes the panel geometry from the current terminal
 // size and refreshes the log buffer.
+//
+// The receiver's width and height are the source dimensions; all calculated
+// layout values are stored on the receiver.
 func (m *model) recalculateLayout() {
 	m.innerW = max(8, m.width-4) // panel border (1) + padding (1) on each side
 	m.logH = max(1, m.height-chromeRows)

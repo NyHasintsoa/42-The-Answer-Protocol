@@ -8,6 +8,17 @@ import (
 )
 
 // shimmerColor is the gradient plus a bright diagonal band that sweeps across.
+//
+// Parameters:
+//
+//	col: rune column in the rendered line.
+//	row: line row, used to offset the diagonal band.
+//	width: total rune width of the line.
+//	t: elapsed animation time in seconds.
+//
+// Returns:
+//
+//	The animated color for the rune at (col, row).
 func shimmerColor(col, row, width int, t float64) RGB {
 	base := gradient(float64(col)/float64(max(width, 1))*0.8 + t*0.10)
 	const period = 2.8
@@ -17,6 +28,17 @@ func shimmerColor(col, row, width int, t float64) RGB {
 }
 
 // ShimmerLine renders s with one shimmering colour per rune.
+//
+// Parameters:
+//
+//	s: text to render.
+//	row: line row used to offset the shimmer.
+//	t: elapsed animation time in seconds.
+//	p: painter used to apply the screen fade.
+//
+// Returns:
+//
+//	The styled line with its animated shimmer.
 func ShimmerLine(s string, row int, t float64, p Painter) string {
 	runes := []rune(s)
 	var b strings.Builder

@@ -15,12 +15,25 @@ import (
 // --- Commands ---------------------------------------------------------------------
 
 // Init starts the text-input blink, the first dial attempt and the frame clock.
+//
+// Returns:
+//
+//	Batched commands for input blinking, service events, and animation frames.
 func (m model) Init() tea.Cmd {
 	return tea.Batch(textinput.Blink, sessionEventCmd(m.session), tickCmd())
 }
 
 // --- Update -------------------------------------------------------------------------
 
+// Update processes a Bubble Tea message and returns the updated model and follow-up command.
+//
+// Parameters:
+//
+//	msg: keyboard, mouse, window, timer, or service-event message to process.
+//
+// Returns:
+//
+//	The updated UI model and any command that should run next.
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	m.now = time.Now()
