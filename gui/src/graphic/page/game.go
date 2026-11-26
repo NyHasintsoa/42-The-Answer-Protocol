@@ -53,6 +53,7 @@ type GamePage struct {
 	WindowHeight     int32
 	Camera           rl.Camera2D
 	IsMovingToRoom   bool
+	AttackBonus      int
 	movementStart    rl.Vector2
 	movementTarget   rl.Vector2
 	movementElapsed  float32
@@ -337,17 +338,39 @@ func (gp *GamePage) handleCommandResult(result commandResult) {
 		gp.applyQuests(serverQuests)
 	case "STATUS":
 		var status struct {
-			HP     int    `json:"hp"`
-			MaxHP  int    `json:"max_hp"`
-			Status string `json:"status"`
+			HP          int    `json:"hp"`
+			MaxHP       int    `json:"max_hp"`
+			AttackBonus int    `json:"attack_bonus"`
+			Status      string `json:"status"`
 		}
 		if err := json.Unmarshal([]byte(body), &status); err != nil {
 			gp.addLog("Could not decode STATUS response: " + err.Error())
 			return
 		}
-		gp.applyStatus(status.HP, status.MaxHP)
+		gp.applyStatus(status.HP, status.MaxHP, status.AttackBonus)
 	case "TAKE", "DROP":
 		gp.submitCommand("LOOK")
+		gp.submitCommand("INVENTORY")
+	case "USE":
+		var result struct {
+			Name        string `json:"name"`
+			Category    string `json:"category"`
+			Amount      int    `json:"amount"`
+			HP          int    `json:"hp"`
+			MaxHP       int    `json:"max_hp"`
+			AttackBonus int    `json:"attack_bonus"`
+		}
+		if err := json.Unmarshal([]byte(body), &result); err != nil {
+			gp.addLog("Could not decode USE response: " + err.Error())
+			return
+		}
+		gp.applyStatus(result.HP, result.MaxHP, result.AttackBonus)
+		switch result.Category {
+		case "heal":
+			gp.addLog(fmt.Sprintf("Used %s: restored %d HP.", result.Name, result.Amount))
+		case "attack":
+			gp.addLog(fmt.Sprintf("Used %s: attack bonus is now +%d.", result.Name, result.AttackBonus))
+		}
 		gp.submitCommand("INVENTORY")
 	case "QUEST":
 		var questResult struct {
@@ -567,12 +590,13 @@ func parseProgress(progress string) (int, int) {
 	return currentValue, targetValue
 }
 
-func (gp *GamePage) applyStatus(hp, maxHP int) {
+func (gp *GamePage) applyStatus(hp, maxHP, attackBonus int) {
 	if maxHP < 1 {
 		return
 	}
 	gp.AttackMgr.PlayerHP = hp
 	gp.AttackMgr.PlayerMaxHP = maxHP
+	gp.AttackBonus = attackBonus
 	gp.HPBar.SetMaxHP(float32(maxHP))
 	gp.HPBar.SetHP(float32(hp))
 }
@@ -795,6 +819,7 @@ func (gp *GamePage) Render() {
 	if gp.HPBar != nil {
 		gp.HPBar.Render()
 	}
+	rl.DrawText(fmt.Sprintf("ATK +%d", gp.AttackBonus), 30, 42, 14, utils.ThemeAccent)
 	rl.EndScissorMode()
 	rl.DrawRectangleLinesEx(rl.NewRectangle(0, 0, topMapSize, topMapSize), 2, utils.ThemeBorder)
 

@@ -88,3 +88,8 @@ func (manager *WorldManager) TakeItem(roomID, query string) (string, bool) {
 func (manager *WorldManager) DropItem(roomID, query string, inventory []string) (string, []string, bool) {
 	return manager.world.DropItemToRoom(roomID, query, inventory)
 }
+
+// Item returns server-defined item metadata matching query.
+func (manager *WorldManager) Item(query string) (*model.Item, bool) {
+	return manager.world.GetItem(query)
+}

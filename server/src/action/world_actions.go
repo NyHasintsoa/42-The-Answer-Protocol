@@ -1,6 +1,7 @@
 package action
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -52,4 +53,57 @@ func (r *ActionRouter) handleDrop(player *model.Player, itemQuery string) string
 	r.Store.SavePlayerSnapshot(player)
 	r.Store.RecordInteraction("INFO", model.InteractionItem, player.Username, "DROP", player.CurrentRoom, itemID)
 	return "OK dropped=" + itemID
+}
+
+func (r *ActionRouter) handleUse(player *model.Player, itemQuery string) string {
+	if itemQuery == "" {
+		return "ERR 400 INVALID_ARGUMENTS"
+	}
+	item, exists := r.WorldManager.Item(itemQuery)
+	if !exists {
+		return "ERR 404 ITEM_NOT_FOUND"
+	}
+	switch strings.ToLower(item.Category) {
+	case "heal":
+		if player.HP >= player.MaxHP {
+			return "ERR 409 HEALTH_FULL"
+		}
+	case "attack":
+	default:
+		return "ERR 405 ITEM_NOT_USABLE"
+	}
+	if item.Cost <= 0 {
+		return "ERR 422 INVALID_ITEM_EFFECT"
+	}
+	if !r.InventoryManager.Consume(player, item.ID) {
+		return "ERR 404 ITEM_NOT_IN_INVENTORY"
+	}
+
+	effectAmount := item.Cost
+	switch strings.ToLower(item.Category) {
+	case "heal":
+		if remaining := player.MaxHP - player.HP; effectAmount > remaining {
+			effectAmount = remaining
+		}
+		player.HP += effectAmount
+	case "attack":
+		player.AttackBonus += effectAmount
+	}
+
+	result := map[string]any{
+		"item_id":      item.ID,
+		"name":         item.Name,
+		"category":     strings.ToLower(item.Category),
+		"amount":       effectAmount,
+		"hp":           player.HP,
+		"max_hp":       player.MaxHP,
+		"attack_bonus": player.AttackBonus,
+	}
+	response, err := json.Marshal(result)
+	if err != nil {
+		return "ERR 500 INTERNAL_ERROR"
+	}
+	r.Store.SavePlayerSnapshot(player)
+	r.Store.RecordInteraction("INFO", model.InteractionItem, player.Username, "USE", player.CurrentRoom, string(response))
+	return "OK " + string(response)
 }

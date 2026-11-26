@@ -102,6 +102,8 @@ func (r *ActionRouter) Dispatch(sender service.ClientSender, rawLine string) (st
 		return r.handleTake(player, argument), false
 	case "DROP":
 		return r.handleDrop(player, argument), false
+	case "USE":
+		return r.handleUse(player, argument), false
 	case "INVENTORY":
 		if argument != "" {
 			return "ERR 400 INVALID_ARGUMENTS", false

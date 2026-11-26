@@ -281,14 +281,14 @@
             "id": "potion_attack_PM",
             "name": "Petite Attack Potion",
             "cost": 25,
-            "category": "heal",
+            "category": "attack",
             "description": "A small vial of glowing red elixir that temporarily boosts your attack damage (+5 ATK)."
         },
         "potion_attack_GM": {
             "id": "potion_attack_GM",
             "name": "Grand Attack Potion",
             "cost": 25,
-            "category": "heal",
+            "category": "attack",
             "description": "A large flask of surging crimson brew that drastically empowers your strikes (+20 ATK)."
         },
         "potion_health_PM": {

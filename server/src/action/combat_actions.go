@@ -157,9 +157,10 @@ func (r *ActionRouter) handleStatus(player *model.Player) string {
 		status = "combat"
 	}
 	return jsonResponse(map[string]any{
-		"hp":     player.HP,
-		"max_hp": player.MaxHP,
-		"status": status,
+		"hp":           player.HP,
+		"max_hp":       player.MaxHP,
+		"attack_bonus": player.AttackBonus,
+		"status":       status,
 	})
 }
 
