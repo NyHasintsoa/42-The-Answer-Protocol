@@ -8,7 +8,6 @@ import (
 	"tap-client/src/service"
 	"tap-client/src/ui"
 
-	tea "charm.land/bubbletea/v2"
 	"github.com/joho/godotenv"
 )
 
@@ -33,7 +32,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	program := tea.NewProgram(ui.NewModel(addr, "Loaded environment - server "+addr))
+	session := service.NewSession(addr)
+	defer session.Close()
+	program := ui.NewProgram(session, "Loaded environment - server "+addr)
 	if _, err := program.Run(); err != nil {
 		return err
 	}

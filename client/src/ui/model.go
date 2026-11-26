@@ -1,11 +1,10 @@
 package ui
 
 import (
-	"bufio"
 	"fmt"
 	"time"
 
-	"tap-client/src/network"
+	"tap-client/src/service"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -25,18 +24,8 @@ const (
 )
 
 type model struct {
-	// Connection.
-	address     string
-	conn        network.Connection
-	reader      *bufio.Reader
-	gen         int // id of the current dial attempt
-	attempt     int
-	connected   bool
-	lastErr     string
-	retryAt     time.Time // zero unless we are waiting to retry
-	connStart   time.Time // start of the current connecting sequence
-	connectedAt time.Time
-	revealAt    time.Time // when the log screen appears after a successful connect
+	session    *service.Session
+	connection connectionState
 
 	// Screen state and animation clock.
 	width, height int
@@ -66,12 +55,12 @@ type model struct {
 	input textinput.Model
 }
 
-// NewModel builds the initial Bubbletea model for the given server address.
-func NewModel(addr, cfgNote string) tea.Model {
-	return initialModel(addr, cfgNote)
+// NewModel builds the initial Bubble Tea model for the server session.
+func NewModel(session *service.Session, cfgNote string) tea.Model {
+	return initialModel(session, cfgNote)
 }
 
-func initialModel(addr, cfgNote string) model {
+func initialModel(session *service.Session, cfgNote string) model {
 	ti := textinput.New()
 	ti.Placeholder = "Type command (e.g., CONNECT alice, INVENTORY, USE potion_health_PM, MOVE north)..."
 	ti.Focus()
@@ -88,19 +77,20 @@ func initialModel(addr, cfgNote string) model {
 
 	now := time.Now()
 	m := model{
-		address:   addr,
-		input:     ti,
-		follow:    true,
-		gen:       1,
-		attempt:   1,
-		ticking:   true, // Init() starts the first frame tick
-		phase:     phaseLoading,
-		now:       now,
-		phaseAt:   now,
-		connStart: now,
-		loaderT0:  now,
+		session: session,
+		connection: connectionState{
+			attempt:   1,
+			connStart: now,
+		},
+		input:    ti,
+		follow:   true,
+		ticking:  true, // Init() starts the first frame tick
+		phase:    phaseLoading,
+		now:      now,
+		phaseAt:  now,
+		loaderT0: now,
 	}
 	m.addLog(kindSystem, cfgNote)
-	m.addLog(kindSystem, fmt.Sprintf("Connecting to TAP Server at %s...", addr))
+	m.addLog(kindSystem, fmt.Sprintf("Connecting to TAP Server at %s...", session.Address()))
 	return m
 }

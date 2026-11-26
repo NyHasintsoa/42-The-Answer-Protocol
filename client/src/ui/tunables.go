@@ -5,8 +5,6 @@ import "time"
 // --- Tunables ---------------------------------------------------------------
 
 const (
-	retryDelay = 2 * time.Second
-
 	// One frame clock drives every animation; it only runs while something moves.
 	frameInterval = time.Second / 50
 

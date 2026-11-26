@@ -18,7 +18,7 @@ func (m model) loaderView() string {
 	t := math.Max(0, m.now.Sub(m.loaderT0).Seconds())
 	age := math.Max(0, m.now.Sub(m.phaseAt).Seconds())
 	success := m.phase == phaseSuccess
-	failing := !success && m.lastErr != ""
+	failing := !success && m.connection.lastErr != ""
 	pulse := (math.Sin(t*2.4) + 1) / 2
 
 	cardW := animation.ClampInt(m.width-12, 30, 46)
@@ -54,13 +54,13 @@ func (m model) loaderView() string {
 	gap()
 
 	spin := theme.SpinnerFrames[int(t*12.5)%len(theme.SpinnerFrames)]
-	addr := util.TruncateCells(m.address, cardW-18)
+	addr := util.TruncateCells(m.session.Address(), cardW-18)
 	var status string
 	switch {
 	case success:
 		status = ink(animation.RGBGreen).Bold(true).Render("✓ Connected to " + addr)
-	case failing && m.retryAt.After(m.now):
-		wait := m.retryAt.Sub(m.now).Seconds()
+	case failing && m.connection.retryAt.After(m.now):
+		wait := m.connection.retryAt.Sub(m.now).Seconds()
 		status = ink(animation.RGBYellow).Bold(true).Render(spin) + " " +
 			ink(animation.RGBText).Render(fmt.Sprintf("Retrying in %.1fs", wait))
 	default:
@@ -71,15 +71,15 @@ func (m model) loaderView() string {
 	}
 	add(status)
 
-	elapsed := m.now.Sub(m.connStart)
+	elapsed := m.now.Sub(m.connection.connStart)
 	if success {
-		elapsed = m.connectedAt.Sub(m.connStart)
+		elapsed = m.connection.connectedAt.Sub(m.connection.connStart)
 	}
-	add(ink(animation.RGBMuted).Render(fmt.Sprintf("attempt %d · %.1fs", m.attempt, elapsed.Seconds())))
+	add(ink(animation.RGBMuted).Render(fmt.Sprintf("attempt %d · %.1fs", m.connection.attempt, elapsed.Seconds())))
 
 	errLine := ""
 	if failing {
-		errLine = ink(animation.RGBRed).Render(util.TruncateCells("✗ "+m.lastErr, cardW))
+		errLine = ink(animation.RGBRed).Render(util.TruncateCells("✗ "+m.connection.lastErr, cardW))
 	}
 	add(errLine)
 	gap()

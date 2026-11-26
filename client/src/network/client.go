@@ -2,11 +2,10 @@ package network
 
 import (
 	"bufio"
+	"context"
 	"net"
 	"strings"
 	"time"
-
-	tea "charm.land/bubbletea/v2"
 )
 
 // tcpConnection wraps a TCP connection and buffers its incoming lines.
@@ -37,24 +36,19 @@ func (c *TcpConnection) Reader() *bufio.Reader {
 	return c.reader
 }
 
-// DialCmd attempts a TCP dial and reports success or failure as a message.
-func DialCmd(addr string, generation int) tea.Cmd {
-	return func() tea.Msg {
-		conn, err := net.DialTimeout("tcp", addr, dialTimeout)
-		if err != nil {
-			return ServerErrMsg{Generation: generation, Err: err}
-		}
-		return ConnectedMsg{Generation: generation, Conn: newTCPConnection(conn)}
+func Dial(ctx context.Context, address string) (Connection, error) {
+	dialer := net.Dialer{Timeout: dialTimeout}
+	conn, err := dialer.DialContext(ctx, "tcp", address)
+	if err != nil {
+		return nil, err
 	}
+	return newTCPConnection(conn), nil
 }
 
-// ReadCmd reads one line; the component re-arms it after each delivered line.
-func ReadCmd(reader *bufio.Reader, generation int) tea.Cmd {
-	return func() tea.Msg {
-		line, err := reader.ReadString('\n')
-		if err != nil && line == "" {
-			return ServerErrMsg{Generation: generation, Err: err}
-		}
-		return ServerLineMsg{Generation: generation, Line: strings.TrimRight(line, "\r\n")}
+func ReadLine(reader *bufio.Reader) (string, error) {
+	line, err := reader.ReadString('\n')
+	if err != nil && line == "" {
+		return "", err
 	}
+	return strings.TrimRight(line, "\r\n"), nil
 }

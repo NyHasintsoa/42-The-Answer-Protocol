@@ -1,12 +1,11 @@
 package ui
 
 import (
-	"bufio"
 	"fmt"
 	"strings"
 	"time"
 
-	"tap-client/src/network"
+	appmodel "tap-client/src/model"
 	"tap-client/src/util"
 
 	"charm.land/bubbles/v2/textinput"
@@ -17,7 +16,7 @@ import (
 
 // Init starts the text-input blink, the first dial attempt and the frame clock.
 func (m model) Init() tea.Cmd {
-	return tea.Batch(textinput.Blink, network.DialCmd(m.address, m.gen), tickCmd())
+	return tea.Batch(textinput.Blink, sessionEventCmd(m.session), tickCmd())
 }
 
 // --- Update -------------------------------------------------------------------------
@@ -43,11 +42,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c":
 			_ = m.sendRaw("QUIT")
-			m.closeConn()
+			m.closeSession()
 			return m, tea.Quit
 
 		case "enter":
-			if !m.connected || m.phase != phaseMain {
+			if !m.connection.connected || m.phase != phaseMain {
 				return m, nil
 			}
 			raw := strings.TrimSpace(m.input.Value())
@@ -58,7 +57,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.sendCommand(raw)
 			m.scrollTo(m.maxOffset()) // jump to the newest output
 			if strings.EqualFold(raw, "QUIT") {
-				m.closeConn()
+				m.closeSession()
 				return m, tea.Quit
 			}
 
@@ -93,53 +92,45 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseReleaseMsg:
 		m.dragging = false
 
-	case network.ConnectedMsg:
-		if msg.Generation != m.gen {
-			_ = msg.Conn.Close() // a newer attempt superseded this one
-			break
-		}
-		m.conn = msg.Conn
-		m.reader = bufio.NewReader(msg.Conn.Reader())
-		m.connected = true
-		m.lastErr = ""
-		m.retryAt = time.Time{}
-		m.connectedAt = m.now
-		m.revealAt = m.now.Add(successHold + loaderFadeOut)
-		m.setPhase(phaseSuccess)
-		m.addLog(kindSystem, fmt.Sprintf("Connected to %s", m.address))
-		cmds = append(cmds, network.ReadCmd(m.reader, m.gen))
+	case sessionEventMsg:
+		event := msg.event
+		switch event.Kind {
+		case appmodel.ConnectionStarting:
+			m.connection.attempt = event.Attempt
+			m.connection.retryAt = time.Time{}
 
-	case network.ServerLineMsg:
-		if msg.Generation != m.gen || m.conn == nil {
-			break
-		}
-		m.handleServerLine(msg.Line)
-		cmds = append(cmds, network.ReadCmd(m.reader, m.gen))
+		case appmodel.ConnectionEstablished:
+			m.connection.connected = true
+			m.connection.lastErr = ""
+			m.connection.retryAt = time.Time{}
+			m.connection.connectedAt = m.now
+			m.connection.revealAt = m.now.Add(successHold + loaderFadeOut)
+			m.setPhase(phaseSuccess)
+			m.addLog(kindSystem, fmt.Sprintf("Connected to %s", m.session.Address()))
 
-	case network.ServerErrMsg:
-		if msg.Generation != m.gen {
-			break
-		}
-		wasUp := m.connected
-		m.closeConn()
-		m.connected = false
-		m.lastErr = util.DescribeErr(msg.Err)
-		m.retryAt = m.now.Add(retryDelay)
-		if wasUp {
-			m.attempt = 0
-			m.connStart = m.now
-		}
-		if m.phase != phaseLoading {
-			m.setPhase(phaseLoading)
-		}
-		m.addLog(kindError, fmt.Sprintf("Connection error: %v (retrying...)", msg.Err))
-		cmds = append(cmds, tea.Tick(retryDelay, func(time.Time) tea.Msg { return network.RetryMsg{} }))
+		case appmodel.ConnectionLine:
+			if m.connection.connected {
+				m.handleServerLine(event.Line)
+			}
 
-	case network.RetryMsg:
-		m.gen++
-		m.attempt++
-		m.retryAt = time.Time{}
-		cmds = append(cmds, network.DialCmd(m.address, m.gen))
+		case appmodel.ConnectionFailed:
+			wasUp := event.WasConnected || m.connection.connected
+			m.connection.connected = false
+			m.connection.lastErr = util.DescribeErr(event.Err)
+			m.connection.retryAt = event.RetryAt
+			if wasUp {
+				m.connection.attempt = 0
+				m.connection.connStart = m.now
+			}
+			if m.phase != phaseLoading {
+				m.setPhase(phaseLoading)
+			}
+			m.addLog(kindError, fmt.Sprintf("Connection error: %v (retrying...)", event.Err))
+		}
+		cmds = append(cmds, sessionEventCmd(m.session))
+
+	case sessionClosedMsg:
+		return m, tea.Quit
 	}
 
 	var inputCmd tea.Cmd

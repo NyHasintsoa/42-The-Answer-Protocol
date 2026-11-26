@@ -19,8 +19,8 @@ func (m *model) addLog(kind logKind, text string) {
 	}
 
 	base := m.now
-	if m.phase == phaseSuccess && m.revealAt.After(base) {
-		base = m.revealAt
+	if m.phase == phaseSuccess && m.connection.revealAt.After(base) {
+		base = m.connection.revealAt
 	}
 	born := base
 	if next := m.lastBorn.Add(lineStagger); next.After(born) {

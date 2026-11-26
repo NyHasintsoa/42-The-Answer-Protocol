@@ -1,18 +1,26 @@
 package ui
 
 import (
-	"errors"
 	"fmt"
-	"strings"
+	"time"
+
+	appmodel "tap-client/src/model"
 )
 
 // --- Connection -------------------------------------------------------------------
 
+type connectionState struct {
+	attempt     int
+	connected   bool
+	lastErr     string
+	retryAt     time.Time
+	connStart   time.Time
+	connectedAt time.Time
+	revealAt    time.Time
+}
+
 func (m *model) sendRaw(line string) error {
-	if m.conn == nil {
-		return errors.New("not connected")
-	}
-	return m.conn.Send(line)
+	return m.session.Send(line)
 }
 
 func (m *model) sendCommand(cmd string) {
@@ -22,21 +30,19 @@ func (m *model) sendCommand(cmd string) {
 	}
 }
 
-func (m *model) closeConn() {
-	if m.conn != nil {
-		_ = m.conn.Close()
-		m.conn = nil
-	}
-	m.reader = nil
+func (m *model) closeSession() {
+	m.session.Close()
 }
 
-func (m *model) handleServerLine(line string) {
-	switch {
-	case strings.HasPrefix(line, "EVT "):
-		m.addLog(kindEvent, line)
-	case strings.HasPrefix(line, "ERR "):
-		m.addLog(kindServerErr, line)
+func (m *model) handleServerLine(line appmodel.ServerLine) {
+	switch line.Kind {
+	case appmodel.ServerLineEvent:
+		m.addLog(kindEvent, line.Text)
+	case appmodel.ServerLineError:
+		m.addLog(kindServerErr, line.Text)
+	case appmodel.ServerLineOK:
+		m.addLog(kindOK, line.Text)
 	default:
-		m.addLog(kindOK, line)
+		m.addLog(kindError, fmt.Sprintf("Unknown server line kind %d: %s", line.Kind, line.Text))
 	}
 }

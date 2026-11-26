@@ -62,7 +62,7 @@ func (m model) headerView(p animation.Painter) string {
 	badge := lipgloss.NewStyle().Bold(true).
 		Foreground(p.C(theme.ColorBg)).Background(p.C(theme.ColorGreen)).Padding(0, 1).
 		Render("CONNECTED")
-	server := lipgloss.NewStyle().Foreground(p.C(theme.ColorMuted)).Render("Server: " + m.address)
+	server := lipgloss.NewStyle().Foreground(p.C(theme.ColorMuted)).Render("Server: " + m.session.Address())
 
 	var b strings.Builder
 	b.WriteString(pill)
