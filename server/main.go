@@ -59,6 +59,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("load map.json: %w", err)
 	}
+	defer worldSvc.Close()
 
 	broadcastSvc := service.NewBroadcastService()
 	router := action.NewActionRouter(worldSvc, broadcastSvc, store)

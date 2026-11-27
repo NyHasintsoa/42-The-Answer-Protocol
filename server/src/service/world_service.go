@@ -8,13 +8,30 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"tap-server/src/model"
 )
 
+// respawnInterval is how long a defeated NPC stays removed from the map.
+const respawnInterval = 5 * time.Minute
+
+// respawnTick is how often the respawn watcher checks for expired defeats.
+const respawnTick = 30 * time.Second
+
+// defeatedNPC tracks an NPC that has been defeated and is awaiting respawn.
+type defeatedNPC struct {
+	roomID    string
+	respawnAt time.Time
+}
+
 type WorldService struct {
-	mu     sync.RWMutex
-	config model.WorldConfig
+	mu             sync.RWMutex
+	config         model.WorldConfig
+	defeatedNPCs   map[string]defeatedNPC
+	respawnStop    chan struct{}
+	respawnDone    chan struct{}
+	respawnStarted bool
 }
 
 func NewWorldService(mapPath string) (*WorldService, error) {
@@ -59,7 +76,12 @@ func NewWorldService(mapPath string) (*WorldService, error) {
 		}
 	}
 
-	return &WorldService{config: cfg}, nil
+	ws := &WorldService{
+		config:       cfg,
+		defeatedNPCs: make(map[string]defeatedNPC),
+	}
+	ws.StartRespawnWatcher()
+	return ws, nil
 }
 
 func validateWorld(cfg *model.WorldConfig) error {
@@ -305,12 +327,28 @@ func (ws *WorldService) DamageNPC(npcID string, damage int) (int, bool) {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
 	npc, ok := ws.config.NPCs[npcID]
-	if !ok || npc.HP <= 0 {
+	if !ok {
+		return 0, false
+	}
+	// Already defeated and awaiting respawn.
+	if _, defeated := ws.defeatedNPCs[npcID]; defeated {
+		return 0, false
+	}
+	if npc.HP <= 0 {
 		return 0, false
 	}
 	npc.HP -= damage
 	if npc.HP < 0 {
 		npc.HP = 0
+	}
+
+	if npc.HP == 0 {
+		// Mark as defeated: remove from its room and schedule respawn.
+		ws.defeatedNPCs[npcID] = defeatedNPC{
+			roomID:    ws.findRoomWithNPC(npcID),
+			respawnAt: time.Now().Add(respawnInterval),
+		}
+		ws.removeNPCFromRoom(npcID)
 	}
 	return npc.HP, true
 }
@@ -319,7 +357,13 @@ func (ws *WorldService) IsNPCAlive(npcID string) bool {
 	ws.mu.RLock()
 	defer ws.mu.RUnlock()
 	npc, ok := ws.config.NPCs[npcID]
-	return ok && npc.HP > 0
+	if !ok {
+		return false
+	}
+	if _, defeated := ws.defeatedNPCs[npcID]; defeated {
+		return false
+	}
+	return npc.HP > 0
 }
 
 func (ws *WorldService) GetQuest(questID string) (*model.Quest, bool) {
@@ -366,4 +410,125 @@ func cloneStringMap(src map[string]string) map[string]string {
 		dst[key] = value
 	}
 	return dst
+}
+
+// Close stops the respawn watcher. Call it when the server shuts down.
+func (ws *WorldService) Close() error {
+	ws.mu.Lock()
+	if !ws.respawnStarted {
+		ws.mu.Unlock()
+		return nil
+	}
+	ws.respawnStarted = false
+	close(ws.respawnStop)
+	ws.mu.Unlock()
+	<-ws.respawnDone
+	return nil
+}
+
+// StartRespawnWatcher launches the background goroutine that respawns
+// defeated NPCs after respawnInterval has elapsed.
+func (ws *WorldService) StartRespawnWatcher() {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
+	if ws.respawnStarted {
+		return
+	}
+	ws.respawnStarted = true
+	ws.respawnStop = make(chan struct{})
+	ws.respawnDone = make(chan struct{})
+	go ws.respawnLoop()
+}
+
+func (ws *WorldService) respawnLoop() {
+	defer close(ws.respawnDone)
+	ticker := time.NewTicker(respawnTick)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			ws.checkRespawns()
+		case <-ws.respawnStop:
+			return
+		}
+	}
+}
+
+// checkRespawns respawns every defeated NPC whose respawn time has passed.
+func (ws *WorldService) checkRespawns() {
+	ws.mu.Lock()
+	now := time.Now()
+	var toRespawn []string
+	for npcID, defeated := range ws.defeatedNPCs {
+		if now.After(defeated.respawnAt) {
+			toRespawn = append(toRespawn, npcID)
+		}
+	}
+	ws.mu.Unlock()
+
+	for _, npcID := range toRespawn {
+		ws.RespawnNPC(npcID)
+	}
+}
+
+// RespawnNPC restores a defeated NPC's HP and returns it to its room.
+// Returns false if the NPC is not currently defeated.
+func (ws *WorldService) RespawnNPC(npcID string) bool {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
+
+	defeated, ok := ws.defeatedNPCs[npcID]
+	if !ok {
+		return false
+	}
+
+	npc := ws.config.NPCs[npcID]
+	if npc == nil {
+		delete(ws.defeatedNPCs, npcID)
+		return false
+	}
+	npc.HP = npc.MaxHP
+
+	room, ok := ws.config.World.Rooms[defeated.roomID]
+	if !ok {
+		delete(ws.defeatedNPCs, npcID)
+		return false
+	}
+	// Avoid adding the NPC back if it is already in the room.
+	for _, id := range room.NPCs {
+		if id == npcID {
+			delete(ws.defeatedNPCs, npcID)
+			return true
+		}
+	}
+	room.NPCs = append(room.NPCs, npcID)
+
+	delete(ws.defeatedNPCs, npcID)
+	return true
+}
+
+// findRoomWithNPC returns the room ID that currently contains the given NPC.
+// Returns an empty string if the NPC is not in any room.
+func (ws *WorldService) findRoomWithNPC(npcID string) string {
+	for roomID, room := range ws.config.World.Rooms {
+		for _, id := range room.NPCs {
+			if id == npcID {
+				return roomID
+			}
+		}
+	}
+	return ""
+}
+
+// removeNPCFromRoom removes the given NPC from the room that contains it.
+// It is a no-op if the NPC is not in any room.
+func (ws *WorldService) removeNPCFromRoom(npcID string) {
+	for _, room := range ws.config.World.Rooms {
+		for i, id := range room.NPCs {
+			if id == npcID {
+				room.NPCs = append(room.NPCs[:i], room.NPCs[i+1:]...)
+				return
+			}
+		}
+	}
 }
