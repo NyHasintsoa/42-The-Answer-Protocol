@@ -39,6 +39,7 @@ func (r *ActionRouter) handleTake(player *model.Player, itemQuery string) string
 	}
 	r.Store.SavePlayerSnapshot(player)
 	r.Store.RecordInteraction("INFO", model.InteractionItem, player.Username, "TAKE", player.CurrentRoom, itemID)
+	r.WorldManager.BroadcastRoom(player.CurrentRoom, fmt.Sprintf("EVT ROOM ITEM TAKE %s %s", player.Username, itemID), player.Username)
 	return "OK taken=" + itemID
 }
 
@@ -52,6 +53,7 @@ func (r *ActionRouter) handleDrop(player *model.Player, itemQuery string) string
 	}
 	r.Store.SavePlayerSnapshot(player)
 	r.Store.RecordInteraction("INFO", model.InteractionItem, player.Username, "DROP", player.CurrentRoom, itemID)
+	r.WorldManager.BroadcastRoom(player.CurrentRoom, fmt.Sprintf("EVT ROOM ITEM DROP %s %s", player.Username, itemID), player.Username)
 	return "OK dropped=" + itemID
 }
 

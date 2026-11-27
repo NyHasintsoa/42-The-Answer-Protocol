@@ -64,6 +64,11 @@ func run() error {
 	broadcastSvc := service.NewBroadcastService()
 	router := action.NewActionRouter(worldSvc, broadcastSvc, store)
 
+	// Notify clients when a defeated NPC respawns so the GUI can update in real time.
+	worldSvc.SetNPCRespawnCallback(func(npcID, roomID string) {
+		router.WorldManager.BroadcastRoom(roomID, fmt.Sprintf("EVT ROOM NPC RESPAWN %s", npcID), "")
+	})
+
 	listener, err := net.Listen("tcp", listenAddress)
 	if err != nil {
 		return fmt.Errorf("bind TCP listener on %s: %w", listenAddress, err)

@@ -642,7 +642,7 @@ func (gp *GamePage) handleServerEvent(event string) {
 		case "GROUP":
 			channel = service.ChannelGroup
 		}
-		gp.ChatMgr.AddMessage(channel, parts[3], parts[4], parts[3] == gp.Context.PlayerName)
+		gp.ChatMgr.AddMessage(channel, parts[3], parts[4], gp.Context != nil && parts[3] == gp.Context.PlayerName)
 	}
 	if len(parts) == 5 && parts[0] == "EVT" && parts[1] == "ROOM" && parts[2] == "PRESENCE" {
 		switch parts[3] {
@@ -661,6 +661,17 @@ func (gp *GamePage) handleServerEvent(event string) {
 					break
 				}
 			}
+		}
+	}
+	itemParts := strings.Fields(event)
+	if len(itemParts) == 6 && itemParts[0] == "EVT" && itemParts[1] == "ROOM" && itemParts[2] == "ITEM" {
+		switch itemParts[3] {
+		case "TAKE":
+			gp.addLog(fmt.Sprintf("%s took %s from this room.", itemParts[4], itemParts[5]))
+			gp.submitCommand("LOOK")
+		case "DROP":
+			gp.addLog(fmt.Sprintf("%s dropped %s in this room.", itemParts[4], itemParts[5]))
+			gp.submitCommand("LOOK")
 		}
 	}
 	gp.addLog(event)

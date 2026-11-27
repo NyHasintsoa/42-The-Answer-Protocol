@@ -495,9 +495,44 @@ Defeated NPCs respawn automatically after **5 minutes** with full HP restored to
 -> ATTACK goblin
 <- ERR 404 NPC_NOT_FOUND
 # After 5 minutes, the goblin respawns in forest_edge with full HP.
+```
+
+**Respawn event**
+
+When a defeated NPC respawns, the server broadcasts an event to all clients in that room so the GUI can update in real time:
+
+```
+<- EVT ROOM NPC RESPAWN goblin
+```
+
+The event is sent to every connected client in the NPC's room. The GUI should listen for `EVT ROOM NPC RESPAWN <npcId>` and re-add the enemy to the map view:
+
+```
 -> LOOK
 # The goblin appears again in the room's NPC list.
 ```
+
+### Server Events (real-time updates)
+
+The server sends `EVT` lines to clients to notify them of changes that happen outside of their own commands. The GUI should listen for these and update the view in real time.
+
+| Event | Meaning |
+|-------|---------|
+| `EVT ROOM NPC RESPAWN <npcId>` | A defeated enemy has respawned in the room (after 5 minutes). |
+| `EVT ROOM COMBAT ...` | Combat occurred in the room (attack, defend, flee). |
+| `EVT ROOM CHAT <user> <msg>` | A player sent a chat message to the room. |
+| `EVT GLOBAL CHAT <user> <msg>` | A player sent a global chat message. |
+| `EVT GROUP CHAT <user> <msg>` | A player sent a group chat message. |
+| `EVT ROOM PRESENCE ENTER <user>` | A player entered the room. |
+| `EVT ROOM PRESENCE LEAVE <user>` | A player left the room. |
+| `EVT GROUP INVITE <user>` | A player invited you to their group. |
+| `EVT GROUP JOIN <user>` | A player joined your group. |
+| `EVT GROUP LEAVE <user>` | A player left your group. |
+| `EVT STATS players=<n>` | The total number of connected players changed. |
+
+Events are sent as standalone lines (not prefixed with `OK` or `ERR`) and may arrive at any time while connected.
+
+---
 
 ---
 

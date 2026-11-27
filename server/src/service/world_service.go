@@ -32,6 +32,7 @@ type WorldService struct {
 	respawnStop    chan struct{}
 	respawnDone    chan struct{}
 	respawnStarted bool
+	onNPCRespawn   func(npcID, roomID string)
 }
 
 func NewWorldService(mapPath string) (*WorldService, error) {
@@ -426,6 +427,15 @@ func (ws *WorldService) Close() error {
 	return nil
 }
 
+// SetNPCRespawnCallback registers a function that is called whenever a
+// defeated NPC respawns. The callback receives the NPC ID and the room it
+// respawned into, and is intended for broadcasting respawn events to clients.
+func (ws *WorldService) SetNPCRespawnCallback(cb func(npcID, roomID string)) {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
+	ws.onNPCRespawn = cb
+}
+
 // StartRespawnWatcher launches the background goroutine that respawns
 // defeated NPCs after respawnInterval has elapsed.
 func (ws *WorldService) StartRespawnWatcher() {
@@ -458,16 +468,20 @@ func (ws *WorldService) respawnLoop() {
 func (ws *WorldService) checkRespawns() {
 	ws.mu.Lock()
 	now := time.Now()
-	var toRespawn []string
+	type respawnItem struct {
+		npcID  string
+		roomID string
+	}
+	var toRespawn []respawnItem
 	for npcID, defeated := range ws.defeatedNPCs {
 		if now.After(defeated.respawnAt) {
-			toRespawn = append(toRespawn, npcID)
+			toRespawn = append(toRespawn, respawnItem{npcID: npcID, roomID: defeated.roomID})
 		}
 	}
 	ws.mu.Unlock()
 
-	for _, npcID := range toRespawn {
-		ws.RespawnNPC(npcID)
+	for _, item := range toRespawn {
+		ws.RespawnNPC(item.npcID)
 	}
 }
 
@@ -498,12 +512,18 @@ func (ws *WorldService) RespawnNPC(npcID string) bool {
 	for _, id := range room.NPCs {
 		if id == npcID {
 			delete(ws.defeatedNPCs, npcID)
+			if cb := ws.onNPCRespawn; cb != nil {
+				cb(npcID, defeated.roomID)
+			}
 			return true
 		}
 	}
 	room.NPCs = append(room.NPCs, npcID)
 
 	delete(ws.defeatedNPCs, npcID)
+	if cb := ws.onNPCRespawn; cb != nil {
+		cb(npcID, defeated.roomID)
+	}
 	return true
 }
 
