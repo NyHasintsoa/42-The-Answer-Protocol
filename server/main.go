@@ -6,7 +6,9 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"tap-server/src/action"
@@ -28,7 +30,10 @@ func printCliError(category string, details any, color string) {
 	fmt.Fprintf(os.Stderr, "%s[%s]%s %v\n", color, category, ColorReset, details)
 }
 
-const maxConcurrentClients = 5
+const (
+	maxConcurrentClients = 5
+	dataDir              = "data"
+)
 
 func run() error {
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
@@ -36,13 +41,17 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	store, err := util.NewJSONStore("data")
+	store, err := util.NewJSONStore(dataDir)
 	if err != nil {
 		return fmt.Errorf("initialize interaction store: %w", err)
 	}
 	defer func() {
 		if err := store.Close(); err != nil {
 			logger.Error("failed to close interaction store", "error", err)
+		}
+		// Remove the data folder on shutdown so the next start begins clean.
+		if err := os.RemoveAll(dataDir); err != nil {
+			logger.Error("failed to remove data directory", "error", err)
 		}
 	}()
 
@@ -59,6 +68,15 @@ func run() error {
 		return fmt.Errorf("bind TCP listener on %s: %w", listenAddress, err)
 	}
 	defer listener.Close()
+
+	// Handle shutdown signals so the store is closed and the data folder removed on close.
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		logger.Info("received shutdown signal, closing server")
+		_ = listener.Close()
+	}()
 
 	router.RecordSessionEvent("INFO", "server_started", "", "", "address="+listenAddress)
 
